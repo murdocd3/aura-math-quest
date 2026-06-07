@@ -1,5 +1,16 @@
 // Mock Database Service using LocalStorage
 // Implements schemas for users, game states, pets, and math stats.
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = (import.meta.env?.VITE_SUPABASE_URL as string) || '';
+const SUPABASE_ANON_KEY = (import.meta.env?.VITE_SUPABASE_ANON_KEY as string) || '';
+
+const isSupabaseEnabled = SUPABASE_URL.trim() !== '' && SUPABASE_ANON_KEY.trim() !== '';
+
+const supabase = isSupabaseEnabled
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
 
 export interface User {
   id: string;
@@ -422,6 +433,34 @@ const setStorageItem = <T>(key: string, data: T[]): void => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
+const mapGameStateToDb = (state: Partial<GameState>) => {
+  const dbRow: any = {};
+  if (state.campaignStage !== undefined) dbRow.campaign_stage = state.campaignStage;
+  if (state.gems !== undefined) dbRow.gems = state.gems;
+  if (state.auraLevel !== undefined) dbRow.aura_level = state.auraLevel;
+  if (state.auraXp !== undefined) dbRow.aura_xp = state.auraXp;
+  if (state.auraColor !== undefined) dbRow.aura_color = state.auraColor;
+  if (state.rebirths !== undefined) dbRow.rebirths = state.rebirths;
+  if (state.currentZone !== undefined) dbRow.current_zone = state.currentZone;
+  if (state.equippedPetId !== undefined) dbRow.equipped_pet_id = state.equippedPetId;
+  if (state.activeAuras !== undefined) dbRow.active_auras = state.activeAuras;
+  if (state.totalPlayTimeSeconds !== undefined) dbRow.total_play_time_seconds = state.totalPlayTimeSeconds;
+  if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
+  if (state.equippedCosmeticId !== undefined) dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
+  if (state.selectedOperation !== undefined) dbRow.selected_operation = state.selectedOperation;
+  if (state.questWins !== undefined) dbRow.quest_wins = state.questWins;
+  if (state.questCriticals !== undefined) dbRow.quest_criticals = state.questCriticals;
+  if (state.questStreak !== undefined) dbRow.quest_streak = state.questStreak;
+  if (state.claimedQuests !== undefined) dbRow.claimed_quests = state.claimedQuests;
+  if (state.classId !== undefined) dbRow.active_class = state.classId;
+  if (state.skillPoints !== undefined) dbRow.skill_points = state.skillPoints;
+  if (state.unlockedSkills !== undefined) dbRow.unlocked_skills = state.unlockedSkills;
+  if (state.clanId !== undefined) dbRow.clan_id = state.clanId;
+  if (state.clanContributions !== undefined) dbRow.clan_contributions = state.clanContributions;
+  dbRow.updated_at = new Date().toISOString();
+  return dbRow;
+};
+
 // API LAYER
 
 export const mockDb = {
@@ -458,10 +497,12 @@ export const mockDb = {
     users.push(newUser);
     setStorageItem(STORAGE_KEYS.USERS, users);
 
+    let newState: GameState | null = null;
+
     // Initialize default game state for player
     if (role === 'player') {
       const gameStates = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
-      const newState: GameState = {
+      newState = {
         userId: newUser.id,
         auraLevel: 1,
         auraXp: 0,
@@ -491,6 +532,33 @@ export const mockDb = {
       setStorageItem(STORAGE_KEYS.GAME_STATES, gameStates);
     }
 
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('users')
+        .insert({
+          id: newUser.id,
+          username: newUser.username,
+          password: newUser.passwordHash,
+          role: newUser.role,
+        })
+        .then(({ error: uError }) => {
+          if (uError) {
+            console.error('[mockDb] Error syncing new user to Supabase:', uError);
+            return;
+          }
+
+          if (role === 'player' && newState) {
+            const dbRow = mapGameStateToDb(newState);
+            dbRow.user_id = newUser.id;
+            supabase.from('game_states')
+              .insert(dbRow)
+              .then(({ error: sError }) => {
+                if (sError) console.error('[mockDb] Error syncing default game state to Supabase:', sError);
+              });
+          }
+        });
+    }
+
     return newUser;
   },
 
@@ -511,6 +579,20 @@ export const mockDb = {
     }
 
     setStorageItem(STORAGE_KEYS.USERS, users);
+
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      const dbUpdates: any = {};
+      if (updates.username !== undefined) dbUpdates.username = updates.username;
+      if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
+      supabase.from('users')
+        .update(dbUpdates)
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error('[mockDb] Error syncing user update to Supabase:', error);
+        });
+    }
+
     return true;
   },
 
@@ -530,6 +612,16 @@ export const mockDb = {
 
     const stats = getStorageItem<MathStatistic>(STORAGE_KEYS.STATS);
     setStorageItem(STORAGE_KEYS.STATS, stats.filter(s => s.userId !== id));
+
+    // Sync to Supabase in background (cascade deletion in DB schema automatically deletes associated game_states, pets, stats)
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('users')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error('[mockDb] Error syncing user deletion to Supabase:', error);
+        });
+    }
 
     return true;
   },
@@ -559,6 +651,20 @@ export const mockDb = {
     };
 
     setStorageItem(STORAGE_KEYS.GAME_STATES, states);
+
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      const dbUpdates = mapGameStateToDb(updates);
+      supabase.from('game_states')
+        .update(dbUpdates)
+        .eq('user_id', userId)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[mockDb] Error syncing game_state to Supabase:', error);
+          }
+        });
+    }
+
     return states[index];
   },
 
@@ -596,6 +702,27 @@ export const mockDb = {
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
     pets.push(newPet);
     setStorageItem(STORAGE_KEYS.PETS, pets);
+
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('pets')
+        .insert({
+          id: newPet.id,
+          user_id: newPet.userId,
+          pet_type_id: newPet.petTypeId,
+          nickname: newPet.nickname,
+          rarity: newPet.rarity,
+          buff_type: newPet.buffType,
+          buff_value: newPet.buffValue,
+          level: newPet.level,
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('[mockDb] Error syncing new pet to Supabase:', error);
+          }
+        });
+    }
+
     return newPet;
   },
 
@@ -605,6 +732,19 @@ export const mockDb = {
     if (pets.length === filteredPets.length) return false;
 
     setStorageItem(STORAGE_KEYS.PETS, filteredPets);
+
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('pets')
+        .delete()
+        .eq('id', petId)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[mockDb] Error deleting pet from Supabase:', error);
+          }
+        });
+    }
+
     return true;
   },
 
@@ -632,14 +772,17 @@ export const mockDb = {
     const stats = getStorageItem<MathStatistic>(STORAGE_KEYS.STATS);
     const index = stats.findIndex(s => s.userId === userId && s.questionKey === questionKey);
 
+    let updatedStat: MathStatistic;
+
     if (index === -1) {
-      stats.push({
+      updatedStat = {
         userId,
         questionKey,
         correctCount: correct ? 1 : 0,
         errorCount: correct ? 0 : 1,
         averageTimeMs: timeMs,
-      });
+      };
+      stats.push(updatedStat);
     } else {
       const current = stats[index];
       const newCorrect = current.correctCount + (correct ? 1 : 0);
@@ -649,15 +792,60 @@ export const mockDb = {
         ((current.averageTimeMs * (totalAnswers - 1)) + timeMs) / totalAnswers
       );
 
-      stats[index] = {
+      updatedStat = {
         ...current,
         correctCount: newCorrect,
         errorCount: newErrors,
         averageTimeMs: newAverage,
       };
+      stats[index] = updatedStat;
     }
 
     setStorageItem(STORAGE_KEYS.STATS, stats);
+
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('math_statistics')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('question_key', questionKey)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('[mockDb] Error checking stats in Supabase:', error);
+            return;
+          }
+
+          if (data && data.length > 0) {
+            const row = data[0];
+            const updates = {
+              correct_count: (row.correct_count ?? 0) + (correct ? 1 : 0),
+              incorrect_count: (row.incorrect_count ?? 0) + (correct ? 0 : 1),
+              total_time_taken_ms: (row.total_time_taken_ms ?? 0) + timeMs
+            };
+            supabase.from('math_statistics')
+              .update(updates)
+              .eq('user_id', userId)
+              .eq('question_key', questionKey)
+              .then(({ error: uError }) => {
+                if (uError) console.error('[mockDb] Error updating stats in Supabase:', uError);
+              });
+          } else {
+            const statId = 'stat_' + Math.random().toString(36).substring(2, 11);
+            supabase.from('math_statistics')
+              .insert({
+                id: statId,
+                user_id: userId,
+                question_key: questionKey,
+                correct_count: correct ? 1 : 0,
+                incorrect_count: correct ? 0 : 1,
+                total_time_taken_ms: timeMs
+              })
+              .then(({ error: iError }) => {
+                if (iError) console.error('[mockDb] Error inserting stats to Supabase:', iError);
+              });
+          }
+        });
+    }
   },
 
   // Global Leaderboard View
