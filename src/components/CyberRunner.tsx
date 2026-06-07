@@ -1,0 +1,729 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { mockDb } from '../services/mockDb';
+import type { User, GameState } from '../services/mockDb';
+import { audioEngine } from './AudioEngine';
+
+interface CyberRunnerProps {
+  playerUser: User;
+  gameState: GameState;
+  onBack: () => void;
+  onStateUpdate: (newState: GameState) => void;
+}
+
+interface RunnerQuestion {
+  num1: number;
+  num2: number;
+  answer: number;
+  choices: number[]; // 3 choices for 3 lanes
+  correctLane: number; // 0, 1, or 2
+}
+
+interface Obstacle {
+  id: string;
+  x: number;
+  lane: number;
+  width: number;
+  height: number;
+  passed: boolean;
+}
+
+interface GateColumn {
+  id: string;
+  x: number;
+  question: RunnerQuestion;
+  passed: boolean;
+}
+
+interface Star {
+  x: number;
+  y: number;
+  speed: number;
+  size: number;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+  alpha: number;
+  size: number;
+}
+
+const LANES = [40, 100, 160];
+const CANVAS_WIDTH = 800;
+const CANVAS_HEIGHT = 200;
+
+export const CyberRunner: React.FC<CyberRunnerProps> = ({
+  playerUser,
+  gameState,
+  onBack,
+  onStateUpdate,
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Game States
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [gameOver, setGameOver] = useState<boolean>(false);
+  const [shields, setShields] = useState<number>(3);
+  const [xpGained, setXpGained] = useState<number>(0);
+  const [gemsGained, setGemsGained] = useState<number>(0);
+  const [questionsSolved, setQuestionsSolved] = useState<number>(0);
+
+  // Active question references (shared with canvas thread)
+  const currentQuestionRef = useRef<RunnerQuestion | null>(null);
+  const selectedOperation = gameState.selectedOperation || 'addition';
+
+  // Game variables
+  const playerLaneRef = useRef<number>(1);
+  const playerYRef = useRef<number>(LANES[1]);
+  const scoreRef = useRef<{ xp: number; gems: number }>({ xp: 0, gems: 0 });
+  const shieldsRef = useRef<number>(3);
+  
+  // Lists of moving objects
+  const starsRef = useRef<Star[]>([]);
+  const obstaclesRef = useRef<Obstacle[]>([]);
+  const gatesRef = useRef<GateColumn[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
+
+  // Spawn timers
+  const lastSpawnTime = useRef<number>(0);
+  const lastGateTime = useRef<number>(0);
+
+  // Helper to resolve dynamic symbols
+  const getOpSymbol = (op: string) => {
+    switch (op) {
+      case 'addition': return '+';
+      case 'subtraction': return '-';
+      case 'multiplication': return '×';
+      case 'division': return '÷';
+      default: return '+';
+    }
+  };
+
+  // Generate a runner math question
+  const generateRunnerQuestion = (): RunnerQuestion => {
+    let num1 = 2;
+    let num2 = 2;
+    let answer = 0;
+
+    const op = selectedOperation;
+
+    if (op === 'addition') {
+      num1 = Math.floor(Math.random() * 12) + 2; // 2 to 14
+      num2 = Math.floor(Math.random() * 12) + 2; // 2 to 14
+      answer = num1 + num2;
+    } else if (op === 'subtraction') {
+      num1 = Math.floor(Math.random() * 20) + 6; // 6 to 25
+      num2 = Math.floor(Math.random() * (num1 - 3)) + 2; // Keep result positive
+      answer = num1 - num2;
+    } else if (op === 'division') {
+      const divisor = Math.floor(Math.random() * 4) + 2; // 2 to 5
+      const quotient = Math.floor(Math.random() * 8) + 2; // 2 to 9
+      num1 = divisor * quotient;
+      num2 = divisor;
+      answer = quotient;
+    } else {
+      // multiplication
+      num1 = Math.floor(Math.random() * 8) + 2; // 2 to 9
+      num2 = Math.floor(Math.random() * 8) + 2; // 2 to 9
+      answer = num1 * num2;
+    }
+
+    // Generate 3 choices
+    const choices = new Set<number>([answer]);
+    while (choices.size < 3) {
+      const offset = Math.floor(Math.random() * 7) - 3;
+      const fake = answer + (offset === 0 ? 4 : offset);
+      if (fake > 0 && fake !== answer) {
+        choices.add(fake);
+      } else {
+        choices.add(answer + Math.floor(Math.random() * 10) + 1);
+      }
+    }
+
+    const choicesArray = Array.from(choices).sort(() => Math.random() - 0.5);
+    const correctLane = choicesArray.indexOf(answer);
+
+    return {
+      num1,
+      num2,
+      answer,
+      choices: choicesArray,
+      correctLane,
+    };
+  };
+
+  // Keyboard and Touch navigation
+  useEffect(() => {
+    let touchStartY = 0;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isPlaying || gameOver) return;
+
+      if (e.key === 'ArrowUp' || e.key === 'w') {
+        if (playerLaneRef.current > 0) {
+          audioEngine.playHatchRoll();
+          playerLaneRef.current -= 1;
+        }
+      } else if (e.key === 'ArrowDown' || e.key === 's') {
+        if (playerLaneRef.current < 2) {
+          audioEngine.playHatchRoll();
+          playerLaneRef.current += 1;
+        }
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isPlaying || gameOver || e.changedTouches.length === 0) return;
+      const touchEndY = e.changedTouches[0].clientY;
+      const diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffY) > 40) { // 40px threshold
+        if (diffY < 0) { // swipe up
+          if (playerLaneRef.current > 0) {
+            audioEngine.playHatchRoll();
+            playerLaneRef.current -= 1;
+          }
+        } else { // swipe down
+          if (playerLaneRef.current < 2) {
+            audioEngine.playHatchRoll();
+            playerLaneRef.current += 1;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isPlaying, gameOver]);
+
+  // Click on lanes
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isPlaying || gameOver || !canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+
+    // Map y coordinate to lane index
+    let selectedLane = 1;
+    if (y < 70) selectedLane = 0;
+    else if (y > 130) selectedLane = 2;
+
+    if (selectedLane !== playerLaneRef.current) {
+      audioEngine.playHatchRoll();
+      playerLaneRef.current = selectedLane;
+    }
+  };
+
+  // Main Canvas Loop
+  useEffect(() => {
+    // Generate first question
+    currentQuestionRef.current = generateRunnerQuestion();
+
+    // Spawn initial stars
+    const initialStars: Star[] = [];
+    for (let i = 0; i < 40; i++) {
+      initialStars.push({
+        x: Math.random() * CANVAS_WIDTH,
+        y: Math.random() * CANVAS_HEIGHT,
+        speed: Math.random() * 3 + 1,
+        size: Math.random() * 2 + 0.5,
+      });
+    }
+    starsRef.current = initialStars;
+
+    // Reset loop states
+    obstaclesRef.current = [];
+    gatesRef.current = [];
+    particlesRef.current = [];
+    scoreRef.current = { xp: 0, gems: 0 };
+    shieldsRef.current = 3;
+    setShields(3);
+    setGameOver(false);
+    setIsPlaying(true);
+
+    let animationFrameId: number;
+
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
+    const gameSpeed = 4.5;
+
+    const updateAndRender = (time: number) => {
+      if (!ctx || !canvasRef.current) return;
+
+      // 1. CLEAR AND DRAW BACKGROUND
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // Draw Grid Lines (moving left)
+      ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
+      ctx.lineWidth = 1;
+      const gridOffset = (time * 0.15) % 40;
+      for (let x = -gridOffset; x < CANVAS_WIDTH; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, CANVAS_HEIGHT);
+        ctx.stroke();
+      }
+
+      // Draw three lane lines (neon cyan)
+      LANES.forEach(y => {
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(CANVAS_WIDTH, y);
+        ctx.stroke();
+      });
+
+      // 2. RENDER STARS
+      starsRef.current.forEach(star => {
+        star.x -= star.speed;
+        if (star.x < 0) {
+          star.x = CANVAS_WIDTH;
+          star.y = Math.random() * CANVAS_HEIGHT;
+        }
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fillRect(star.x, star.y, star.size, star.size);
+      });
+
+      // 3. SPAWN ENTITIES
+      const elapsed = time - lastSpawnTime.current;
+      const timeSinceGate = time - lastGateTime.current;
+
+      // Spawn obstacle spikes every 3 seconds (if no gate is immediately spawning)
+      if (elapsed > 3000 && timeSinceGate < 7000) {
+        const lane = Math.floor(Math.random() * 3);
+        obstaclesRef.current.push({
+          id: Math.random().toString(36).substring(2, 9),
+          x: CANVAS_WIDTH + 20,
+          lane,
+          width: 25,
+          height: 25,
+          passed: false,
+        });
+        lastSpawnTime.current = time;
+      }
+
+      // Spawn Question Gates every 10 seconds
+      if (timeSinceGate > 10000 || lastGateTime.current === 0) {
+        const nextQ = generateRunnerQuestion();
+        currentQuestionRef.current = nextQ;
+        gatesRef.current.push({
+          id: Math.random().toString(36).substring(2, 9),
+          x: CANVAS_WIDTH + 100,
+          question: nextQ,
+          passed: false,
+        });
+        lastGateTime.current = time;
+      }
+
+      // 4. PLAYER MOVEMENT & ANIMATION
+      // Interpolate player Y position smoothly to the selected lane
+      const targetY = LANES[playerLaneRef.current];
+      playerYRef.current += (targetY - playerYRef.current) * 0.25;
+
+      // Spawn trail particles behind player
+      if (Math.random() < 0.35) {
+        particlesRef.current.push({
+          x: 80,
+          y: playerYRef.current + (Math.random() * 10 - 5),
+          vx: -(Math.random() * 2 + 1),
+          vy: Math.random() * 1 - 0.5,
+          color: gameState.auraColor || '#00ffcc',
+          alpha: 1,
+          size: Math.random() * 4 + 2,
+        });
+      }
+
+      // Draw Player Wizard (glowing cyber hoverboard rider)
+      ctx.save();
+      const runnerColor = gameState.auraColor || '#00ffcc';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = runnerColor;
+      
+      // Cyber Hoverboard
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.strokeStyle = runnerColor;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(40, playerYRef.current + 12);
+      ctx.lineTo(85, playerYRef.current + 12);
+      ctx.lineTo(75, playerYRef.current + 19);
+      ctx.lineTo(30, playerYRef.current + 19);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Engine Thruster Fire
+      ctx.fillStyle = '#ec4899';
+      ctx.beginPath();
+      ctx.moveTo(32, playerYRef.current + 15);
+      ctx.lineTo(15, playerYRef.current + 16);
+      ctx.lineTo(32, playerYRef.current + 18);
+      ctx.fill();
+
+      // Cyber Wizard Body (hooded silhouette)
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.strokeStyle = runnerColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(45, playerYRef.current + 12);
+      ctx.lineTo(55, playerYRef.current - 12); // top hood
+      ctx.lineTo(65, playerYRef.current + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Glowing Neon Visor
+      ctx.fillStyle = '#00ffcc';
+      ctx.shadowColor = '#00ffcc';
+      ctx.shadowBlur = 10;
+      ctx.fillRect(52, playerYRef.current - 3, 9, 3.5);
+
+      ctx.restore();
+
+      // 5. UPDATE AND RENDER PARTICLES
+      particlesRef.current.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+        if (p.alpha <= 0) {
+          particlesRef.current.splice(idx, 1);
+          return;
+        }
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1.0; // reset alpha
+
+      // 6. UPDATE AND RENDER OBSTACLES (SPIKES)
+      obstaclesRef.current.forEach((obs, idx) => {
+        obs.x -= gameSpeed;
+
+        // Draw glitchy spike
+        ctx.fillStyle = '#f43f5e';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.save();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#f43f5e';
+        
+        ctx.beginPath();
+        const obsY = LANES[obs.lane];
+        ctx.moveTo(obs.x, obsY + 10);
+        ctx.lineTo(obs.x + 12, obsY - 15);
+        ctx.lineTo(obs.x + 25, obsY + 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // AABB Collision check
+        const playerX = 65;
+        if (!obs.passed && obs.x < playerX + 15 && obs.x + obs.width > playerX - 15) {
+          if (obs.lane === playerLaneRef.current) {
+            obs.passed = true;
+            handleCollisionDamage('Obstáculo!');
+          }
+        }
+
+        // Clean up out of bounds obstacles
+        if (obs.x < -30) {
+          obstaclesRef.current.splice(idx, 1);
+        }
+      });
+
+      // 7. UPDATE AND RENDER QUESTION GATES
+      gatesRef.current.forEach((gate, idx) => {
+        gate.x -= gameSpeed;
+
+        // Draw the 3 gate structures
+        LANES.forEach((laneY, laneIdx) => {
+          const answerVal = gate.question.choices[laneIdx];
+          
+          // Gate frame
+          ctx.strokeStyle = laneIdx === gate.question.correctLane ? 'var(--neon-cyan)' : 'var(--neon-purple)';
+          ctx.lineWidth = 4;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+          ctx.save();
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = laneIdx === gate.question.correctLane ? '#00ffcc' : '#a855f7';
+
+          // Render Gate block
+          ctx.fillRect(gate.x, laneY - 20, 45, 40);
+          ctx.strokeRect(gate.x, laneY - 20, 45, 40);
+
+          // Render choice number inside gate
+          ctx.restore();
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 1.2rem Share Tech Mono';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(answerVal), gate.x + 22, laneY + 6);
+        });
+
+        // Collision Check: when wizard passes the gate's x coordinate
+        const playerX = 65;
+        if (!gate.passed && gate.x < playerX + 10 && gate.x + 45 > playerX - 10) {
+          gate.passed = true;
+          
+          const chosenLane = playerLaneRef.current;
+          const isCorrect = chosenLane === gate.question.correctLane;
+
+          if (isCorrect) {
+            handleGateSuccess();
+          } else {
+            handleCollisionDamage('Resposta Errada!');
+          }
+        }
+
+        // Clean up
+        if (gate.x < -100) {
+          gatesRef.current.splice(idx, 1);
+        }
+      });
+
+      // Continue loop if running
+      if (shieldsRef.current > 0) {
+        animationFrameId = requestAnimationFrame(updateAndRender);
+      } else {
+        // Trigger game over state
+        setGameOver(true);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(updateAndRender);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [selectedOperation]);
+  // Audio/Visual handlers on Collisions
+  const handleCollisionDamage = (_source: string) => {
+    audioEngine.playError();
+    
+    // Trigger mobile vibration if available
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+
+    // Spawn failure splash particles
+    for (let i = 0; i < 15; i++) {
+      particlesRef.current.push({
+        x: 80,
+        y: playerYRef.current,
+        vx: (Math.random() * 6 - 3),
+        vy: (Math.random() * 6 - 3),
+        color: '#f43f5e',
+        alpha: 1,
+        size: Math.random() * 5 + 3,
+      });
+    }
+
+    shieldsRef.current -= 1;
+    setShields(shieldsRef.current);
+
+    if (shieldsRef.current <= 0) {
+      setGameOver(true);
+    }
+  };
+
+  const handleGateSuccess = () => {
+    audioEngine.playCorrect();
+    setQuestionsSolved(prev => prev + 1);
+
+    // Spawn sparkles
+    for (let i = 0; i < 20; i++) {
+      particlesRef.current.push({
+        x: 80,
+        y: playerYRef.current,
+        vx: (Math.random() * 8 - 4),
+        vy: (Math.random() * 8 - 4),
+        color: '#00ffcc',
+        alpha: 1,
+        size: Math.random() * 6 + 2,
+      });
+    }
+
+    // Earn XP and Gems
+    const xpBonus = 20;
+    const gemsBonus = 2;
+
+    scoreRef.current.xp += xpBonus;
+    scoreRef.current.gems += gemsBonus;
+
+    setXpGained(scoreRef.current.xp);
+    setGemsGained(scoreRef.current.gems);
+  };
+
+  const handleFinishRun = () => {
+    // Stop game loop
+    shieldsRef.current = 0;
+
+    // Update database GameState with rewards
+    const currentXp = gameState.auraXp + xpGained;
+    let newLevel = gameState.auraLevel;
+    let newXp = currentXp;
+
+    const getXpNeeded = (lvl: number) => Math.round(100 * Math.pow(1.15, lvl - 1));
+    let boundary = getXpNeeded(newLevel);
+
+    while (newXp >= boundary && newLevel < 100) {
+      newXp -= boundary;
+      newLevel++;
+      boundary = getXpNeeded(newLevel);
+    }
+
+    mockDb.updateGameState(playerUser.id, {
+      auraLevel: newLevel,
+      auraXp: newXp,
+      gems: gameState.gems + gemsGained,
+    });
+
+    // Refresh state
+    const updated = mockDb.getGameState(playerUser.id);
+    if (updated) {
+      onStateUpdate(updated);
+    }
+
+    onBack();
+  };
+
+  const opSym = getOpSymbol(selectedOperation);
+
+  return (
+    <div style={{ padding: '20px', minHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      
+      {/* Header */}
+      <div style={{ width: '100%', maxWidth: '800px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div>
+          <h1 className="text-glow-cyan" style={{ fontSize: '1.8rem', color: 'var(--neon-cyan)' }}>
+            🏃‍♂️ CORRIDA CYBER: MATEMÁTICA 2D
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Use as setas [W] / [S] ou clique nas pistas para desviar e passar pelo resultado correto!</p>
+        </div>
+        <button className="cyber-btn cyber-btn-pink" onClick={handleFinishRun} style={{ padding: '10px 18px' }}>
+          🛑 Finalizar e Sair
+        </button>
+      </div>
+
+      {/* Game Frame */}
+      <div className="cyber-card" style={{ width: '100%', maxWidth: '830px', padding: '16px', background: '#0b0f19', border: '2px solid rgba(0, 255, 204, 0.2)' }}>
+        
+        {/* Statistics & Question Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          
+          {/* Shields Display */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[...Array(3)].map((_, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '1.5rem',
+                  opacity: idx < shields ? 1 : 0.2,
+                  filter: idx < shields ? 'drop-shadow(0 0 4px var(--neon-pink))' : 'none',
+                  transition: 'opacity 0.2s',
+                }}
+              >
+                🛡️
+              </span>
+            ))}
+          </div>
+
+          {/* Active Math Question */}
+          {currentQuestionRef.current && !gameOver && (
+            <div
+              style={{
+                fontFamily: 'Share Tech Mono',
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                color: 'var(--neon-cyan)',
+                textShadow: '0 0 10px rgba(0, 255, 204, 0.4)',
+                background: 'rgba(0, 255, 204, 0.05)',
+                padding: '4px 20px',
+                borderRadius: '8px',
+                border: '1px solid rgba(0, 255, 204, 0.2)',
+              }}
+            >
+              {currentQuestionRef.current.num1} {opSym} {currentQuestionRef.current.num2} = ?
+            </div>
+          )}
+
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: '20px', fontSize: '0.95rem' }}>
+            <div>XP: <strong style={{ color: 'var(--neon-purple)' }}>+{xpGained}</strong></div>
+            <div>Gemas: <strong style={{ color: 'var(--neon-cyan)' }}>💎 {gemsGained}</strong></div>
+          </div>
+
+        </div>
+
+        {/* 2D Canvas View */}
+        <div style={{ position: 'relative', width: '800px', height: '200px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px' }}>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            onClick={handleCanvasClick}
+            style={{ display: 'block', cursor: 'pointer' }}
+          />
+
+          {/* GameOver overlay */}
+          {gameOver && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(3, 7, 18, 0.9)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+              }}
+            >
+              <h2 className="text-glow-pink" style={{ color: 'var(--neon-pink)', fontSize: '2.5rem', marginBottom: '10px' }}>
+                CORRIDA ENCERRADA!
+              </h2>
+              <p style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '20px' }}>Você resolveu {questionsSolved} equações matemáticos!</p>
+              
+              <button className="cyber-btn" onClick={handleFinishRun} style={{ padding: '12px 30px', fontSize: '1.1rem' }}>
+                Coletar Recompensas: +{xpGained} XP / 💎 {gemsGained} Gemas ➔
+              </button>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Control Instruction Card */}
+      <div className="cyber-card" style={{ width: '100%', maxWidth: '800px', marginTop: '16px', padding: '16px', display: 'flex', gap: '24px', alignItems: 'center' }}>
+        <span style={{ fontSize: '2rem' }}>🎮</span>
+        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: '1.3rem' }}>
+          <strong>Como Jogar:</strong> Use a tecla <strong>[W]</strong> ou <strong>Seta para Cima</strong> para subir de pista, e <strong>[S]</strong> ou <strong>Seta para Baixo</strong> para descer. Em telas sensíveis ao toque, você pode <strong>clicar ou tocar diretamente nas pistas superior, central ou inferior</strong> do canvas para mover o mago.
+        </div>
+      </div>
+
+    </div>
+  );
+};

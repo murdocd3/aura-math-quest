@@ -1,0 +1,6 @@
+{
+  "appId": "com.auramathquest.app",
+  "appName": "Aura Math Quest",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
