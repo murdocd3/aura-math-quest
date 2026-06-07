@@ -12,7 +12,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,53 +188,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         </form>
       </div>
 
-      {/* Demo Credentials Helper */}
-      <div style={{ marginTop: '24px', textAlign: 'center' }}>
-        <button
-          onClick={() => {
-            audioEngine.playHatchRoll();
-            setShowDemoAccounts(!showDemoAccounts);
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--neon-cyan)',
-            textDecoration: 'underline',
-            cursor: 'pointer',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-          }}
-        >
-          {showDemoAccounts ? 'Ocultar Contas de Demonstração' : 'Ver Contas de Demonstração (Para Testes)'}
-        </button>
 
-        {showDemoAccounts && (
-          <div
-            className="cyber-card"
-            style={{
-              marginTop: '12px',
-              padding: '16px',
-              maxWidth: '380px',
-              textAlign: 'left',
-              fontSize: '0.85rem',
-              borderColor: 'rgba(0, 255, 204, 0.3)',
-              lineHeight: '1.4rem',
-            }}
-          >
-            <div style={{ marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
-              <strong>Admin Account (Criar usuários e ver estatísticas):</strong><br />
-              • Usuário: <span style={{ color: 'var(--neon-purple)', fontFamily: 'Share Tech Mono' }}>admin</span><br />
-              • Senha: <span style={{ color: 'var(--neon-purple)', fontFamily: 'Share Tech Mono' }}>auraadmin123</span>
-            </div>
-            <div>
-              <strong>Contas de Jogadores Seedadas (Para testar o game loop):</strong><br />
-              • Lucas: <span style={{ color: 'var(--neon-cyan)' }}>lucas</span> / <span style={{ color: 'var(--neon-cyan)' }}>lucas123</span> (Aura Alta, Pets)<br />
-              • Sofia: <span style={{ color: 'var(--neon-cyan)' }}>sofia</span> / <span style={{ color: 'var(--neon-cyan)' }}>sofia123</span> (Erros na tabuada do 7)<br />
-              • Gabriel: <span style={{ color: 'var(--neon-cyan)' }}>gabriel</span> / <span style={{ color: 'var(--neon-cyan)' }}>gabriel123</span> (Nível inicial)
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
