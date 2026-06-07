@@ -551,5 +551,68 @@ export const backendService = {
       }
     }
     return mockDb.completeCampaignStage(userId, stageId);
+  },
+
+  // 7. Real-Time Leaderboard View
+  async getLeaderboard(): Promise<{ username: string; level: number; rebirths: number; gems: number; equippedPetEmoji?: string }[]> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
+        // Fetch players, game_states, and pets in parallel
+        const [usersRes, statesRes, petsRes] = await Promise.all([
+          supabase.from('users').select('id, username').eq('role', 'player'),
+          supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id'),
+          supabase.from('pets').select('id, pet_type_id')
+        ]);
+
+        if (usersRes.error) throw usersRes.error;
+        if (statesRes.error) throw statesRes.error;
+        
+        const dbUsers = usersRes.data || [];
+        const dbStates = statesRes.data || [];
+        const dbPets = petsRes.data || [];
+
+        const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
+        const PET_TYPES = [
+          { id: 'robot_pup', emoji: '🤖' },
+          { id: 'slime_buddy', emoji: '🧪' },
+          { id: 'phoenix_chick', emoji: '🔥' },
+          { id: 'dragon_kid', emoji: '🐉' },
+          { id: 'cosmic_owl', emoji: '🦉' },
+          { id: 'neon_kitten', emoji: '🐱' },
+          { id: 'cyber_phoenix', emoji: '🐦' }
+        ];
+
+        return dbUsers
+          .filter(u => !fictitiousUserIds.includes(u.id))
+          .map(u => {
+            const state = dbStates.find(s => s.user_id === u.id) || {
+              aura_level: 1,
+              rebirths: 0,
+              gems: 0,
+              equipped_pet_id: null
+            };
+            const equippedPet = state.equipped_pet_id ? dbPets.find(p => p.id === state.equipped_pet_id) : null;
+            const petEmoji = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.pet_type_id)?.emoji : undefined;
+
+            return {
+              username: u.username,
+              level: state.aura_level ?? 1,
+              rebirths: state.rebirths ?? 0,
+              gems: state.gems ?? 0,
+              equippedPetEmoji: petEmoji
+            };
+          })
+          .sort((a, b) => {
+            if (b.rebirths !== a.rebirths) {
+              return b.rebirths - a.rebirths;
+            }
+            return b.level - a.level;
+          });
+      } catch (err) {
+        console.error('[BackendService] Supabase error in getLeaderboard:', err);
+      }
+    }
+    return mockDb.getLeaderboard();
   }
 };

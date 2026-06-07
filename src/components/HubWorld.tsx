@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { mockDb, PET_TYPES, COSMETIC_ITEMS, SKILL_TREE } from '../services/mockDb';
 import type { User, GameState, Clan } from '../services/mockDb';
+import { backendService } from '../services/backendService';
 import { ParticleCanvas } from './ParticleCanvas';
 import { Leaderboard } from './Leaderboard';
 import { audioEngine } from './AudioEngine';
@@ -249,9 +250,18 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
+  const refreshLeaderboard = async () => {
+    try {
+      const board = await backendService.getLeaderboard();
+      setLeaderboard(board);
+    } catch (err) {
+      console.error('Error refreshing leaderboard:', err);
+    }
+  };
+
   // Load leaderboard and trigger playtime tracking
   useEffect(() => {
-    setLeaderboard(mockDb.getLeaderboard());
+    refreshLeaderboard();
     
     // Playtime tracker: Increment play time in mockDb every 5 seconds
     const interval = setInterval(() => {
@@ -300,7 +310,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       if (alertMsg) {
         audioEngine.playHatchRoll();
         setServerNotification(alertMsg);
-        setLeaderboard(mockDb.getLeaderboard());
+        refreshLeaderboard();
         setTimeout(() => {
           setServerNotification(null);
         }, 4000);
@@ -326,7 +336,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       onStateUpdate(updated);
       setSelectedColor(color);
       // Refresh rankings
-      setLeaderboard(mockDb.getLeaderboard());
+      refreshLeaderboard();
     }
   };
 
@@ -353,7 +363,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
       if (updated) {
         onStateUpdate(updated);
-        setLeaderboard(mockDb.getLeaderboard());
+        refreshLeaderboard();
       }
     }
   };
@@ -365,7 +375,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     if (updated) {
       audioEngine.playHatchSuccess();
       onStateUpdate(updated);
-      setLeaderboard(mockDb.getLeaderboard());
+      refreshLeaderboard();
     } else {
       audioEngine.playError();
       alert('Gemas insuficientes para comprar este cosmético!');
@@ -394,7 +404,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     if (updated) {
       audioEngine.playHatchSuccess();
       onStateUpdate(updated);
-      setLeaderboard(mockDb.getLeaderboard());
+      refreshLeaderboard();
     }
   };
 
