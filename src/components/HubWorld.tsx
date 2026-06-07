@@ -150,8 +150,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const [clanSuccess, setClanSuccess] = useState<string | null>(null);
   const [clanError, setClanError] = useState<string | null>(null);
 
-  const loadClans = () => {
-    setClansList(mockDb.getClanLeaderboard());
+  const loadClans = async () => {
+    const board = await backendService.getClanLeaderboard();
+    setClansList(board);
   };
 
   useEffect(() => {
@@ -186,12 +187,12 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleJoinClan = (clanId: string, clanName: string) => {
+  const handleJoinClan = async (clanId: string, clanName: string) => {
     audioEngine.playCorrect();
-    const updated = mockDb.joinClan(playerUser.id, clanId);
+    const updated = await backendService.joinClan(playerUser.id, clanId);
     if (updated) {
       onStateUpdate(updated);
-      loadClans();
+      await loadClans();
       setClanSuccess(`Você se juntou ao clã ${clanName}!`);
       setTimeout(() => setClanSuccess(null), 4000);
     } else {
@@ -201,13 +202,13 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleLeaveClan = () => {
+  const handleLeaveClan = async () => {
     if (window.confirm('Tem certeza de que deseja sair de seu clã atual?')) {
       audioEngine.playCorrect();
-      const updated = mockDb.leaveClan(playerUser.id);
+      const updated = await backendService.leaveClan(playerUser.id);
       if (updated) {
         onStateUpdate(updated);
-        loadClans();
+        await loadClans();
         setClanSuccess('Você saiu do clã.');
         setTimeout(() => setClanSuccess(null), 4000);
       } else {
@@ -218,7 +219,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleCreateClan = (e: React.FormEvent) => {
+  const handleCreateClan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClanName.trim() || !newClanTag.trim() || !newClanMotto.trim()) {
       audioEngine.playError();
@@ -234,10 +235,10 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       return;
     }
 
-    const updated = mockDb.createClan(playerUser.id, newClanName, newClanTag, newClanMotto, newClanBadge);
+    const updated = await backendService.createClan(playerUser.id, newClanName, newClanTag, newClanMotto, newClanBadge);
     if (updated) {
       onStateUpdate(updated);
-      loadClans();
+      await loadClans();
       setClanSuccess(`Clã "${newClanName}" criado com sucesso!`);
       setNewClanName('');
       setNewClanTag('');

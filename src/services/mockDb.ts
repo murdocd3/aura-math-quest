@@ -463,28 +463,7 @@ export function seedDatabase() {
       { userId: 'player-beatriz', questionKey: '9x9', correctCount: 40, errorCount: 2, averageTimeMs: 1900 },
     ];
 
-    const defaultClans: Clan[] = [
-      {
-        id: 'clan-alpha',
-        name: 'Alpha Math',
-        tag: 'AMATH',
-        motto: 'Somando forças, dividindo limites!',
-        badgeEmoji: '⚡',
-        members: ['player-lucas', 'player-sofia'],
-        totalAuraLevel: 117,
-        totalRebirths: 3,
-      },
-      {
-        id: 'clan-glitch',
-        name: 'Code Glitchers',
-        tag: 'GLITCH',
-        motto: 'Nós controlamos a instabilidade.',
-        badgeEmoji: '👾',
-        members: ['player-beatriz'],
-        totalAuraLevel: 95,
-        totalRebirths: 4,
-      }
-    ];
+    const defaultClans: Clan[] = [];
 
     const defaultTrades: TradeListing[] = [
       {

@@ -620,5 +620,143 @@ export const backendService = {
       }
     }
     return mockDb.getLeaderboard();
+  },
+
+  // 8. Clan APIs
+  async getClanLeaderboard(): Promise<any[]> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        console.log('[BackendService] Fetching clans leaderboard from Supabase...');
+        const [clansRes, statesRes] = await Promise.all([
+          supabase.from('clans').select('*'),
+          supabase.from('game_states').select('user_id, aura_level, rebirths')
+        ]);
+
+        if (clansRes.error) throw clansRes.error;
+        const dbClans = clansRes.data || [];
+        const dbStates = statesRes.data || [];
+
+        return dbClans.map(clan => {
+          let totalAuraLevel = 0;
+          let totalRebirths = 0;
+          const membersList = clan.members || [];
+          
+          membersList.forEach((memberId: string) => {
+            const state = dbStates.find(s => s.user_id === memberId);
+            if (state) {
+              totalAuraLevel += (state.aura_level ?? 0);
+              totalRebirths += (state.rebirths ?? 0);
+            }
+          });
+
+          return {
+            id: clan.id,
+            name: clan.name,
+            tag: clan.tag,
+            motto: clan.motto,
+            badgeEmoji: clan.badge_emoji || '🛡️',
+            members: membersList,
+            totalAuraLevel,
+            totalRebirths
+          };
+        }).sort((a, b) => {
+          if (b.totalRebirths !== a.totalRebirths) {
+            return b.totalRebirths - a.totalRebirths;
+          }
+          return b.totalAuraLevel - a.totalAuraLevel;
+        });
+      } catch (err) {
+        console.error('[BackendService] Supabase error in getClanLeaderboard:', err);
+      }
+    }
+    return mockDb.getClanLeaderboard();
+  },
+
+  async joinClan(userId: string, clanId: string): Promise<GameState | null> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        console.log(`[BackendService] Student ${userId} joining Clan ${clanId}...`);
+        
+        // 1. Leave current clan first if any
+        await this.leaveClan(userId);
+
+        // 2. Fetch target clan to update member list
+        const { data: clanData, error: fetchErr } = await supabase.from('clans').select('*').eq('id', clanId);
+        if (fetchErr) throw fetchErr;
+
+        if (clanData && clanData.length > 0) {
+          const clan = clanData[0];
+          const membersList = clan.members || [];
+          if (!membersList.includes(userId)) {
+            membersList.push(userId);
+            const { error: updateClanErr } = await supabase.from('clans').update({ members: membersList }).eq('id', clanId);
+            if (updateClanErr) throw updateClanErr;
+          }
+        }
+
+        // 3. Update student state
+        return await this.updateGameState(userId, { clanId });
+      } catch (err) {
+        console.error('[BackendService] Supabase error in joinClan:', err);
+      }
+    }
+    return mockDb.joinClan(userId, clanId);
+  },
+
+  async leaveClan(userId: string): Promise<GameState | null> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        console.log(`[BackendService] Student ${userId} leaving clan...`);
+        const state = await this.getGameState(userId);
+        if (state && state.clanId) {
+          const { data: clanData } = await supabase.from('clans').select('*').eq('id', state.clanId);
+          if (clanData && clanData.length > 0) {
+            const clan = clanData[0];
+            const membersList = (clan.members || []).filter((id: string) => id !== userId);
+            
+            if (membersList.length === 0) {
+              // Delete clan if empty
+              await supabase.from('clans').delete().eq('id', state.clanId);
+            } else {
+              await supabase.from('clans').update({ members: membersList }).eq('id', state.clanId);
+            }
+          }
+        }
+        return await this.updateGameState(userId, { clanId: null });
+      } catch (err) {
+        console.error('[BackendService] Supabase error in leaveClan:', err);
+      }
+    }
+    return mockDb.leaveClan(userId);
+  },
+
+  async createClan(userId: string, name: string, tag: string, motto: string, badgeEmoji: string): Promise<GameState | null> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        console.log(`[BackendService] Student ${userId} creating Clan ${name}...`);
+        
+        // 1. Leave current clan first
+        await this.leaveClan(userId);
+
+        // 2. Insert new clan row
+        const newClanId = 'clan_' + Math.random().toString(36).substring(2, 11);
+        const { error: insertErr } = await supabase.from('clans').insert({
+          id: newClanId,
+          name: name.trim(),
+          tag: tag.trim().toUpperCase(),
+          motto: motto.trim(),
+          badge_emoji: badgeEmoji,
+          members: [userId]
+        });
+
+        if (insertErr) throw insertErr;
+
+        // 3. Update user's game state with new clan_id
+        return await this.updateGameState(userId, { clanId: newClanId });
+      } catch (err) {
+        console.error('[BackendService] Supabase error in createClan:', err);
+      }
+    }
+    return mockDb.createClan(userId, name, tag, motto, badgeEmoji);
   }
 };
