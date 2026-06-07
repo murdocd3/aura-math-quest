@@ -189,6 +189,26 @@ export const PET_TYPES: PetType[] = [
     color: '#ec4899', // Hot Pink
     emoji: '🦉',
   },
+  {
+    id: 'neon_kitten',
+    name: 'Cyber Kitten',
+    rarity: 'rare',
+    buffType: 'time_bonus',
+    buffValue: 2.0, // +2.0 seconds reply time
+    cost: 999, // Unlocked via Aura Pass
+    color: '#06b6d4', // Cyan
+    emoji: '🐱',
+  },
+  {
+    id: 'cyber_phoenix',
+    name: 'Cyber Phoenix',
+    rarity: 'legendary',
+    buffType: 'gem_multiplier',
+    buffValue: 1.5, // +50% Gems
+    cost: 999, // Unlocked via Aura Pass
+    color: '#f43f5e', // Rose
+    emoji: '🐦',
+  },
 ];
 
 const STORAGE_KEYS = {
@@ -854,32 +874,94 @@ export const mockDb = {
     const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
 
-    return users
-      .map(u => {
-        const state = states.find(gs => gs.userId === u.id) || {
-          auraLevel: 1,
-          rebirths: 0,
-          gems: 0,
-          equippedPetId: null,
-        };
+    const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
 
-        const equippedPet = state.equippedPetId ? pets.find(p => p.id === state.equippedPetId) : null;
-        const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.petTypeId) : null;
+    // Map all entries first
+    const entries = users.map(u => {
+      const state = states.find(gs => gs.userId === u.id) || {
+        auraLevel: 1,
+        rebirths: 0,
+        gems: 0,
+        equippedPetId: null,
+      };
+
+      const equippedPet = state.equippedPetId ? pets.find(p => p.id === state.equippedPetId) : null;
+      const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.petTypeId) : null;
+
+      return {
+        id: u.id,
+        username: u.username,
+        level: state.auraLevel,
+        rebirths: state.rebirths,
+        gems: state.gems,
+        equippedPetEmoji: petType?.emoji,
+        isFictitious: fictitiousUserIds.includes(u.id)
+      };
+    });
+
+    // Sort to find the true standings first based on original values
+    const sortedOriginal = [...entries].sort((a, b) => {
+      if (b.rebirths !== a.rebirths) {
+        return b.rebirths - a.rebirths;
+      }
+      return b.level - a.level;
+    });
+
+    // Find the 3rd place score (Index 2 in 0-indexed list)
+    // Score formula: rebirths * 100 + level
+    let limitScore = 10; // default safe fallback if less than 3 players
+    if (sortedOriginal.length >= 3) {
+      const thirdPlace = sortedOriginal[2];
+      const thirdPlaceScore = (thirdPlace.rebirths * 100) + thirdPlace.level;
+      limitScore = Math.max(10, Math.floor(thirdPlaceScore * 0.10));
+    }
+
+    // Now, map and cap fictitious users to limitScore
+    return entries.map(entry => {
+      if (entry.isFictitious) {
+        // Cap level and rebirths so (rebirths * 100 + level) <= limitScore
+        let cappedRebirths = 0;
+        let cappedLevel = entry.level;
+
+        const currentScore = (entry.rebirths * 100) + entry.level;
+        if (currentScore > limitScore) {
+          cappedRebirths = Math.floor(limitScore / 100);
+          cappedLevel = limitScore % 100;
+          if (cappedLevel === 0) {
+            if (cappedRebirths > 0) {
+              cappedRebirths -= 1;
+              cappedLevel = 99;
+            } else {
+              cappedLevel = 1;
+            }
+          }
+        } else {
+          cappedRebirths = entry.rebirths;
+          cappedLevel = entry.level;
+        }
 
         return {
-          username: u.username,
-          level: state.auraLevel,
-          rebirths: state.rebirths,
-          gems: state.gems,
-          equippedPetEmoji: petType?.emoji,
+          username: entry.username,
+          level: cappedLevel,
+          rebirths: cappedRebirths,
+          gems: entry.gems,
+          equippedPetEmoji: entry.equippedPetEmoji
         };
-      })
-      .sort((a, b) => {
-        if (b.rebirths !== a.rebirths) {
-          return b.rebirths - a.rebirths;
-        }
-        return b.level - a.level;
-      });
+      }
+
+      return {
+        username: entry.username,
+        level: entry.level,
+        rebirths: entry.rebirths,
+        gems: entry.gems,
+        equippedPetEmoji: entry.equippedPetEmoji
+      };
+    }).sort((a, b) => {
+      if (b.rebirths !== a.rebirths) {
+        return b.rebirths - a.rebirths;
+      }
+      return b.level - a.level;
+    });
   },
 
   // Cosmetics APIs
@@ -927,8 +1009,10 @@ export const mockDb = {
     const pet2 = pets[p2Index];
 
     // Verify constraints: same type and both must be level 1
+    // Verify constraints: same type, same level, and max level is less than 6 (max 5 fusions -> level 6)
     if (pet1.petTypeId !== pet2.petTypeId) return null;
-    if (pet1.level !== 1 || pet2.level !== 1) return null;
+    if (pet1.level !== pet2.level) return null;
+    if (pet1.level >= 6) return null; // Can't fuse further than Level 6 (5 fusions)
 
     // Check if pet2 is equipped, if so unequip it in game state
     const state = this.getGameState(userId);
@@ -944,26 +1028,52 @@ export const mockDb = {
     // Delete pet2
     const updatedPets = pets.filter(p => p.id !== petId2);
 
-    // Evolve pet1 to level 2
+    // Evolve pet1 to next level
     const p1NewIndex = updatedPets.findIndex(p => p.id === petId1);
     
-    // Scale buff values: double the bonus factor
+    // Scale buff values: add original base increment per level
+    const baseType = PET_TYPES.find(pt => pt.id === pet1.petTypeId);
+    const baseBuffVal = baseType ? baseType.buffValue : pet1.buffValue;
+    
+    let nextLevel = pet1.level + 1;
     let scaledValue = pet1.buffValue;
+
     if (pet1.buffType === 'time_bonus') {
-      scaledValue = pet1.buffValue * 2.0; // Ex: +2s becomes +4s
+      // E.g. base is +2s. Level 1: 2s. Level 2: 4s. Level 3: 6s. Level 4: 8s. Level 5: 10s. Level 6: 12s.
+      scaledValue = baseBuffVal * nextLevel;
     } else {
-      // Ex: 1.15 (+15%) -> 1 + (1.15 - 1) * 2 = 1.30 (+30%)
-      scaledValue = 1 + (pet1.buffValue - 1) * 2.0;
+      // E.g. base is 1.15 (+15%). Increment is +15%.
+      // Level 1: 1.15 (+15%). Level 2: 1.30 (+30%). Level 3: 1.45 (+45%). etc.
+      const increment = baseBuffVal - 1;
+      scaledValue = 1 + (increment * nextLevel);
     }
+
+    // Add stars to nickname
+    const stars = '★'.repeat(nextLevel - 1);
+    const baseName = pet1.nickname.split(' ★')[0];
 
     updatedPets[p1NewIndex] = {
       ...pet1,
-      level: 2,
-      nickname: `${pet1.nickname} ★`,
+      level: nextLevel,
+      nickname: `${baseName} ${stars}`,
       buffValue: Math.round(scaledValue * 100) / 100, // round nicely
     };
 
     setStorageItem(STORAGE_KEYS.PETS, updatedPets);
+
+    // Sync to Supabase in background
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('pets')
+        .update({
+          level: nextLevel,
+          nickname: updatedPets[p1NewIndex].nickname,
+          buff_value: updatedPets[p1NewIndex].buffValue
+        })
+        .eq('id', petId1)
+        .then(() => {
+          supabase.from('pets').delete().eq('id', petId2).then(() => {});
+        });
+    }
 
     // Force refresh game state to unequip both pets for safety
     return this.getGameState(userId);

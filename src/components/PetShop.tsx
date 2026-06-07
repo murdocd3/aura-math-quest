@@ -20,7 +20,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const [petNicknameInput, setPetNicknameInput] = useState('');
 
   // Fusion States
-  const [activeTab, setActiveTab] = useState<'hatch' | 'fusion' | 'trade'>('hatch');
+  const [activeTab, setActiveTab] = useState<'hatch' | 'fusion' | 'trade' | 'album'>('hatch');
   const [selectedPet1Id, setSelectedPet1Id] = useState<string | null>(null);
   const [selectedPet2Id, setSelectedPet2Id] = useState<string | null>(null);
   const [fusionSuccessMsg, setFusionSuccessMsg] = useState<string | null>(null);
@@ -151,16 +151,24 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       return;
     }
 
-    if (pet1.level !== 1 || pet2.level !== 1) {
+    if (pet1.level !== pet2.level) {
       audioEngine.playError();
-      alert('Ambos os pets precisam estar no Nível 1 para realizar a fusão!');
+      alert('Ambos os pets precisam estar no mesmo Nível para realizar a fusão!');
+      return;
+    }
+
+    if (pet1.level >= 6) {
+      audioEngine.playError();
+      alert('Seu pet já atingiu o nível máximo de evolução (Nível 6)!');
       return;
     }
 
     const updatedState = mockDb.fusePets(userId, selectedPet1Id, selectedPet2Id);
     if (updatedState) {
       audioEngine.playHatchSuccess();
-      setFusionSuccessMsg(`Fusão Completa! Seu pet "${pet1.nickname}" evoluiu para o Nível 2 ★!`);
+      const nextLvl = pet1.level + 1;
+      const stars = '★'.repeat(nextLvl - 1);
+      setFusionSuccessMsg(`Fusão Completa! Seu pet "${pet1.nickname}" evoluiu para o Nível ${nextLvl} ${stars}!`);
       setSelectedPet1Id(null);
       setSelectedPet2Id(null);
       onStateUpdate(updatedState);
@@ -402,10 +410,109 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
         >
           🌌 Trocas Cósmicas (Mercado)
         </button>
+        <button
+          className="cyber-btn"
+          onClick={() => { audioEngine.playHatchRoll(); setActiveTab('album'); }}
+          style={{
+            flex: 1,
+            padding: '12px',
+            background: activeTab === 'album' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(15,23,42,0.6)',
+            borderColor: activeTab === 'album' ? 'var(--neon-pink)' : 'rgba(255,255,255,0.1)',
+            color: activeTab === 'album' ? '#fff' : 'rgba(255,255,255,0.7)',
+          }}
+        >
+          📖 Álbum de Figurinhas
+        </button>
       </div>
 
       {/* Main Grid: Eggs for Sale / Fusion Lab (Left) vs Pets Inventory (Right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      {activeTab === 'album' ? (
+        <div className="cyber-card animate-fade-in" style={{ borderColor: 'var(--neon-pink)', background: 'rgba(15, 23, 42, 0.65)', padding: '24px' }}>
+          <h2 className="text-glow-pink" style={{ color: 'var(--neon-pink)', fontSize: '1.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '20px' }}>
+            📖 Álbum Holográfico de Pets
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '24px', lineHeight: '1.4rem' }}>
+            Descubra e colecione todos os pets do universo de matemática! Pets que você já conquistou aparecem coloridos e brilhantes, enquanto os que ainda não obteve ficam com silhuetas sombreadas no álbum.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '18px' }}>
+            {PET_TYPES.map(pt => {
+              const hasUnlocked = pets.some(p => p.petTypeId === pt.id);
+              const rarityColor = getRarityColor(pt.rarity);
+
+              return (
+                <div
+                  key={pt.id}
+                  className="cyber-card"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '16px',
+                    borderColor: hasUnlocked ? rarityColor : 'rgba(255, 255, 255, 0.05)',
+                    background: hasUnlocked ? 'rgba(15, 23, 42, 0.4)' : 'rgba(3, 7, 18, 0.8)',
+                    opacity: hasUnlocked ? 1 : 0.4,
+                    filter: hasUnlocked ? 'none' : 'grayscale(100%) blur(0.5px)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Holographic glowing lines for unlocked pets */}
+                  {hasUnlocked && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      background: `linear-gradient(135deg, ${rarityColor}05 0%, ${rarityColor}15 100%)`,
+                      pointerEvents: 'none'
+                    }} />
+                  )}
+
+                  <span style={{
+                    fontSize: '3.2rem',
+                    marginBottom: '10px',
+                    display: 'inline-block',
+                    filter: hasUnlocked ? `drop-shadow(0 0 8px ${rarityColor}80)` : 'none'
+                  }}>
+                    {pt.emoji}
+                  </span>
+
+                  <div style={{
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    color: hasUnlocked ? '#fff' : 'rgba(255,255,255,0.3)',
+                    textAlign: 'center',
+                    marginBottom: '4px'
+                  }}>
+                    {hasUnlocked ? pt.name : '???'}
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: hasUnlocked ? rarityColor + '20' : 'rgba(255,255,255,0.05)',
+                      color: hasUnlocked ? rarityColor : 'rgba(255,255,255,0.2)',
+                      border: `1px solid ${hasUnlocked ? rarityColor + '40' : 'rgba(255,255,255,0.1)'}`
+                    }}
+                  >
+                    {pt.rarity}
+                  </span>
+
+                  <div style={{ fontSize: '0.75rem', color: hasUnlocked ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.15)', marginTop: '8px', textAlign: 'center' }}>
+                    {hasUnlocked ? (pt.buffType === 'time_bonus' ? `+${pt.buffValue}s Tempo` : `+${Math.round((pt.buffValue - 1) * 100)}% Bonus`) : 'Bloqueado'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         
         {/* Left Side: Eggs */}
         {activeTab === 'hatch' && (
@@ -618,16 +725,40 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 const pet1 = pets.find(p => p.id === selectedPet1Id);
                 const pet2 = pets.find(p => p.id === selectedPet2Id);
                 if (pet1 && pet2) {
-                  if (pet1.petTypeId !== pet2.petTypeId) {
+                  if (pet1.level !== pet2.level) {
                     return (
                       <div style={{ color: 'var(--neon-pink)', fontSize: '0.8rem', textAlign: 'center', fontWeight: 600 }}>
-                        ⚠️ Ops! Os pets selecionados são de espécies diferentes.
+                        ⚠️ Ops! Os pets selecionados precisam estar no mesmo Nível.
+                      </div>
+                    );
+                  }
+
+                  if (pet1.level >= 6) {
+                    return (
+                      <div style={{ color: 'var(--neon-pink)', fontSize: '0.8rem', textAlign: 'center', fontWeight: 600 }}>
+                        ⚠️ Ops! Este pet já está no nível máximo (Nível 6).
                       </div>
                     );
                   }
                   
+                  const baseType = PET_TYPES.find(pt => pt.id === pet1.petTypeId);
+                  const baseBuffVal = baseType ? baseType.buffValue : pet1.buffValue;
+                  const nextLvl = pet1.level + 1;
+                  
+                  let nextBuffVal = pet1.buffValue;
+                  if (pet1.buffType === 'time_bonus') {
+                    nextBuffVal = baseBuffVal * nextLvl;
+                  } else {
+                    const increment = baseBuffVal - 1;
+                    nextBuffVal = 1 + (increment * nextLvl);
+                  }
+                  
                   const originalBonus = pet1.buffType === 'time_bonus' ? `+${pet1.buffValue}s Tempo` : `+${Math.round((pet1.buffValue - 1) * 100)}%`;
-                  const evolvedBonus = pet1.buffType === 'time_bonus' ? `+${pet1.buffValue * 2.0}s Tempo` : `+${Math.round((pet1.buffValue - 1) * 2.0 * 100)}%`;
+                  const evolvedBonus = pet1.buffType === 'time_bonus' ? `+${nextBuffVal}s Tempo` : `+${Math.round((nextBuffVal - 1) * 100)}%`;
+                  
+                  const baseName = pet1.nickname.split(' ★')[0];
+                  const currentStars = '★'.repeat(pet1.level - 1);
+                  const nextStars = '★'.repeat(nextLvl - 1);
                   
                   return (
                     <div
@@ -643,13 +774,13 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', fontSize: '0.85rem' }}>
                         <div>
-                          <strong>{pet1.nickname}</strong>
-                          <div style={{ color: 'rgba(255,255,255,0.5)' }}>Lvl 1 ({originalBonus})</div>
+                          <strong>{baseName} {currentStars}</strong>
+                          <div style={{ color: 'rgba(255,255,255,0.5)' }}>Lvl {pet1.level} ({originalBonus})</div>
                         </div>
                         <div style={{ fontSize: '1.2rem' }}>➔</div>
                         <div>
-                          <strong style={{ color: 'var(--neon-yellow)' }}>{pet1.nickname} ★</strong>
-                          <div style={{ color: 'var(--neon-yellow)' }}>Lvl 2 ({evolvedBonus})</div>
+                          <strong style={{ color: 'var(--neon-yellow)' }}>{baseName} {nextStars}</strong>
+                          <div style={{ color: 'var(--neon-yellow)' }}>Lvl {nextLvl} ({evolvedBonus})</div>
                         </div>
                       </div>
                     </div>
@@ -965,9 +1096,9 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     </div>
 
                     {activeTab === 'trade' ? (
-                      pet.level === 2 ? (
+                      pet.level > 1 ? (
                         <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', alignSelf: 'center' }}>
-                          ★ Nível 2 Não Negociável
+                          Evoluído Não Negociável
                         </span>
                       ) : (
                         <button
@@ -987,9 +1118,9 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         </button>
                       )
                     ) : activeTab === 'fusion' ? (
-                      pet.level === 2 ? (
+                      pet.level >= 6 ? (
                         <span style={{ fontSize: '0.8rem', color: 'var(--neon-yellow)', fontWeight: 800, alignSelf: 'center' }}>
-                          ★ EVOLUÍDO
+                          ★ MÁXIMO
                         </span>
                       ) : (
                         <div style={{ display: 'flex', gap: '6px' }}>
@@ -1060,6 +1191,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
           )}
         </div>
       </div>
+      )}
 
       {/* Hatch Overlay / Modal Animation */}
       {isHatching && (
