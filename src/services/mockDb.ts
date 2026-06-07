@@ -440,6 +440,55 @@ export function seedDatabase() {
     localStorage.setItem(STORAGE_KEYS.CLANS, JSON.stringify(defaultClans));
     localStorage.setItem(STORAGE_KEYS.TRADES, JSON.stringify(defaultTrades));
   }
+
+  // Clear specific users (patricia, luigi, manu, maju) if they exist in localStorage
+  try {
+    const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (rawUsers) {
+      const users: User[] = JSON.parse(rawUsers);
+      const targets = ['patricia', 'luigi', 'manu', 'maju'];
+      const usersToClear = users.filter(u => targets.includes(u.username.toLowerCase()));
+
+      if (usersToClear.length > 0) {
+        const remainingUsers = users.filter(u => !targets.includes(u.username.toLowerCase()));
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(remainingUsers));
+
+        const userIdsToClear = usersToClear.map(u => u.id);
+
+        // Clear GameStates
+        const rawStates = localStorage.getItem(STORAGE_KEYS.GAME_STATES);
+        if (rawStates) {
+          const states: GameState[] = JSON.parse(rawStates);
+          localStorage.setItem(STORAGE_KEYS.GAME_STATES, JSON.stringify(states.filter(s => !userIdsToClear.includes(s.userId))));
+        }
+
+        // Clear Pets
+        const rawPets = localStorage.getItem(STORAGE_KEYS.PETS);
+        if (rawPets) {
+          const pets: Pet[] = JSON.parse(rawPets);
+          localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(pets.filter(p => !userIdsToClear.includes(p.userId))));
+        }
+
+        // Clear Stats
+        const rawStats = localStorage.getItem(STORAGE_KEYS.STATS);
+        if (rawStats) {
+          const stats: MathStatistic[] = JSON.parse(rawStats);
+          localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats.filter(s => !userIdsToClear.includes(s.userId))));
+        }
+
+        // Sync deletion to Supabase in background
+        if (isSupabaseEnabled && supabase) {
+          userIdsToClear.forEach(id => {
+            supabase.from('users').delete().eq('id', id).then(({ error }) => {
+              if (error) console.error('[mockDb seed clean] Error cleaning user from Supabase:', error);
+            });
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[mockDb] Error during user cleanup step:', err);
+  }
 }
 
 // Helper methods to read/write JSON
@@ -876,92 +925,34 @@ export const mockDb = {
 
     const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
 
-    // Map all entries first
-    const entries = users.map(u => {
-      const state = states.find(gs => gs.userId === u.id) || {
-        auraLevel: 1,
-        rebirths: 0,
-        gems: 0,
-        equippedPetId: null,
-      };
+    // Map all entries, filtering out fictitious/seeded users
+    return users
+      .filter(u => !fictitiousUserIds.includes(u.id))
+      .map(u => {
+        const state = states.find(gs => gs.userId === u.id) || {
+          auraLevel: 1,
+          rebirths: 0,
+          gems: 0,
+          equippedPetId: null,
+        };
 
-      const equippedPet = state.equippedPetId ? pets.find(p => p.id === state.equippedPetId) : null;
-      const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.petTypeId) : null;
-
-      return {
-        id: u.id,
-        username: u.username,
-        level: state.auraLevel,
-        rebirths: state.rebirths,
-        gems: state.gems,
-        equippedPetEmoji: petType?.emoji,
-        isFictitious: fictitiousUserIds.includes(u.id)
-      };
-    });
-
-    // Sort to find the true standings first based on original values
-    const sortedOriginal = [...entries].sort((a, b) => {
-      if (b.rebirths !== a.rebirths) {
-        return b.rebirths - a.rebirths;
-      }
-      return b.level - a.level;
-    });
-
-    // Find the 3rd place score (Index 2 in 0-indexed list)
-    // Score formula: rebirths * 100 + level
-    let limitScore = 10; // default safe fallback if less than 3 players
-    if (sortedOriginal.length >= 3) {
-      const thirdPlace = sortedOriginal[2];
-      const thirdPlaceScore = (thirdPlace.rebirths * 100) + thirdPlace.level;
-      limitScore = Math.max(10, Math.floor(thirdPlaceScore * 0.10));
-    }
-
-    // Now, map and cap fictitious users to limitScore
-    return entries.map(entry => {
-      if (entry.isFictitious) {
-        // Cap level and rebirths so (rebirths * 100 + level) <= limitScore
-        let cappedRebirths = 0;
-        let cappedLevel = entry.level;
-
-        const currentScore = (entry.rebirths * 100) + entry.level;
-        if (currentScore > limitScore) {
-          cappedRebirths = Math.floor(limitScore / 100);
-          cappedLevel = limitScore % 100;
-          if (cappedLevel === 0) {
-            if (cappedRebirths > 0) {
-              cappedRebirths -= 1;
-              cappedLevel = 99;
-            } else {
-              cappedLevel = 1;
-            }
-          }
-        } else {
-          cappedRebirths = entry.rebirths;
-          cappedLevel = entry.level;
-        }
+        const equippedPet = state.equippedPetId ? pets.find(p => p.id === state.equippedPetId) : null;
+        const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.petTypeId) : null;
 
         return {
-          username: entry.username,
-          level: cappedLevel,
-          rebirths: cappedRebirths,
-          gems: entry.gems,
-          equippedPetEmoji: entry.equippedPetEmoji
+          username: u.username,
+          level: state.auraLevel,
+          rebirths: state.rebirths,
+          gems: state.gems,
+          equippedPetEmoji: petType?.emoji,
         };
-      }
-
-      return {
-        username: entry.username,
-        level: entry.level,
-        rebirths: entry.rebirths,
-        gems: entry.gems,
-        equippedPetEmoji: entry.equippedPetEmoji
-      };
-    }).sort((a, b) => {
-      if (b.rebirths !== a.rebirths) {
-        return b.rebirths - a.rebirths;
-      }
-      return b.level - a.level;
-    });
+      })
+      .sort((a, b) => {
+        if (b.rebirths !== a.rebirths) {
+          return b.rebirths - a.rebirths;
+        }
+        return b.level - a.level;
+      });
   },
 
   // Cosmetics APIs
