@@ -226,22 +226,29 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const startSpinning = (type: 'standard' | 'golden') => {
     setHatchStage('spinning');
 
-    // Determine Rarity & Pet Type based on probabilities
     const random = Math.random() * 100;
-    let selectedPetTypeId = 'robot_pup'; // default
+    let rolledRarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
 
     if (type === 'standard') {
       // Standard: 70% Common, 20% Rare, 9% Epic, 1% Legendary
-      if (random < 1) selectedPetTypeId = 'dragon_kid';
-      else if (random < 10) selectedPetTypeId = 'phoenix_chick';
-      else if (random < 30) selectedPetTypeId = 'slime_buddy';
-      else selectedPetTypeId = 'robot_pup';
+      if (random < 1) rolledRarity = 'legendary';
+      else if (random < 10) rolledRarity = 'epic';
+      else if (random < 30) rolledRarity = 'rare';
+      else rolledRarity = 'common';
     } else {
       // Golden: 40% Rare, 45% Epic, 15% Legendary (0% Common)
-      if (random < 15) selectedPetTypeId = 'dragon_kid';
-      else if (random < 60) selectedPetTypeId = 'phoenix_chick';
-      else selectedPetTypeId = 'slime_buddy';
+      if (random < 15) rolledRarity = 'legendary';
+      else if (random < 60) rolledRarity = 'epic';
+      else rolledRarity = 'rare';
     }
+
+    // Filter PET_TYPES matching the rolled rarity
+    // Note: exclude story mode cosmic_owl or specific aura pass rewards if cost is 999
+    const eligibleTypes = PET_TYPES.filter(pt => pt.rarity === rolledRarity && pt.cost < 999);
+    const selectedPetType = eligibleTypes.length > 0
+      ? eligibleTypes[Math.floor(Math.random() * eligibleTypes.length)]
+      : PET_TYPES[0]; // fallback
+    const selectedPetTypeId = selectedPetType.id;
 
     // Spin roulette animation (1.2 seconds)
     let spinIndex = 0;

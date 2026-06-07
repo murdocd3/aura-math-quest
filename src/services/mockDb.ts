@@ -150,6 +150,26 @@ export const PET_TYPES: PetType[] = [
     emoji: '🤖',
   },
   {
+    id: 'cyber_bunny',
+    name: 'Ciber Coelho',
+    rarity: 'common',
+    buffType: 'time_bonus',
+    buffValue: 1.0, // +1.0s reply time
+    cost: 10,
+    color: '#a1a1aa',
+    emoji: '🐇',
+  },
+  {
+    id: 'pixel_piggy',
+    name: 'Piggy Pixel',
+    rarity: 'common',
+    buffType: 'aura_multiplier',
+    buffValue: 1.05, // +5% Aura XP
+    cost: 12,
+    color: '#a1a1aa',
+    emoji: '🐷',
+  },
+  {
     id: 'slime_buddy',
     name: 'Slime Buddy',
     rarity: 'rare',
@@ -160,6 +180,26 @@ export const PET_TYPES: PetType[] = [
     emoji: '🧪',
   },
   {
+    id: 'neon_kitten',
+    name: 'Cyber Kitten',
+    rarity: 'rare',
+    buffType: 'time_bonus',
+    buffValue: 2.0, // +2.0 seconds reply time
+    cost: 22,
+    color: '#06b6d4', // Cyan
+    emoji: '🐱',
+  },
+  {
+    id: 'vector_fox',
+    name: 'Raposa Vetorial',
+    rarity: 'rare',
+    buffType: 'gem_multiplier',
+    buffValue: 1.2, // +20% Gems
+    cost: 24,
+    color: '#22c55e',
+    emoji: '🦊',
+  },
+  {
     id: 'phoenix_chick',
     name: 'Phoenix Chick',
     rarity: 'epic',
@@ -168,6 +208,36 @@ export const PET_TYPES: PetType[] = [
     cost: 35,
     color: '#f97316', // Orange
     emoji: '🔥',
+  },
+  {
+    id: 'hologram_monkey',
+    name: 'Macaco Holo',
+    rarity: 'epic',
+    buffType: 'aura_multiplier',
+    buffValue: 1.25, // +25% Aura XP
+    cost: 38,
+    color: '#3b82f6',
+    emoji: '🐒',
+  },
+  {
+    id: 'glitch_raccoon',
+    name: 'Guaxinim Glitch',
+    rarity: 'epic',
+    buffType: 'gem_multiplier',
+    buffValue: 1.3, // +30% Gems
+    cost: 40,
+    color: '#3b82f6',
+    emoji: '🦝',
+  },
+  {
+    id: 'quantum_panda',
+    name: 'Panda Quântico',
+    rarity: 'epic',
+    buffType: 'time_bonus',
+    buffValue: 3.0, // +3.0 seconds reply time
+    cost: 45,
+    color: '#3b82f6',
+    emoji: '🐼',
   },
   {
     id: 'dragon_kid',
@@ -190,16 +260,6 @@ export const PET_TYPES: PetType[] = [
     emoji: '🦉',
   },
   {
-    id: 'neon_kitten',
-    name: 'Cyber Kitten',
-    rarity: 'rare',
-    buffType: 'time_bonus',
-    buffValue: 2.0, // +2.0 seconds reply time
-    cost: 999, // Unlocked via Aura Pass
-    color: '#06b6d4', // Cyan
-    emoji: '🐱',
-  },
-  {
     id: 'cyber_phoenix',
     name: 'Cyber Phoenix',
     rarity: 'legendary',
@@ -208,6 +268,26 @@ export const PET_TYPES: PetType[] = [
     cost: 999, // Unlocked via Aura Pass
     color: '#f43f5e', // Rose
     emoji: '🐦',
+  },
+  {
+    id: 'binary_wolf',
+    name: 'Lobo Binário',
+    rarity: 'legendary',
+    buffType: 'time_bonus',
+    buffValue: 4.0, // +4.0s response time
+    cost: 90,
+    color: '#a855f7',
+    emoji: '🐺',
+  },
+  {
+    id: 'hyper_unicorn',
+    name: 'Unicórnio Hiper',
+    rarity: 'legendary',
+    buffType: 'aura_multiplier',
+    buffValue: 1.5, // +50% Aura XP
+    cost: 100,
+    color: '#a855f7',
+    emoji: '🦄',
   },
 ];
 

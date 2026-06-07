@@ -384,24 +384,30 @@ export const backendService = {
       try {
         console.log(`[BackendService] Creating pet ${petTypeId} for ${userId} in Supabase...`);
         
-        // Match rarity/buffs details
-        let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
-        let buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' = 'gem_multiplier';
-        let buffValue = 1.1;
+        // Retrieve details dynamically from mockDb PET_TYPES definition
+        const PET_TYPES_LOCAL = [
+          { id: 'robot_pup', rarity: 'common', buffType: 'gem_multiplier', buffValue: 1.1 },
+          { id: 'cyber_bunny', rarity: 'common', buffType: 'time_bonus', buffValue: 1.0 },
+          { id: 'pixel_piggy', rarity: 'common', buffType: 'aura_multiplier', buffValue: 1.05 },
+          { id: 'slime_buddy', rarity: 'rare', buffType: 'aura_multiplier', buffValue: 1.15 },
+          { id: 'neon_kitten', rarity: 'rare', buffType: 'time_bonus', buffValue: 2.0 },
+          { id: 'vector_fox', rarity: 'rare', buffType: 'gem_multiplier', buffValue: 1.2 },
+          { id: 'phoenix_chick', rarity: 'epic', buffType: 'time_bonus', buffValue: 2.0 },
+          { id: 'hologram_monkey', rarity: 'epic', buffType: 'aura_multiplier', buffValue: 1.25 },
+          { id: 'glitch_raccoon', rarity: 'epic', buffType: 'gem_multiplier', buffValue: 1.3 },
+          { id: 'quantum_panda', rarity: 'epic', buffType: 'time_bonus', buffValue: 3.0 },
+          { id: 'dragon_kid', rarity: 'legendary', buffType: 'gem_multiplier', buffValue: 1.4 },
+          { id: 'cosmic_owl', rarity: 'legendary', buffType: 'gem_multiplier', buffValue: 1.5 },
+          { id: 'cyber_phoenix', rarity: 'legendary', buffType: 'gem_multiplier', buffValue: 1.5 },
+          { id: 'binary_wolf', rarity: 'legendary', buffType: 'time_bonus', buffValue: 4.0 },
+          { id: 'hyper_unicorn', rarity: 'legendary', buffType: 'aura_multiplier', buffValue: 1.5 }
+        ];
 
-        if (petTypeId === 'cyber_kitty' || petTypeId === 'neon_kitten') {
-          rarity = 'rare';
-          buffType = 'time_bonus';
-          buffValue = 2.0;
-        } else if (petTypeId === 'cyber_phoenix' || petTypeId === 'cosmic_owl') {
-          rarity = 'legendary';
-          buffType = 'gem_multiplier';
-          buffValue = 1.5;
-        } else if (petTypeId === 'robot_pup') {
-          rarity = 'common';
-          buffType = 'aura_multiplier';
-          buffValue = 1.15;
-        }
+        const matchedType = PET_TYPES_LOCAL.find(pt => pt.id === petTypeId);
+
+        let rarity: 'common' | 'rare' | 'epic' | 'legendary' = matchedType ? matchedType.rarity as any : 'common';
+        let buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' = matchedType ? matchedType.buffType as any : 'gem_multiplier';
+        let buffValue = matchedType ? matchedType.buffValue : 1.1;
 
         const petId = 'pet_' + Math.random().toString(36).substring(2, 11);
         const newPet: Pet = {
