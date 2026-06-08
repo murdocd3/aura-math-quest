@@ -1574,7 +1574,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                              </div>
 
                              {/* Health Bar */}
-                             <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '10px', width: '100%', overflow: 'hidden', marginBottom: '6px' }}>
+                             <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '10px', width: '100%', overflow: 'hidden', marginBottom: '10px' }}>
                                <div
                                  style={{
                                    height: '100%',
@@ -1584,6 +1584,26 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                                  }}
                                />
                              </div>
+
+                             <button
+                               className="cyber-btn"
+                               onClick={() => {
+                                 audioEngine.playCorrect();
+                                 onSelectZone('volcano'); // Launching battle arena, which allows damaging the boss on correct hits.
+                               }}
+                               style={{
+                                 width: '100%',
+                                 padding: '8px',
+                                 fontSize: '0.8rem',
+                                 borderColor: 'var(--neon-purple)',
+                                 background: 'rgba(168, 85, 247, 0.15)',
+                                 marginBottom: '8px',
+                                 fontWeight: 800
+                               }}
+                             >
+                               ⚔️ Iniciar Combate na Arena
+                             </button>
+
                              <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontStyle: 'italic' }}>
                                *Resolva contas na Arena de Combate para causar dano ao chefe cooperativo!
                              </p>
