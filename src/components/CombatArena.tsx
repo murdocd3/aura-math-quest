@@ -27,6 +27,24 @@ interface Question {
   op?: 'addition' | 'subtraction' | 'multiplication' | 'division';
 }
 
+const getPedagogicalExplanation = (q: Question) => {
+  const op = q.op || 'multiplication';
+  if (op === 'addition') {
+    return `💡 Explicando: Para somar ${q.num1} e ${q.num2}, junte as duas partes. Pense em começar no ${q.num1} e contar mais ${q.num2} números adiante: ${q.num1} + ${q.num2} = ${q.answer}.`;
+  }
+  if (op === 'subtraction') {
+    return `💡 Explicando: Subtrair significa diminuir ou tirar. Se você tem ${q.num1} e retira ${q.num2}, restam ${q.answer}. Você pode testar somando: ${q.answer} + ${q.num2} = ${q.num1}.`;
+  }
+  if (op === 'multiplication') {
+    const sumRepresentation = Array(Math.min(q.num1, 10)).fill(q.num2).join(' + ') + (q.num1 > 10 ? ' + ...' : '');
+    return `💡 Explicando: Multiplicação é somar parcelas iguais! ${q.num1} × ${q.num2} quer dizer somar o número ${q.num2} por ${q.num1} vezes consecutivas: ${sumRepresentation} = ${q.answer}.`;
+  }
+  if (op === 'division') {
+    return `💡 Explicando: Dividir é repartir de forma justa! Se você dividir ${q.num1} em ${q.num2} partes iguais, cada uma terá exatamente ${q.answer}. Lembre-se: ${q.answer} × ${q.num2} = ${q.num1}!`;
+  }
+  return '';
+};
+
 const MONSTERS = {
   forest: [
     { name: 'Slime Glitch', emoji: '👾', maxHp: 3 },
@@ -420,7 +438,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     if (!isWeakPoint) {
       // Calculate cycle factor for campaign mode difficulty scaling
       const cycle = campaignStageId ? Math.floor((campaignStageId - 1) / 5) + 1 : 1;
-      const difficultyMultiplier = 1 + (cycle - 1) * 0.5; // increases range by 50% each cycle
+      const streakBonus = 1 + Math.floor(currentStreak / 3) * 0.15; // increases range by 15% for every 3 consecutive correct answers
+      const difficultyMultiplier = (campaignStageId ? 1 + (cycle - 1) * 0.5 : 1) * streakBonus;
 
       if (op === 'addition') {
         if (zone === 'forest' || campaignStageId) {
@@ -706,7 +725,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       setTimeout(() => {
         setIsFeedbackActive(false);
         nextQuestion();
-      }, 3500);
+      }, 5000);
     }
   };
 
@@ -825,7 +844,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         setTimeout(() => {
           setIsFeedbackActive(false);
           nextQuestion();
-        }, 3500);
+        }, 5000);
       }
     }
   };
@@ -1573,18 +1592,21 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                   <div
                     style={{
                       marginTop: '12px',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
                       background: 'rgba(239, 68, 68, 0.15)',
                       border: '1.5px solid var(--neon-pink)',
                       color: '#fff',
                       textAlign: 'center',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold',
                       boxShadow: '0 0 10px rgba(244, 63, 94, 0.2)'
                     }}
                   >
-                    ❌ Resposta Incorreta! A resposta correta é: <span style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontFamily: 'Share Tech Mono' }}>{currentQuestion.answer}</span>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '8px' }}>
+                      ❌ Resposta Incorreta! A resposta correta é: <span style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontFamily: 'Share Tech Mono' }}>{currentQuestion.answer}</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', paddingTop: '8px', fontStyle: 'italic', lineHeight: '1.35rem' }}>
+                      {getPedagogicalExplanation(currentQuestion)}
+                    </div>
                   </div>
                 )}
               </div>

@@ -553,6 +553,18 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return '⭐'.repeat(count);
   };
 
+  const getUnlocks = () => {
+    const list = [
+      { id: 'aura_beginner', label: '🔰 Iniciante', desc: 'Alcançou Nível 5 de Aura', active: gameState.auraLevel >= 5, color: '#4ade80' },
+      { id: 'aura_master', label: '🔮 Mestre', desc: 'Alcançou Nível 30 de Aura', active: gameState.auraLevel >= 30, color: 'var(--neon-purple)' },
+      { id: 'aura_legend', label: '🏆 Lendário', desc: 'Alcançou Nível 60 de Aura', active: gameState.auraLevel >= 60, color: 'var(--neon-yellow)' },
+      { id: 'rebirth_celestial', label: '⭐ Celestial', desc: 'Efetuou pelo menos 1 Rebirth', active: gameState.rebirths >= 1, color: 'var(--neon-pink)' },
+      { id: 'gem_tycoon', label: '💰 Magnata', desc: 'Acumulou 50 ou mais Gemas', active: gameState.gems >= 50, color: 'var(--neon-cyan)' },
+      { id: 'pet_tamer', label: '🐾 Domador', desc: 'Adquiriu 3 ou mais Pets no total', active: mockDb.getPets(playerUser.id).length >= 3, color: '#f59e0b' },
+    ];
+    return list;
+  };
+
   return (
     <div style={{ padding: '20px', minHeight: '90vh' }}>
       
@@ -785,6 +797,43 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Badges/Achievements Section */}
+            <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '16px', marginTop: '12px' }}>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px' }}>
+                🏅 Conquistas e Medalhas de Aura:
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
+                {getUnlocks().map(badge => (
+                  <div
+                    key={badge.id}
+                    title={badge.desc}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      background: badge.active ? `${badge.color}15` : 'rgba(255,255,255,0.01)',
+                      border: badge.active ? `1px solid ${badge.color}35` : '1px solid rgba(255,255,255,0.03)',
+                      opacity: badge.active ? 1 : 0.35,
+                      transition: 'all 0.2s ease',
+                      boxShadow: badge.active ? `0 0 6px ${badge.color}15` : 'none',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: badge.active ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                        {badge.label}
+                      </div>
+                      <div style={{ fontSize: '0.55rem', color: badge.active ? badge.color : 'rgba(255,255,255,0.3)', marginTop: '2px', fontWeight: 'bold' }}>
+                        {badge.active ? '✔️ ATIVADO' : '🔒 BLOQUEADO'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
 
           {/* Operations Selector Card */}
