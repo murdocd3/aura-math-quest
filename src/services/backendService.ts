@@ -389,24 +389,40 @@ export const backendService = {
           { id: 'robot_pup', rarity: 'common', buffType: 'gem_multiplier', buffValue: 1.1 },
           { id: 'cyber_bunny', rarity: 'common', buffType: 'time_bonus', buffValue: 1.0 },
           { id: 'pixel_piggy', rarity: 'common', buffType: 'aura_multiplier', buffValue: 1.05 },
-          { id: 'slime_buddy', rarity: 'rare', buffType: 'aura_multiplier', buffValue: 1.15 },
+          { id: 'slime_buddy', rarity: 'rare', buffType: 'combined', buffValue: 1.15 },
           { id: 'neon_kitten', rarity: 'rare', buffType: 'time_bonus', buffValue: 2.0 },
           { id: 'vector_fox', rarity: 'rare', buffType: 'gem_multiplier', buffValue: 1.2 },
-          { id: 'phoenix_chick', rarity: 'epic', buffType: 'time_bonus', buffValue: 2.0 },
+          { id: 'phoenix_chick', rarity: 'epic', buffType: 'combined', buffValue: 2.0 },
           { id: 'hologram_monkey', rarity: 'epic', buffType: 'aura_multiplier', buffValue: 1.25 },
           { id: 'glitch_raccoon', rarity: 'epic', buffType: 'gem_multiplier', buffValue: 1.3 },
           { id: 'quantum_panda', rarity: 'epic', buffType: 'time_bonus', buffValue: 3.0 },
-          { id: 'dragon_kid', rarity: 'legendary', buffType: 'gem_multiplier', buffValue: 1.4 },
-          { id: 'cosmic_owl', rarity: 'legendary', buffType: 'gem_multiplier', buffValue: 1.5 },
-          { id: 'cyber_phoenix', rarity: 'legendary', buffType: 'gem_multiplier', buffValue: 1.5 },
+          { id: 'dragon_kid', rarity: 'legendary', buffType: 'combined', buffValue: 1.4 },
+          { id: 'cosmic_owl', rarity: 'legendary', buffType: 'combined', buffValue: 1.5 },
+          { id: 'cyber_phoenix', rarity: 'legendary', buffType: 'combined', buffValue: 1.5 },
           { id: 'binary_wolf', rarity: 'legendary', buffType: 'time_bonus', buffValue: 4.0 },
-          { id: 'hyper_unicorn', rarity: 'legendary', buffType: 'aura_multiplier', buffValue: 1.5 }
+          { id: 'hyper_unicorn', rarity: 'legendary', buffType: 'combined', buffValue: 1.5 },
+          // New Cycle 2 pets
+          { id: 'neon_lion', rarity: 'rare', buffType: 'combined', buffValue: 1.15 },
+          { id: 'cyber_bear', rarity: 'rare', buffType: 'combined', buffValue: 1.2 },
+          { id: 'pixel_koala', rarity: 'common', buffType: 'time_bonus', buffValue: 1.0 },
+          { id: 'quantum_tiger', rarity: 'epic', buffType: 'combined', buffValue: 1.3 },
+          { id: 'holo_giraffe', rarity: 'epic', buffType: 'combined', buffValue: 1.25 },
+          { id: 'vector_deer', rarity: 'rare', buffType: 'aura_multiplier', buffValue: 1.2 },
+          { id: 'glitch_hedgehog', rarity: 'common', buffType: 'gem_multiplier', buffValue: 1.08 },
+          { id: 'binary_bull', rarity: 'rare', buffType: 'gem_multiplier', buffValue: 1.22 },
+          { id: 'cyber_shark', rarity: 'legendary', buffType: 'combined', buffValue: 1.45 },
+          { id: 'cosmic_whale', rarity: 'legendary', buffType: 'combined', buffValue: 1.5 },
+          { id: 'neon_octopus', rarity: 'epic', buffType: 'combined', buffValue: 1.32 },
+          { id: 'pixel_penguin', rarity: 'common', buffType: 'aura_multiplier', buffValue: 1.08 },
+          { id: 'quantum_elephant', rarity: 'legendary', buffType: 'combined', buffValue: 1.55 },
+          { id: 'cyber_hamster', rarity: 'common', buffType: 'time_bonus', buffValue: 1.2 },
+          { id: 'holo_sloth', rarity: 'rare', buffType: 'time_bonus', buffValue: 2.5 },
         ];
 
         const matchedType = PET_TYPES_LOCAL.find(pt => pt.id === petTypeId);
 
         let rarity: 'common' | 'rare' | 'epic' | 'legendary' = matchedType ? matchedType.rarity as any : 'common';
-        let buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' = matchedType ? matchedType.buffType as any : 'gem_multiplier';
+        let buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' | 'combined' = matchedType ? matchedType.buffType as any : 'gem_multiplier';
         let buffValue = matchedType ? matchedType.buffValue : 1.1;
 
         const petId = 'pet_' + Math.random().toString(36).substring(2, 11);
@@ -540,17 +556,67 @@ export const backendService = {
     if (isSupabaseEnabled && supabase) {
       try {
         const state = await this.getGameState(userId);
-        if (state && stageId >= state.campaignStage) {
-          const nextStage = stageId + 1;
-          const updates = { campaignStage: nextStage };
+        if (state) {
+          const isFirstTime = stageId === state.campaignStage;
+
+          // Cycle math
+          const cycle = Math.floor((stageId - 1) / 5) + 1;
+          const stageIndexInCycle = (stageId - 1) % 5;
+
+          // Base rewards
+          let baseXP = 0;
+          let baseGems = 0;
+          switch (stageIndexInCycle) {
+            case 0: baseXP = 100; baseGems = 15; break;
+            case 1: baseXP = 150; baseGems = 20; break;
+            case 2: baseXP = 200; baseGems = 25; break;
+            case 3: baseXP = 250; baseGems = 30; break;
+            case 4: baseXP = 500; baseGems = 50; break;
+          }
+
+          let xpReward = 0;
+          let gemsReward = 0;
+
+          if (isFirstTime) {
+            xpReward = baseXP * cycle;
+            gemsReward = baseGems * cycle;
+          } else {
+            xpReward = Math.max(10, Math.round((baseXP * cycle) * 0.1));
+            gemsReward = Math.max(1, Math.round((baseGems * cycle) * 0.1));
+          }
+
+          const nextStage = isFirstTime ? stageId + 1 : state.campaignStage;
+          const updates: any = { 
+            campaign_stage: nextStage,
+            gems: state.gems + gemsReward,
+            aura_xp: state.auraXp + xpReward
+          };
+
+          // Level up logic calculation
+          let level = state.auraLevel;
+          let xp = state.auraXp + xpReward;
+          let nextLevelXp = level * 100;
+          let leveledUp = false;
+
+          while (xp >= nextLevelXp) {
+            xp -= nextLevelXp;
+            level += 1;
+            nextLevelXp = level * 100;
+            leveledUp = true;
+          }
+
+          if (leveledUp) {
+            updates.aura_level = level;
+            updates.aura_xp = xp;
+          }
+
+          const freshState = await this.updateGameState(userId, mapDbToGameState(updates));
           
-          // Give gems/XP bonus if completing stage
-          if (stageId === 5) {
-            updates.campaignStage = 5; // max stage
-            // Reward legendary pet Cosmic Owl
+          if (stageId === 5 && isFirstTime) {
             await this.createPet(userId, 'cosmic_owl', 'Coruja Cósmica');
           }
-          return await this.updateGameState(userId, updates);
+
+          return freshState;
         }
       } catch (err) {
         console.error('[BackendService] Supabase error in completeCampaignStage:', err);

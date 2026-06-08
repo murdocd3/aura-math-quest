@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { mockDb } from '../services/mockDb';
+import { mockDb, PET_TYPES } from '../services/mockDb';
 import type { User, GameState } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
-import { CAMPAIGN_STAGES } from './HubWorld';
+import { getCampaignStages } from './HubWorld';
 import { CyberSprite } from './CyberSprite';
 import { CombatVfxCanvas } from './CombatVfxCanvas';
 import type { CombatVfxCanvasRef } from './CombatVfxCanvas';
@@ -50,12 +50,13 @@ const getOperationSymbol = (op: 'addition' | 'subtraction' | 'multiplication' | 
 };
 
 const getCampaignOp = (stageId: number): 'addition' | 'subtraction' | 'multiplication' | 'division' => {
-  switch (stageId) {
-    case 1: return 'addition';
-    case 2: return 'subtraction';
-    case 3: return 'division';
-    case 4: return 'multiplication';
-    case 5: {
+  const stageIndex = (stageId - 1) % 5;
+  switch (stageIndex) {
+    case 0: return 'addition';
+    case 1: return 'subtraction';
+    case 2: return 'division';
+    case 3: return 'multiplication';
+    case 4: {
       const ops: Array<'addition' | 'subtraction' | 'multiplication' | 'division'> = ['addition', 'subtraction', 'multiplication', 'division'];
       return ops[Math.floor(Math.random() * ops.length)];
     }
@@ -63,14 +64,30 @@ const getCampaignOp = (stageId: number): 'addition' | 'subtraction' | 'multiplic
   }
 };
 
-const getCampaignRewards = (stageId: number) => {
-  switch (stageId) {
-    case 1: return { xp: 100, gems: 15 };
-    case 2: return { xp: 150, gems: 20 };
-    case 3: return { xp: 200, gems: 25 };
-    case 4: return { xp: 250, gems: 30 };
-    case 5: return { xp: 500, gems: 50 };
-    default: return { xp: 0, gems: 0 };
+const getCampaignRewards = (stageId: number, currentCampaignStage: number) => {
+  const cycle = Math.floor((stageId - 1) / 5) + 1;
+  const stageIndex = (stageId - 1) % 5;
+
+  let baseXP = 0;
+  let baseGems = 0;
+  switch (stageIndex) {
+    case 0: baseXP = 100; baseGems = 15; break;
+    case 1: baseXP = 150; baseGems = 20; break;
+    case 2: baseXP = 200; baseGems = 25; break;
+    case 3: baseXP = 250; baseGems = 30; break;
+    case 4: baseXP = 500; baseGems = 50; break;
+  }
+
+  const isFirstTime = stageId === currentCampaignStage;
+
+  if (isFirstTime) {
+    return { xp: baseXP * cycle, gems: baseGems * cycle };
+  } else {
+    // 10% rewards for replaying
+    return {
+      xp: Math.max(10, Math.round((baseXP * cycle) * 0.1)),
+      gems: Math.max(1, Math.round((baseGems * cycle) * 0.1))
+    };
   }
 };
 
@@ -97,17 +114,30 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       const pets = mockDb.getPets(userId);
       const pet = pets.find(p => p.id === gameState.equippedPetId);
       if (pet) {
-        if (pet.buffType === 'time_bonus') {
-          extraTime = pet.buffValue;
-        } else if (pet.buffType === 'aura_multiplier') {
-          xpMultiplier = pet.buffValue;
-        } else if (pet.buffType === 'gem_multiplier') {
-          gemMultiplier = pet.buffValue;
-        }
+        // Find pet details from PET_TYPES catalog to support hybrid/combined buffs
+        const petType = PET_TYPES.find(pt => pt.id === pet.petTypeId);
+        if (petType) {
+          // If the pet has composite parameters defined in PET_TYPES catalog
+          if (petType.extraTime) {
+            extraTime += petType.extraTime * pet.level;
+          }
+          if (petType.xpMultiplier) {
+            xpMultiplier += (petType.xpMultiplier - 1) * pet.level;
+          }
+          if (petType.gemMultiplier) {
+            gemMultiplier += (petType.gemMultiplier - 1) * pet.level;
+          }
 
-        // Custom check for Legendary Dragon Kid (gives both stats!)
-        if (pet.petTypeId === 'dragon_kid') {
-          extraTime = 2.0; // Dragon also gives extra response time
+          // Fallback to legacy single buff columns
+          if (!petType.extraTime && !petType.xpMultiplier && !petType.gemMultiplier) {
+            if (pet.buffType === 'time_bonus') {
+              extraTime = pet.buffValue;
+            } else if (pet.buffType === 'aura_multiplier') {
+              xpMultiplier = pet.buffValue;
+            } else if (pet.buffType === 'gem_multiplier') {
+              gemMultiplier = pet.buffValue;
+            }
+          }
         }
       }
     }
@@ -345,47 +375,55 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
     let answer = 0;
     if (!isWeakPoint) {
+      // Calculate cycle factor for campaign mode difficulty scaling
+      const cycle = campaignStageId ? Math.floor((campaignStageId - 1) / 5) + 1 : 1;
+      const difficultyMultiplier = 1 + (cycle - 1) * 0.5; // increases range by 50% each cycle
+
       if (op === 'addition') {
-        if (zone === 'forest') {
-          num1 = Math.floor(Math.random() * 14) + 2; // 2 to 15
-          num2 = Math.floor(Math.random() * 14) + 2; // 2 to 15
+        if (zone === 'forest' || campaignStageId) {
+          const maxVal = Math.round(15 * difficultyMultiplier);
+          num1 = Math.floor(Math.random() * (maxVal - 1)) + 2;
+          num2 = Math.floor(Math.random() * (maxVal - 1)) + 2;
         } else {
-          num1 = Math.floor(Math.random() * 41) + 10; // 10 to 50
-          num2 = Math.floor(Math.random() * 41) + 10; // 10 to 50
+          num1 = Math.floor(Math.random() * 41) + 10;
+          num2 = Math.floor(Math.random() * 41) + 10;
         }
         answer = num1 + num2;
       } else if (op === 'subtraction') {
-        if (zone === 'forest') {
-          num1 = Math.floor(Math.random() * 26) + 5; // 5 to 30
-          num2 = Math.floor(Math.random() * (num1 - 2)) + 2; // 2 to num1 - 1
+        if (zone === 'forest' || campaignStageId) {
+          const maxVal = Math.round(30 * difficultyMultiplier);
+          num1 = Math.floor(Math.random() * (maxVal - 4)) + 5;
+          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
         } else {
-          num1 = Math.floor(Math.random() * 86) + 15; // 15 to 100
+          num1 = Math.floor(Math.random() * 86) + 15;
           num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
         }
         answer = num1 - num2;
       } else if (op === 'division') {
         let divisor = 2;
         let quotient = 2;
-        if (zone === 'forest') {
-          const divisors = [2, 3, 4, 5];
+        if (zone === 'forest' || campaignStageId) {
+          const divisors = [2, 3, 4, 5].map(d => Math.round(d * (1 + (cycle - 1) * 0.2)));
           divisor = divisors[Math.floor(Math.random() * divisors.length)];
         } else {
           const divisors = [6, 7, 8, 9];
           divisor = divisors[Math.floor(Math.random() * divisors.length)];
         }
-        quotient = Math.floor(Math.random() * 9) + 2; // 2 to 10
+        const maxQuotient = Math.round(10 * difficultyMultiplier);
+        quotient = Math.floor(Math.random() * (maxQuotient - 1)) + 2;
         num1 = divisor * quotient;
         num2 = divisor;
         answer = quotient;
       } else {
-        if (zone === 'forest') {
-          const tables = [2, 3, 4, 5];
+        if (zone === 'forest' || campaignStageId) {
+          const tables = [2, 3, 4, 5].map(t => Math.round(t * (1 + (cycle - 1) * 0.2)));
           num1 = tables[Math.floor(Math.random() * tables.length)];
         } else {
           const tables = [6, 7, 8, 9];
           num1 = tables[Math.floor(Math.random() * tables.length)];
         }
-        num2 = Math.floor(Math.random() * 9) + 2;
+        const maxFactor = Math.round(9 * difficultyMultiplier);
+        num2 = Math.floor(Math.random() * (maxFactor - 1)) + 2;
         answer = num1 * num2;
       }
     } else {
@@ -494,38 +532,41 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const startCampaignBattle = (stageId: number) => {
     setBattleMode('campaign');
 
+    const cycle = Math.floor((stageId - 1) / 5) + 1;
+    const stageIndex = (stageId - 1) % 5;
+
     let baseMaxHp = 3;
     let monsterName = '';
     let monsterEmoji = '';
 
-    switch (stageId) {
-      case 1:
-        monsterName = 'Slime de Código';
+    switch (stageIndex) {
+      case 0:
+        monsterName = `Slime de Código (Ciclo ${cycle})`;
         monsterEmoji = '🧪';
-        baseMaxHp = 3;
+        baseMaxHp = 3 + (cycle - 1) * 2;
+        break;
+      case 1:
+        monsterName = `Bug de Subtração (Ciclo ${cycle})`;
+        monsterEmoji = '🕷️';
+        baseMaxHp = 4 + (cycle - 1) * 2;
         break;
       case 2:
-        monsterName = 'Bug de Subtração';
-        monsterEmoji = '🕷️';
-        baseMaxHp = 4;
+        monsterName = `Trojan Divisor (Ciclo ${cycle})`;
+        monsterEmoji = '👾';
+        baseMaxHp = 4 + (cycle - 1) * 2;
         break;
       case 3:
-        monsterName = 'Trojan Divisor';
-        monsterEmoji = '👾';
-        baseMaxHp = 4;
+        monsterName = `Dragão Corrupto (Ciclo ${cycle})`;
+        monsterEmoji = '🐉';
+        baseMaxHp = 5 + (cycle - 1) * 3;
         break;
       case 4:
-        monsterName = 'Dragão Corrupto';
-        monsterEmoji = '🐉';
-        baseMaxHp = 5;
-        break;
-      case 5:
-        monsterName = 'Rei Glitch Core';
+        monsterName = `Rei Glitch Core (Ciclo ${cycle})`;
         monsterEmoji = '🔮';
-        baseMaxHp = 6;
+        baseMaxHp = 6 + (cycle - 1) * 4;
         break;
       default:
-        monsterName = 'Glitch Core';
+        monsterName = `Glitch Core (Ciclo ${cycle})`;
         monsterEmoji = '👾';
         baseMaxHp = 3;
         break;
@@ -1506,7 +1547,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       {battleState === 'won' && (
         campaignStageId ? (
           (() => {
-            const stage = CAMPAIGN_STAGES.find(s => s.id === campaignStageId);
+            const stages = getCampaignStages(gameState.campaignStage || 1);
+            const stage = stages.find(s => s.id === campaignStageId);
             if (!stage) return null;
             const dialogues = stage.victoryDialogues || [];
             const currentDialogue = dialogues[victoryDialogueIndex ?? 0] || '';
@@ -1593,7 +1635,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                       style={{ padding: '12px 24px', fontSize: '0.95rem', fontWeight: 800 }}
                       onClick={() => {
                         audioEngine.playHatchSuccess();
-                        const rewards = getCampaignRewards(campaignStageId);
+                        const rewards = getCampaignRewards(campaignStageId, gameState.campaignStage || 1);
                         onBattleFinished(rewards.xp, rewards.gems, true);
                       }}
                     >

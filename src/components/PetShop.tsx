@@ -39,6 +39,10 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   };
 
   useEffect(() => {
+    setPets(mockDb.getPets(userId));
+  }, [userId, gameState]);
+
+  useEffect(() => {
     loadTrades();
   }, []);
 
@@ -335,6 +339,31 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   };
 
   const getBuffDescription = (pet: Pet | typeof PET_TYPES[0]) => {
+    // If it is a Pet instance, find its base type in PET_TYPES catalog to check for combined/hybrid buffs
+    const pt = 'petTypeId' in pet ? PET_TYPES.find(x => x.id === pet.petTypeId) : pet;
+    
+    if (pt && pt.buffType === 'combined') {
+      if (pt.buffDescription) {
+        // Scale composite text based on level if it's a Pet instance
+        const level = 'level' in pet ? pet.level : 1;
+        if (level > 1) {
+          let desc = '';
+          if (pt.extraTime) desc += `+${(pt.extraTime * level).toFixed(1)}s Resposta`;
+          if (pt.xpMultiplier) {
+            if (desc) desc += ' / ';
+            desc += `XP +${Math.round(((pt.xpMultiplier - 1) * level) * 100)}%`;
+          }
+          if (pt.gemMultiplier) {
+            if (desc) desc += ' / ';
+            desc += `Gemas +${Math.round(((pt.gemMultiplier - 1) * level) * 100)}%`;
+          }
+          return desc;
+        }
+        return pt.buffDescription;
+      }
+    }
+
+    // Single buff types
     switch (pet.buffType) {
       case 'time_bonus':
         return `+${pet.buffValue} segundos de tempo para responder`;
@@ -511,7 +540,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                   </span>
 
                   <div style={{ fontSize: '0.75rem', color: hasUnlocked ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.15)', marginTop: '8px', textAlign: 'center' }}>
-                    {hasUnlocked ? (pt.buffType === 'time_bonus' ? `+${pt.buffValue}s Tempo` : `+${Math.round((pt.buffValue - 1) * 100)}% Bonus`) : 'Bloqueado'}
+                    {hasUnlocked ? getBuffDescription(pt) : 'Bloqueado'}
                   </div>
                 </div>
               );
@@ -748,20 +777,17 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     );
                   }
                   
-                  const baseType = PET_TYPES.find(pt => pt.id === pet1.petTypeId);
-                  const baseBuffVal = baseType ? baseType.buffValue : pet1.buffValue;
                   const nextLvl = pet1.level + 1;
                   
-                  let nextBuffVal = pet1.buffValue;
-                  if (pet1.buffType === 'time_bonus') {
-                    nextBuffVal = baseBuffVal * nextLvl;
-                  } else {
-                    const increment = baseBuffVal - 1;
-                    nextBuffVal = 1 + (increment * nextLvl);
-                  }
+                  // Mock a temporary evolved pet object to preview its buff description
+                  const evolvedPetMock: Pet = {
+                    ...pet1,
+                    level: nextLvl,
+                    buffValue: pet1.buffValue // Not strictly needed for composite text but fits structure
+                  };
                   
-                  const originalBonus = pet1.buffType === 'time_bonus' ? `+${pet1.buffValue}s Tempo` : `+${Math.round((pet1.buffValue - 1) * 100)}%`;
-                  const evolvedBonus = pet1.buffType === 'time_bonus' ? `+${nextBuffVal}s Tempo` : `+${Math.round((nextBuffVal - 1) * 100)}%`;
+                  const originalBonus = getBuffDescription(pet1);
+                  const evolvedBonus = getBuffDescription(evolvedPetMock);
                   
                   const baseName = pet1.nickname.split(' ★')[0];
                   const currentStars = '★'.repeat(pet1.level - 1);

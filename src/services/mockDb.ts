@@ -113,7 +113,7 @@ export interface Pet {
   petTypeId: string;
   nickname: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier';
+  buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' | 'combined';
   buffValue: number;
   createdAt: string;
   level: number;
@@ -131,30 +131,36 @@ export interface PetType {
   id: string;
   name: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier';
-  buffValue: number; // seconds for time_bonus, multiplier factor for others
+  buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' | 'combined';
+  buffValue: number; // base value for single buffs
   cost: number;
   color: string;
   emoji: string;
+  // Multi-buff dynamic support
+  extraTime?: number;
+  xpMultiplier?: number;
+  gemMultiplier?: number;
+  buffDescription?: string;
 }
 
 export const PET_TYPES: PetType[] = [
+  // --- Cycle 1: 15 Pets (Original IDs mapped to real animals) ---
   {
     id: 'robot_pup',
-    name: 'Robot Pup',
+    name: 'Cão Cibernético',
     rarity: 'common',
     buffType: 'gem_multiplier',
-    buffValue: 1.1, // +10% Gems
+    buffValue: 1.1,
     cost: 10,
     color: '#a1a1aa', // Silver/gray
-    emoji: '🤖',
+    emoji: '🐶',
   },
   {
     id: 'cyber_bunny',
     name: 'Ciber Coelho',
     rarity: 'common',
     buffType: 'time_bonus',
-    buffValue: 1.0, // +1.0s reply time
+    buffValue: 1.0,
     cost: 10,
     color: '#a1a1aa',
     emoji: '🐇',
@@ -164,27 +170,30 @@ export const PET_TYPES: PetType[] = [
     name: 'Piggy Pixel',
     rarity: 'common',
     buffType: 'aura_multiplier',
-    buffValue: 1.05, // +5% Aura XP
+    buffValue: 1.05,
     cost: 12,
     color: '#a1a1aa',
     emoji: '🐷',
   },
   {
     id: 'slime_buddy',
-    name: 'Slime Buddy',
+    name: 'Sapo Holográfico',
     rarity: 'rare',
-    buffType: 'aura_multiplier',
-    buffValue: 1.15, // +15% Aura XP
+    buffType: 'combined',
+    buffValue: 1.15,
     cost: 20,
     color: '#22c55e', // Green
-    emoji: '🧪',
+    emoji: '🐸',
+    xpMultiplier: 1.1,
+    gemMultiplier: 1.1,
+    buffDescription: 'XP +10% e Gemas +10%'
   },
   {
     id: 'neon_kitten',
-    name: 'Cyber Kitten',
+    name: 'Cyber Gatinho',
     rarity: 'rare',
     buffType: 'time_bonus',
-    buffValue: 2.0, // +2.0 seconds reply time
+    buffValue: 2.0,
     cost: 22,
     color: '#06b6d4', // Cyan
     emoji: '🐱',
@@ -194,27 +203,30 @@ export const PET_TYPES: PetType[] = [
     name: 'Raposa Vetorial',
     rarity: 'rare',
     buffType: 'gem_multiplier',
-    buffValue: 1.2, // +20% Gems
+    buffValue: 1.2,
     cost: 24,
     color: '#22c55e',
     emoji: '🦊',
   },
   {
     id: 'phoenix_chick',
-    name: 'Phoenix Chick',
+    name: 'Falcão de Fogo',
     rarity: 'epic',
-    buffType: 'time_bonus',
-    buffValue: 2.0, // +2.0 seconds reply time
+    buffType: 'combined',
+    buffValue: 2.0,
     cost: 35,
     color: '#f97316', // Orange
-    emoji: '🔥',
+    emoji: '🦅',
+    extraTime: 1.5,
+    gemMultiplier: 1.15,
+    buffDescription: '+1.5s Resposta e Gemas +15%'
   },
   {
     id: 'hologram_monkey',
     name: 'Macaco Holo',
     rarity: 'epic',
     buffType: 'aura_multiplier',
-    buffValue: 1.25, // +25% Aura XP
+    buffValue: 1.25,
     cost: 38,
     color: '#3b82f6',
     emoji: '🐒',
@@ -224,7 +236,7 @@ export const PET_TYPES: PetType[] = [
     name: 'Guaxinim Glitch',
     rarity: 'epic',
     buffType: 'gem_multiplier',
-    buffValue: 1.3, // +30% Gems
+    buffValue: 1.3,
     cost: 40,
     color: '#3b82f6',
     emoji: '🦝',
@@ -234,60 +246,248 @@ export const PET_TYPES: PetType[] = [
     name: 'Panda Quântico',
     rarity: 'epic',
     buffType: 'time_bonus',
-    buffValue: 3.0, // +3.0 seconds reply time
+    buffValue: 3.0,
     cost: 45,
     color: '#3b82f6',
     emoji: '🐼',
   },
   {
     id: 'dragon_kid',
-    name: 'Dragon Kid',
+    name: 'Lagarto Cyber',
     rarity: 'legendary',
-    buffType: 'gem_multiplier', // Also doubles up as custom stats in battle
-    buffValue: 1.4, // +40% Gems and +2s Response (coded in Arena)
+    buffType: 'combined',
+    buffValue: 1.4,
     cost: 50,
     color: '#a855f7', // Purple/Neon
-    emoji: '🐉',
+    emoji: '🦎',
+    extraTime: 2.0,
+    gemMultiplier: 1.3,
+    buffDescription: '+2.0s Resposta e Gemas +30%'
   },
   {
     id: 'cosmic_owl',
-    name: 'Cosmic Owl',
+    name: 'Coruja Cósmica',
     rarity: 'legendary',
-    buffType: 'gem_multiplier',
-    buffValue: 1.5, // +50% Gems
+    buffType: 'combined',
+    buffValue: 1.5,
     cost: 999, // Unlocked via Story Mode
     color: '#ec4899', // Hot Pink
     emoji: '🦉',
+    xpMultiplier: 1.3,
+    gemMultiplier: 1.3,
+    buffDescription: 'XP +30% e Gemas +30%'
   },
   {
     id: 'cyber_phoenix',
-    name: 'Cyber Phoenix',
+    name: 'Águia Cyber',
     rarity: 'legendary',
-    buffType: 'gem_multiplier',
-    buffValue: 1.5, // +50% Gems
+    buffType: 'combined',
+    buffValue: 1.5,
     cost: 999, // Unlocked via Aura Pass
     color: '#f43f5e', // Rose
-    emoji: '🐦',
+    emoji: '🦅',
+    extraTime: 3.0,
+    xpMultiplier: 1.35,
+    buffDescription: '+3.0s Resposta e XP +35%'
   },
   {
     id: 'binary_wolf',
     name: 'Lobo Binário',
     rarity: 'legendary',
     buffType: 'time_bonus',
-    buffValue: 4.0, // +4.0s response time
+    buffValue: 4.0,
     cost: 90,
     color: '#a855f7',
     emoji: '🐺',
   },
   {
     id: 'hyper_unicorn',
-    name: 'Unicórnio Hiper',
+    name: 'Cavalo Cibernético',
     rarity: 'legendary',
-    buffType: 'aura_multiplier',
-    buffValue: 1.5, // +50% Aura XP
+    buffType: 'combined',
+    buffValue: 1.5,
     cost: 100,
     color: '#a855f7',
-    emoji: '🦄',
+    emoji: '🐴',
+    xpMultiplier: 1.25,
+    gemMultiplier: 1.25,
+    buffDescription: 'XP +25% e Gemas +25%'
+  },
+
+  // --- Cycle 2: 15 New Animal Pets (Double the album size to 30) ---
+  {
+    id: 'neon_lion',
+    name: 'Leão Neon',
+    rarity: 'rare',
+    buffType: 'combined',
+    buffValue: 1.15,
+    cost: 25,
+    color: '#22c55e',
+    emoji: '🦁',
+    xpMultiplier: 1.1,
+    extraTime: 1.0,
+    buffDescription: 'XP +10% e +1.0s Resposta'
+  },
+  {
+    id: 'cyber_bear',
+    name: 'Urso Cyber',
+    rarity: 'rare',
+    buffType: 'combined',
+    buffValue: 1.2,
+    cost: 26,
+    color: '#22c55e',
+    emoji: '🐻',
+    gemMultiplier: 1.15,
+    extraTime: 1.0,
+    buffDescription: 'Gemas +15% e +1.0s Resposta'
+  },
+  {
+    id: 'pixel_koala',
+    name: 'Koala Pixel',
+    rarity: 'common',
+    buffType: 'time_bonus',
+    buffValue: 1.0,
+    cost: 11,
+    color: '#a1a1aa',
+    emoji: '🐨',
+  },
+  {
+    id: 'quantum_tiger',
+    name: 'Tigre Quântico',
+    rarity: 'epic',
+    buffType: 'combined',
+    buffValue: 1.3,
+    cost: 42,
+    color: '#3b82f6',
+    emoji: '🐯',
+    xpMultiplier: 1.2,
+    gemMultiplier: 1.2,
+    buffDescription: 'XP +20% e Gemas +20%'
+  },
+  {
+    id: 'holo_giraffe',
+    name: 'Girafa Holo',
+    rarity: 'epic',
+    buffType: 'combined',
+    buffValue: 1.25,
+    cost: 44,
+    color: '#3b82f6',
+    emoji: '🦒',
+    xpMultiplier: 1.15,
+    extraTime: 2.0,
+    buffDescription: 'XP +15% e +2.0s Resposta'
+  },
+  {
+    id: 'vector_deer',
+    name: 'Cervo Vetorial',
+    rarity: 'rare',
+    buffType: 'aura_multiplier',
+    buffValue: 1.2,
+    cost: 28,
+    color: '#22c55e',
+    emoji: '🦌',
+  },
+  {
+    id: 'glitch_hedgehog',
+    name: 'Ouriço Glitch',
+    rarity: 'common',
+    buffType: 'gem_multiplier',
+    buffValue: 1.08,
+    cost: 12,
+    color: '#a1a1aa',
+    emoji: '🦔',
+  },
+  {
+    id: 'binary_bull',
+    name: 'Touro Binário',
+    rarity: 'rare',
+    buffType: 'gem_multiplier',
+    buffValue: 1.22,
+    cost: 30,
+    color: '#22c55e',
+    emoji: '🐂',
+  },
+  {
+    id: 'cyber_shark',
+    name: 'Tubarão Cyber',
+    rarity: 'legendary',
+    buffType: 'combined',
+    buffValue: 1.45,
+    cost: 95,
+    color: '#a855f7',
+    emoji: '🦈',
+    gemMultiplier: 1.35,
+    extraTime: 2.5,
+    buffDescription: 'Gemas +35% e +2.5s Resposta'
+  },
+  {
+    id: 'cosmic_whale',
+    name: 'Baleia Cósmica',
+    rarity: 'legendary',
+    buffType: 'combined',
+    buffValue: 1.5,
+    cost: 110,
+    color: '#a855f7',
+    emoji: '🐋',
+    xpMultiplier: 1.3,
+    gemMultiplier: 1.4,
+    buffDescription: 'XP +30% e Gemas +40%'
+  },
+  {
+    id: 'neon_octopus',
+    name: 'Polvo Neon',
+    rarity: 'epic',
+    buffType: 'combined',
+    buffValue: 1.32,
+    cost: 46,
+    color: '#3b82f6',
+    emoji: '🐙',
+    gemMultiplier: 1.25,
+    extraTime: 1.5,
+    buffDescription: 'Gemas +25% e +1.5s Resposta'
+  },
+  {
+    id: 'pixel_penguin',
+    name: 'Pinguim Pixel',
+    rarity: 'common',
+    buffType: 'aura_multiplier',
+    buffValue: 1.08,
+    cost: 12,
+    color: '#a1a1aa',
+    emoji: '🐧',
+  },
+  {
+    id: 'quantum_elephant',
+    name: 'Elefante Quântico',
+    rarity: 'legendary',
+    buffType: 'combined',
+    buffValue: 1.55,
+    cost: 120,
+    color: '#a855f7',
+    emoji: '🐘',
+    xpMultiplier: 1.4,
+    extraTime: 3.0,
+    buffDescription: 'XP +40% e +3.0s Resposta'
+  },
+  {
+    id: 'cyber_hamster',
+    name: 'Hamster Cyber',
+    rarity: 'common',
+    buffType: 'time_bonus',
+    buffValue: 1.2,
+    cost: 13,
+    color: '#a1a1aa',
+    emoji: '🐹',
+  },
+  {
+    id: 'holo_sloth',
+    name: 'Preguiça Holo',
+    rarity: 'rare',
+    buffType: 'time_bonus',
+    buffValue: 2.5,
+    cost: 32,
+    color: '#22c55e',
+    emoji: '🦥',
   },
 ];
 
@@ -1412,17 +1612,38 @@ export const mockDb = {
     const state = this.getGameState(userId);
     if (!state) return null;
 
-    let xpReward = 0;
-    let gemsReward = 0;
-    switch (stageId) {
-      case 1: xpReward = 100; gemsReward = 15; break;
-      case 2: xpReward = 150; gemsReward = 20; break;
-      case 3: xpReward = 200; gemsReward = 25; break;
-      case 4: xpReward = 250; gemsReward = 30; break;
-      case 5: xpReward = 500; gemsReward = 50; break;
+    // Cycle math
+    const cycle = Math.floor((stageId - 1) / 5) + 1;
+    const stageIndexInCycle = (stageId - 1) % 5;
+
+    // Base rewards for Cycle 1
+    let baseXP = 0;
+    let baseGems = 0;
+    switch (stageIndexInCycle) {
+      case 0: baseXP = 100; baseGems = 15; break; // Phase 1
+      case 1: baseXP = 150; baseGems = 20; break; // Phase 2
+      case 2: baseXP = 200; baseGems = 25; break; // Phase 3
+      case 3: baseXP = 250; baseGems = 30; break; // Phase 4
+      case 4: baseXP = 500; baseGems = 50; break; // Phase 5 (Boss/Mix)
     }
 
-    const nextStage = stageId === state.campaignStage ? state.campaignStage + 1 : state.campaignStage;
+    const isFirstTime = stageId === state.campaignStage;
+    
+    let xpReward = 0;
+    let gemsReward = 0;
+
+    if (isFirstTime) {
+      // First-time clear rewards scaled by cycle
+      xpReward = baseXP * cycle;
+      gemsReward = baseGems * cycle;
+    } else {
+      // Repeated clear rewards: 10% of the cycle-scaled rewards (minimum 1 gem, 10 XP)
+      xpReward = Math.max(10, Math.round((baseXP * cycle) * 0.1));
+      gemsReward = Math.max(1, Math.round((baseGems * cycle) * 0.1));
+    }
+
+    // Advance campaign stage only on first-time clear
+    const nextStage = isFirstTime ? stageId + 1 : state.campaignStage;
 
     const updated = this.updateGameState(userId, {
       campaignStage: nextStage,
@@ -1451,7 +1672,8 @@ export const mockDb = {
       }
     }
 
-    if (stageId === 5) {
+    // Award Cosmic Owl on clearing phase 5 of cycle 1 for the first time
+    if (stageId === 5 && isFirstTime) {
       const ownedPets = this.getPets(userId);
       if (!ownedPets.some(p => p.petTypeId === 'cosmic_owl')) {
         this.createPet(userId, 'cosmic_owl', 'Coruja Cósmica');

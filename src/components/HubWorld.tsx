@@ -8,103 +8,137 @@ import { audioEngine } from './AudioEngine';
 import { CyberSprite } from './CyberSprite';
 import { AuraPass } from './AuraPass';
 
-export const CAMPAIGN_STAGES = [
-  {
-    id: 1,
-    name: "Fase 1: O Despertar da Adição",
-    npc: "Alquimista Orion",
-    npcEmoji: "🧙‍♂️",
-    color: "var(--neon-cyan)",
-    op: "Adição (+)",
-    desc: "O código da Adição está instável. Purifique os dados corrompidos!",
-    dialogues: [
-      "Orion: Saudações, jovem mago! A Grande Aura de Adição foi corrompida por vírus Glitch!",
-      "Mago: O que eu preciso fazer, Orion?",
-      "Orion: Você deve canalizar sua energia de Adição. Resolva as equações para expurgar o Slime de Código!"
-    ],
-    victoryDialogues: [
-      "Orion: Incrível! Você purificou o Slime de Código e estabilizou a Adição! A energia do reino começa a fluir novamente.",
-      "Mago: Obrigado, Orion. Qual o próximo passo?",
-      "Orion: Siga para a próxima dimensão. Kael precisa de sua ajuda com as sombras da Subtração!"
-    ]
-  },
-  {
-    id: 2,
-    name: "Fase 2: As Sombras Binárias",
-    npc: "Mago Kael",
-    npcEmoji: "🔮",
-    color: "var(--neon-purple)",
-    op: "Subtração (-)",
-    desc: "Os glitches de Subtração estão drenando os dados do reino.",
-    dialogues: [
-      "Kael: Cuidado! Os glitches de Subtração estão roubando nossos dados!",
-      "Mago: Como posso detê-los?",
-      "Kael: Equilibre a equação retirando a energia corrompida. Derrote o Bug de Subtração!"
-    ],
-    victoryDialogues: [
-      "Kael: Fantástico! O Bug de Subtração foi neutralizado e as sombras binárias recuaram.",
-      "Mago: A subtração agora está em equilíbrio.",
-      "Kael: Excelente. Mas há ruídos metálicos vindo da dimensão da Divisão. Vá falar com o Robô Pi!"
-    ]
-  },
-  {
-    id: 3,
-    name: "Fase 3: O Mistério da Divisão",
-    npc: "Robô Pi",
-    npcEmoji: "🤖",
-    color: "var(--neon-blue)",
-    op: "Divisão (÷)",
-    desc: "Um erro crítico causou uma divisão ilegal por zero. Restaure o equilíbrio!",
-    dialogues: [
-      "Pi: BEEP-BOOP! Erro catastrófico de Divisão! Recursos do sistema corrompidos!",
-      "Mago: Robô Pi, me diga como reequilibrar!",
-      "Pi: Divida a carga de dados igualmente para neutralizar o Trojan Divisor!"
-    ],
-    victoryDialogues: [
-      "Pi: BEEP-BOOP! Sucesso! O Trojan Divisor foi apagado e o erro de divisão por zero foi corrigido!",
-      "Mago: Fico feliz em ajudar, Pi.",
-      "Pi: Agradecimento registrado. ALERTA: Stella está enfrentando uma multiplicação infinita no Vulcão!"
-    ]
-  },
-  {
-    id: 4,
-    name: "Fase 4: O Domínio da Multiplicação",
-    npc: "Guerreira Stella",
-    npcEmoji: "⚔️",
-    color: "var(--neon-yellow)",
-    op: "Multiplicação (×)",
-    desc: "Os inimigos estão se multiplicando de forma geométrica no vulcão!",
-    dialogues: [
-      "Stella: Bem-vindo ao Vulcão de Fogo! Os glitches estão se multiplicando a uma taxa alarmante!",
-      "Mago: Eles estão ficando mais rápidos?",
-      "Stella: Sim! Precisamos canalizar o poder da Multiplicação para conter o Dragão Corrupto!"
-    ],
-    victoryDialogues: [
-      "Stella: Excelente combate! O Dragão Corrupto foi derrotado e a multiplicação geométrica cessou!",
-      "Mago: Estamos quase lá.",
-      "Stella: Sim, mas o pior nos espera. O Rei Glitch está no núcleo do reino com as operações mistas. Destrua o núcleo!"
-    ]
-  },
-  {
-    id: 5,
-    name: "Fase 5: O Núcleo do Glitch",
-    npc: "Rei Glitch",
-    npcEmoji: "👑",
-    color: "var(--neon-pink)",
-    op: "Operações Mistas (+, -, ×, ÷)",
-    desc: "O núcleo do reino está prestes a entrar em colapso. Derrote o Rei Glitch!",
-    dialogues: [
-      "Rei Glitch: Tolos... Vocês acham que a matemática de vocês pode salvar este mundo de dados?",
-      "Mago: Nós vamos restaurar a ordem na Aura Central!",
-      "Rei Glitch: Veremos! Sintam o poder de todas as operações combinadas!"
-    ],
-    victoryDialogues: [
-      "Rei Glitch: Não... Impossível! Minha matriz de corrupção... Desfeita por equações matemáticas?!",
-      "Mago: A harmonia e a verdade da matemática sempre prevalecem contra o caos dos glitches!",
-      "Orion: Você conseguiu, Mago! A Grande Aura Central foi salva. Como recompensa pela sua lendária jornada, receba a companhia da lendária Coruja Cósmica!"
-    ]
+export interface CampaignStage {
+  id: number;
+  name: string;
+  npc: string;
+  npcEmoji: string;
+  color: string;
+  op: string;
+  desc: string;
+  dialogues: string[];
+  victoryDialogues: string[];
+}
+
+export const getCampaignStages = (currentStageId: number): CampaignStage[] => {
+  const stages: CampaignStage[] = [];
+  
+  // Show all cleared stages, the currently active unlocked stage, plus one locked stage as preview
+  const maxStageToShow = Math.max(5, currentStageId + 1);
+
+  for (let id = 1; id <= maxStageToShow; id++) {
+    const cycle = Math.floor((id - 1) / 5) + 1;
+    const stageIndex = (id - 1) % 5;
+    
+    let name = "";
+    let npc = "";
+    let npcEmoji = "";
+    let color = "";
+    let op = "";
+    let desc = "";
+    let dialogues: string[] = [];
+    let victoryDialogues: string[] = [];
+
+    switch (stageIndex) {
+      case 0:
+        name = `Fase ${id}: O Despertar da Adição (Ciclo ${cycle})`;
+        npc = "Alquimista Orion";
+        npcEmoji = "🧙‍♂️";
+        color = "var(--neon-cyan)";
+        op = "Adição (+)";
+        desc = `O código da Adição no Ciclo ${cycle} está instável. Purifique os dados corrompidos!`;
+        dialogues = [
+          `Orion: Saudações! A Grande Aura de Adição foi corrompida por vírus Glitch no Ciclo ${cycle}!`,
+          "Mago: O que eu preciso fazer, Orion?",
+          "Orion: Você deve canalizar sua energia de Adição. Resolva as equações para expurgar o Slime de Código!"
+        ];
+        victoryDialogues = [
+          "Orion: Incrível! Você purificou o Slime de Código e estabilizou a Adição!",
+          "Mago: Obrigado, Orion.",
+          "Orion: Siga para a próxima dimensão. Kael precisa de sua ajuda com a Subtração!"
+        ];
+        break;
+      case 1:
+        name = `Fase ${id}: As Sombras Binárias (Ciclo ${cycle})`;
+        npc = "Mago Kael";
+        npcEmoji = "🔮";
+        color = "var(--neon-purple)";
+        op = "Subtração (-)";
+        desc = `Os glitches de Subtração do Ciclo ${cycle} estão drenando os dados do reino.`;
+        dialogues = [
+          `Kael: Cuidado! Os glitches de Subtração do Ciclo ${cycle} estão roubando nossos dados!`,
+          "Mago: Como posso detê-los?",
+          "Kael: Equilibre a equação retirando a energia corrompida. Derrote o Bug de Subtração!"
+        ];
+        victoryDialogues = [
+          "Kael: Fantástico! O Bug de Subtração foi neutralizado e as sombras binárias recuaram.",
+          "Mago: A subtração agora está em equilíbrio.",
+          "Kael: Excelente. Vá falar com o Robô Pi na dimensão da Divisão!"
+        ];
+        break;
+      case 2:
+        name = `Fase ${id}: O Mistério da Divisão (Ciclo ${cycle})`;
+        npc = "Robô Pi";
+        npcEmoji = "🤖";
+        color = "var(--neon-blue)";
+        op = "Divisão (÷)";
+        desc = `Um erro crítico causou uma divisão ilegal no Ciclo ${cycle}. Restaure o equilíbrio!`;
+        dialogues = [
+          `Pi: BEEP-BOOP! Erro catastrófico de Divisão no Ciclo ${cycle}!`,
+          "Mago: Robô Pi, me diga como reequilibrar!",
+          "Pi: Divida a carga de dados igualmente para neutralizar o Trojan Divisor!"
+        ];
+        victoryDialogues = [
+          "Pi: BEEP-BOOP! Sucesso! O Trojan Divisor foi apagado!",
+          "Mago: Fico feliz em ajudar, Pi.",
+          "Pi: Stella está enfrentando uma multiplicação infinita no Vulcão!"
+        ];
+        break;
+      case 3:
+        name = `Fase ${id}: O Domínio da Multiplicação (Ciclo ${cycle})`;
+        npc = "Guerreira Stella";
+        npcEmoji = "⚔️";
+        color = "var(--neon-yellow)";
+        op = "Multiplicação (×)";
+        desc = `Os inimigos do Ciclo ${cycle} estão se multiplicando de forma geométrica!`;
+        dialogues = [
+          `Stella: Bem-vindo ao Vulcão! Os glitches no Ciclo ${cycle} estão se multiplicando rápido!`,
+          "Mago: Eles estão ficando mais rápidos?",
+          "Stella: Sim! Precisamos canalizar o poder da Multiplicação para conter o Dragão Corrupto!"
+        ];
+        victoryDialogues = [
+          "Stella: Excelente combate! O Dragão Corrupto foi derrotado!",
+          "Mago: Estamos quase lá.",
+          "Stella: Sim. O Rei Glitch está no núcleo com operações mistas. Destrua-o!"
+        ];
+        break;
+      case 4:
+        name = `Fase ${id}: O Núcleo do Glitch (Ciclo ${cycle})`;
+        npc = "Rei Glitch";
+        npcEmoji = "👑";
+        color = "var(--neon-pink)";
+        op = "Operações Mistas (+, -, ×, ÷)";
+        desc = `O núcleo está prestes a entrar em colapso no Ciclo ${cycle}. Derrote o Rei Glitch!`;
+        dialogues = [
+          `Rei Glitch: Tolos... Vocês acham que podem salvar este mundo de dados no Ciclo ${cycle}?`,
+          "Mago: Nós vamos restaurar a ordem na Aura Central!",
+          "Rei Glitch: Veremos! Sintam o poder de todas as operações combinadas!"
+        ];
+        victoryDialogues = [
+          "Rei Glitch: Não... Impossível! Minha matriz de corrupção... Desfeita por equações?!",
+          "Mago: A harmonia da matemática sempre prevalece contra o caos!",
+          cycle === 1
+            ? "Orion: Você conseguiu, Mago! A Grande Aura foi salva. Como recompensa, receba a lendária Coruja Cósmica!"
+            : `Orion: Incrível! A Aura Central do Ciclo ${cycle} foi totalmente purificada. Continue sua jornada!`
+        ];
+        break;
+    }
+
+    stages.push({ id, name, npc, npcEmoji, color, op, desc, dialogues, victoryDialogues });
   }
-];
+
+  return stages;
+};
 
 interface HubWorldProps {
   playerUser: User;
@@ -940,7 +974,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   opacity: 0.4
                 }} />
 
-                {CAMPAIGN_STAGES.map((stage) => {
+                {getCampaignStages(gameState.campaignStage || 1).map((stage) => {
                   const currentCampaignStage = gameState.campaignStage || 1;
                   const isLocked = stage.id > currentCampaignStage;
                   const isCompleted = stage.id < currentCampaignStage;

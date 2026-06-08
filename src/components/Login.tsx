@@ -186,6 +186,39 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             Entrar no Portal ➔
           </button>
         </form>
+
+        {/* Cache / Database Clean Button */}
+        <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', textAlign: 'center' }}>
+          <button
+            onClick={() => {
+              if (window.confirm('Deseja limpar os dados temporários locais e forçar a atualização dos Pets/Fases? (Seu progresso da nuvem será sincronizado novamente no próximo login)')) {
+                // Clear local storage keys except the connection configs if any
+                const keys = ['amq_game_states', 'amq_pets', 'amq_stats', 'amq_trades', 'amq_clans'];
+                keys.forEach(k => localStorage.removeItem(k));
+                
+                // Clear browser caches if possible via API
+                if (window.caches) {
+                  window.caches.keys().then((names) => {
+                    names.forEach((name) => window.caches.delete(name));
+                  });
+                }
+                
+                audioEngine.playLevelUp();
+                alert('Dados locais limpos! A página será reiniciada.');
+                window.location.reload();
+              }
+            }}
+            className="cyber-btn cyber-btn-pink"
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.75rem',
+              width: '100%',
+              justifyContent: 'center'
+            }}
+          >
+            🔄 Limpar Cache / Forçar Atualização
+          </button>
+        </div>
       </div>
 
 
