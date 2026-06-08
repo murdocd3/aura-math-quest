@@ -299,7 +299,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.5,
     cost: 999, // Unlocked via Aura Pass
     color: '#f43f5e', // Rose
-    emoji: '🦅',
+    emoji: '🕊️',
     extraTime: 3.0,
     xpMultiplier: 1.35,
     buffDescription: '+3.0s Resposta e XP +35%'
@@ -526,7 +526,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.0,
     cost: 14,
     color: '#a1a1aa',
-    emoji: '🦎',
+    emoji: '🐊',
   },
   {
     id: 'pixel_meerkat',
@@ -536,7 +536,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.05,
     cost: 14,
     color: '#a1a1aa',
-    emoji: '🦦',
+    emoji: '🐭',
   },
   {
     id: 'holo_owl',
@@ -546,7 +546,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.08,
     cost: 14,
     color: '#a1a1aa',
-    emoji: '🦉',
+    emoji: 'Parrot' === 'Parrot' ? '🦜' : '🦉',
   },
   {
     id: 'glitch_squirrel',
@@ -589,7 +589,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.1,
     cost: 31,
     color: '#22c55e',
-    emoji: '🦝',
+    emoji: '🐈',
     xpMultiplier: 1.1,
     extraTime: 1.0,
     buffDescription: 'XP +10% e +1.0s Resposta'
@@ -622,7 +622,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.8,
     cost: 34,
     color: '#22c55e',
-    emoji: '🐨',
+    emoji: '🦓',
   },
   {
     id: 'glitch_sloth',
@@ -632,7 +632,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.12,
     cost: 35,
     color: '#22c55e',
-    emoji: '🦥',
+    emoji: '🦧',
     gemMultiplier: 1.12,
     xpMultiplier: 1.12,
     buffDescription: 'XP +12% e Gemas +12%'
@@ -658,7 +658,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.22,
     cost: 49,
     color: '#3b82f6',
-    emoji: '🐒',
+    emoji: '🦍',
     gemMultiplier: 1.22,
     extraTime: 1.5,
     buffDescription: 'Gemas +22% e +1.5s Resposta'
@@ -671,7 +671,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.3,
     cost: 50,
     color: '#3b82f6',
-    emoji: '🦥',
+    emoji: '🦘',
   },
   {
     id: 'holo_flamingo',
@@ -730,20 +730,20 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.45,
     cost: 125,
     color: '#a855f7',
-    emoji: '🐋',
+    emoji: '🐳',
     gemMultiplier: 1.45,
     extraTime: 2.8,
     buffDescription: 'Gemas +45% e +2.8s Resposta'
   },
   {
     id: 'cyber_whale_legendary',
-    name: 'Cachalote Cyber',
+    name: 'Peixe-Palhaço Cyber',
     rarity: 'legendary',
     buffType: 'combined',
     buffValue: 1.45,
     cost: 128,
     color: '#a855f7',
-    emoji: '🐳',
+    emoji: '🐠',
     xpMultiplier: 1.45,
     extraTime: 3.2,
     buffDescription: 'XP +45% e +3.2s Resposta'
@@ -809,7 +809,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.5,
     cost: 155,
     color: '#a855f7',
-    emoji: '🐺',
+    emoji: '🐾',
     xpMultiplier: 1.5,
     extraTime: 3.0,
     buffDescription: 'XP +50% e +3.0s Resposta'
@@ -848,7 +848,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.8,
     cost: 999,
     color: '#ec4899',
-    emoji: '🦚',
+    emoji: '🦤',
     xpMultiplier: 1.8,
     gemMultiplier: 1.8,
     extraTime: 4.0,
@@ -862,7 +862,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 1.9,
     cost: 999,
     color: '#ec4899',
-    emoji: '🦄',
+    emoji: '🐎',
     xpMultiplier: 1.9,
     gemMultiplier: 1.9,
     extraTime: 5.0,
