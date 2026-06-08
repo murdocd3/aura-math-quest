@@ -93,6 +93,7 @@ export interface TradeListing {
   posterId: string;
   posterUsername: string;
   offeredPetId: string | null;
+  offeredPetTypeId: string;
   offeredPetEmoji: string;
   offeredPetName: string;
   requestedType: 'gems' | 'pet';
@@ -1050,6 +1051,7 @@ export function seedDatabase() {
         posterId: 'player-sofia',
         posterUsername: 'sofia',
         offeredPetId: null,
+        offeredPetTypeId: 'slime_buddy',
         offeredPetEmoji: '🧪',
         offeredPetName: 'Slime Buddy',
         requestedType: 'gems',
@@ -1062,6 +1064,7 @@ export function seedDatabase() {
         posterId: 'player-lucas',
         posterUsername: 'lucas',
         offeredPetId: null,
+        offeredPetTypeId: 'robot_pup',
         offeredPetEmoji: '🤖',
         offeredPetName: 'Robot Pup',
         requestedType: 'pet',
@@ -2054,6 +2057,7 @@ export const mockDb = {
       posterId: userId,
       posterUsername: this.getUsers().find(u => u.id === userId)?.username || 'Desconhecido',
       offeredPetId: petId,
+      offeredPetTypeId: pet.petTypeId,
       offeredPetEmoji: petType.emoji,
       offeredPetName: pet.nickname,
       requestedType,
@@ -2105,16 +2109,33 @@ export const mockDb = {
       const allPets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
       const cleanPets = allPets.filter(p => p.id !== playerPet.id);
       setStorageItem(STORAGE_KEYS.PETS, cleanPets);
+
+      // Delete from Supabase in background
+      if (isSupabaseEnabled && supabase) {
+        supabase.from('pets').delete().eq('id', playerPet.id).then(({ error }) => {
+          if (error) console.error('[mockDb acceptTrade] Error deleting trade-offered pet from Supabase:', error);
+        });
+      }
       
       if (listing.posterId.startsWith('usr_') || listing.posterId.startsWith('player-')) {
         this.createPet(listing.posterId, playerPet.petTypeId, playerPet.nickname);
       }
     }
     
-    let petTypeId = 'robot_pup';
-    if (listing.offeredPetName.includes('Slime')) petTypeId = 'slime_buddy';
-    else if (listing.offeredPetName.includes('Phoenix') || listing.offeredPetName.includes('Fenix')) petTypeId = 'phoenix_chick';
-    else if (listing.offeredPetName.includes('Dragon') || listing.offeredPetName.includes('Draco')) petTypeId = 'dragon_kid';
+    // Sync deletion of offered pet if from another player
+    if (listing.offeredPetId) {
+      const allPets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
+      const cleanPets = allPets.filter(p => p.id !== listing.offeredPetId);
+      setStorageItem(STORAGE_KEYS.PETS, cleanPets);
+
+      if (isSupabaseEnabled && supabase) {
+        supabase.from('pets').delete().eq('id', listing.offeredPetId).then(({ error }) => {
+          if (error) console.error('[mockDb acceptTrade] Error deleting poster pet from Supabase:', error);
+        });
+      }
+    }
+
+    const petTypeId = listing.offeredPetTypeId || 'robot_pup';
     
     this.createPet(userId, petTypeId, listing.offeredPetName);
     
@@ -2144,6 +2165,7 @@ export const mockDb = {
         posterId: npcId,
         posterUsername: npcName,
         offeredPetId: null,
+        offeredPetTypeId: randomPetType.id,
         offeredPetEmoji: randomPetType.emoji,
         offeredPetName: randomPetType.name,
         requestedType: isGemsRequest ? 'gems' : 'pet',

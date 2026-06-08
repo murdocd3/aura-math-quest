@@ -324,12 +324,33 @@ export const backendService = {
         console.log(`[BackendService] Fetching game state for ${userId} from Supabase...`);
         const { data, error } = await supabase.from('game_states').select('*').eq('user_id', userId);
         if (error) throw error;
+        
+        const localState = mockDb.getGameState(userId);
+
         if (data && data.length > 0) {
-          return mapDbToGameState(data[0]);
+          const dbState = mapDbToGameState(data[0]);
+          if (localState) {
+            // Merge local-only properties so they are never lost by cloud-only loads
+            dbState.treats = localState.treats ?? 0;
+            dbState.activeExpeditions = localState.activeExpeditions ?? [];
+            dbState.fedBonusUntil = localState.fedBonusUntil;
+
+            // Resolve conflicts: if local is newer than DB, sync local to DB
+            const dbTime = new Date(dbState.updatedAt || 0).getTime();
+            const localTime = new Date(localState.updatedAt || 0).getTime();
+            if (localTime > dbTime) {
+              console.log('🔄 [BackendService] Local state is newer. Syncing to Supabase...');
+              const dbUpdates = mapGameStateToDb(localState);
+              supabase.from('game_states').update(dbUpdates).eq('user_id', userId).then(({ error }) => {
+                if (error) console.error('Error syncing local state to Supabase:', error);
+              });
+              return localState;
+            }
+          }
+          return dbState;
         }
         
         // If not found in Cloud, initialize it
-        const localState = mockDb.getGameState(userId);
         if (localState) {
           const dbRow = mapGameStateToDb(localState);
           dbRow.user_id = userId;
@@ -345,6 +366,7 @@ export const backendService = {
   },
 
   async updateGameState(userId: string, updates: Partial<GameState>): Promise<GameState | null> {
+    const localState = mockDb.updateGameState(userId, updates);
     if (isSupabaseEnabled && supabase) {
       try {
         console.log(`[BackendService] Updating game state for ${userId} in Supabase...`, updates);
@@ -356,26 +378,33 @@ export const backendService = {
           .select();
         
         if (error) throw error;
-        mockDb.updateGameState(userId, updates);
-
+        
         if (data && data.length > 0) {
-          return mapDbToGameState(data[0]);
+          const dbState = mapDbToGameState(data[0]);
+          if (localState) {
+            dbState.treats = localState.treats ?? 0;
+            dbState.activeExpeditions = localState.activeExpeditions ?? [];
+            dbState.fedBonusUntil = localState.fedBonusUntil;
+          }
+          return dbState;
         }
       } catch (err) {
         console.error('[BackendService] Supabase error in updateGameState:', err);
       }
     }
-    return mockDb.updateGameState(userId, updates);
+    return localState;
   },
 
   // 4. Pets Management
   async getPets(userId: string): Promise<Pet[]> {
+    const localPets = mockDb.getPets(userId);
     if (isSupabaseEnabled && supabase) {
       try {
         console.log(`[BackendService] Fetching pets for ${userId} from Supabase...`);
         const { data, error } = await supabase.from('pets').select('*').eq('user_id', userId);
         if (error) throw error;
-        return (data || []).map(p => ({
+        
+        const dbPets = (data || []).map(p => ({
           id: p.id,
           userId: p.user_id,
           petTypeId: p.pet_type_id,
@@ -386,11 +415,33 @@ export const backendService = {
           createdAt: p.created_at || new Date().toISOString(),
           level: p.level ?? 1
         }));
+
+        // Fallback sync: if cloud is empty but local has pets, push local pets to Supabase
+        if (dbPets.length === 0 && localPets.length > 0) {
+          console.log('🔄 [BackendService] Syncing local pets to Supabase...');
+          localPets.forEach(pet => {
+            supabase.from('pets').insert({
+              id: pet.id,
+              user_id: pet.userId,
+              pet_type_id: pet.petTypeId,
+              nickname: pet.nickname,
+              rarity: pet.rarity,
+              buff_type: pet.buffType,
+              buff_value: pet.buffValue,
+              level: pet.level
+            }).then(({ error }) => {
+              if (error) console.error('Error syncing local pet to Supabase:', error);
+            });
+          });
+          return localPets;
+        }
+
+        return dbPets;
       } catch (err) {
         console.error('[BackendService] Supabase error in getPets:', err);
       }
     }
-    return mockDb.getPets(userId);
+    return localPets;
   },
 
   async createPet(userId: string, petTypeId: string, nickname: string): Promise<Pet | null> {

@@ -130,7 +130,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       setTrainingFeedback('Correto! Você ganhou 1 Guloseima 🍖!');
       
       const currentTreats = gameState.treats || 0;
-      const updatedState = await mockDb.updateGameState(userId, {
+      const updatedState = await backendService.updateGameState(userId, {
         treats: currentTreats + 1
       });
       if (updatedState) {
@@ -160,7 +160,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     audioEngine.playLevelUp();
     
     const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-    const updatedState = await mockDb.updateGameState(userId, {
+    const updatedState = await backendService.updateGameState(userId, {
       treats: currentTreats - 5,
       fedBonusUntil: twoHoursFromNow
     });
@@ -206,7 +206,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     }
     
     audioEngine.playHatchRoll();
-    const updatedState = await mockDb.updateGameState(userId, {
+    const updatedState = await backendService.updateGameState(userId, {
       activeExpeditions: [...currentExpeditions, { petId: expeditionPetId, endTime, rewardGems }]
     });
     
@@ -232,14 +232,14 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     
     audioEngine.playLevelUp();
     const updatedExpeditions = currentExpeditions.filter(e => e.petId !== petId);
-    const updatedState = await mockDb.updateGameState(userId, {
+    const updatedState = await backendService.updateGameState(userId, {
       gems: gameState.gems + expedition.rewardGems,
       activeExpeditions: updatedExpeditions
     });
     
     if (updatedState) {
       onStateUpdate(updatedState);
-      setPetSuccessMsg(`Expedição Concluída! Você resgatou seu pet e coletou +${expedition.rewardGems} Gemas! 🎁`);
+      setPetSuccessMsg(`Expedição concluída! Você coletou 💎 ${expedition.rewardGems} gemas!`);
       setTimeout(() => setPetSuccessMsg(null), 4000);
     }
   };
@@ -337,10 +337,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
     if (listing.posterId !== userId) return;
 
-    let petTypeId = 'robot_pup';
-    if (listing.offeredPetName.includes('Slime')) petTypeId = 'slime_buddy';
-    else if (listing.offeredPetName.includes('Phoenix') || listing.offeredPetName.includes('Fenix')) petTypeId = 'phoenix_chick';
-    else if (listing.offeredPetName.includes('Dragon') || listing.offeredPetName.includes('Draco')) petTypeId = 'dragon_kid';
+    const petTypeId = listing.offeredPetTypeId || 'robot_pup';
 
     mockDb.createPet(userId, petTypeId, listing.offeredPetName);
 
@@ -420,12 +417,13 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     setPetNicknameInput('');
 
     // Deduct gems
-    const updatedState = mockDb.updateGameState(userId, {
+    backendService.updateGameState(userId, {
       gems: gameState.gems - cost,
+    }).then(updatedState => {
+      if (updatedState) {
+        onStateUpdate(updatedState);
+      }
     });
-    if (updatedState) {
-      onStateUpdate(updatedState);
-    }
 
     // Step 1: Egg Shaking (1.5 seconds)
     let shakeCount = 0;
