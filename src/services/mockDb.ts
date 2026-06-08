@@ -1351,7 +1351,7 @@ export const mockDb = {
     const index = states.findIndex(gs => gs.userId === userId);
     if (index === -1) return null;
 
-    let updatedState = {
+    const updatedState = {
       ...states[index],
       ...updates,
       updatedAt: new Date().toISOString(),

@@ -238,6 +238,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   // Timer states
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [timerActive, setTimerActive] = useState(false);
+  const [isFeedbackActive, setIsFeedbackActive] = useState(false);
   const timerRef = useRef<any | null>(null);
   const vfxCanvasRef = useRef<CombatVfxCanvasRef | null>(null);
 
@@ -700,13 +701,17 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     nextTurnLog(`O tempo acabou! O monstro te atacou. Perdemos 1 Escudo.`);
     
     if (playerHp - 1 > 0) {
-      nextQuestion();
+      setIsFeedbackActive(true);
+      setTimeout(() => {
+        setIsFeedbackActive(false);
+        nextQuestion();
+      }, 3500);
     }
   };
 
   // Handle Answer Submission
   const handleAnswerSubmit = (submittedValue: number) => {
-    if (!currentQuestion || battleState !== 'fighting') return;
+    if (!currentQuestion || battleState !== 'fighting' || isFeedbackActive) return;
     
     stopTimer();
     const timeTakenMs = (timeLimit - timeLeft) * 1000;
@@ -813,7 +818,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       nextTurnLog(`Erro! A resposta de ${currentQuestion.num1}${opSym}${currentQuestion.num2} era ${currentQuestion.answer}. Perdemos 1 Escudo.`);
 
       if (playerHp - 1 > 0) {
-        nextQuestion();
+        setIsFeedbackActive(true);
+        setTimeout(() => {
+          setIsFeedbackActive(false);
+          nextQuestion();
+        }, 3500);
       }
     }
   };
@@ -922,7 +931,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   // Keyboard listener for typing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (battleState !== 'fighting') return;
+      if (battleState !== 'fighting' || isFeedbackActive) return;
 
       if (e.key === 'Enter') {
         const val = parseInt(textAnswer);
@@ -1489,13 +1498,32 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                     fontFamily: 'Share Tech Mono',
                     fontSize: '3.5rem',
                     fontWeight: 'bold',
-                    color: 'var(--neon-cyan)',
-                    textShadow: '0 0 15px rgba(0, 255, 204, 0.4)',
+                    color: isFeedbackActive ? 'var(--neon-pink)' : 'var(--neon-cyan)',
+                    textShadow: isFeedbackActive ? '0 0 15px rgba(244, 63, 94, 0.4)' : '0 0 15px rgba(0, 255, 204, 0.4)',
                     marginTop: '6px',
                   }}
                 >
-                  {currentQuestion.num1} {getOperationSymbol(currentQuestion.op || gameState.selectedOperation || 'multiplication')} {currentQuestion.num2} = {textAnswer || '?'}
+                  {currentQuestion.num1} {getOperationSymbol(currentQuestion.op || gameState.selectedOperation || 'multiplication')} {currentQuestion.num2} = {isFeedbackActive ? currentQuestion.answer : (textAnswer || '?')}
                 </div>
+
+                {isFeedbackActive && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1.5px solid var(--neon-pink)',
+                      color: '#fff',
+                      textAlign: 'center',
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      boxShadow: '0 0 10px rgba(244, 63, 94, 0.2)'
+                    }}
+                  >
+                    ❌ Resposta Incorreta! A resposta correta é: <span style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontFamily: 'Share Tech Mono' }}>{currentQuestion.answer}</span>
+                  </div>
+                )}
               </div>
 
               {/* Answering Timer Bar (Fiber Optic Design) */}
@@ -1579,11 +1607,14 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                     <button
                       key={choice}
                       className="cyber-btn"
+                      disabled={isFeedbackActive}
                       onClick={() => handleAnswerSubmit(choice)}
                       style={{
                         padding: '14px',
                         fontSize: '1.4rem',
                         fontFamily: 'Share Tech Mono',
+                        opacity: isFeedbackActive ? 0.6 : 1,
+                        cursor: isFeedbackActive ? 'not-allowed' : 'pointer'
                       }}
                     >
                       {choice}
@@ -1605,16 +1636,18 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                       <button
                         key={num}
                         className="cyber-btn cyber-btn-cyan"
+                        disabled={isFeedbackActive}
                         onClick={() => handleNumpadClick(num)}
-                        style={{ padding: '8px', fontSize: '1rem', fontFamily: 'Share Tech Mono' }}
+                        style={{ padding: '8px', fontSize: '1rem', fontFamily: 'Share Tech Mono', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
                       >
                         {num}
                       </button>
                     ))}
                     <button
                       className="cyber-btn cyber-btn-pink"
+                      disabled={isFeedbackActive}
                       onClick={handleNumpadClear}
-                      style={{ padding: '8px', fontSize: '0.9rem', gridColumn: 'span 2' }}
+                      style={{ padding: '8px', fontSize: '0.9rem', gridColumn: 'span 2', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
                     >
                       Limpar
                     </button>
@@ -1622,15 +1655,16 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                   <button
                     className="cyber-btn"
                     onClick={handleNumpadSend}
-                    disabled={!textAnswer}
+                    disabled={!textAnswer || isFeedbackActive}
                     style={{
                       width: '100%',
                       padding: '10px',
                       fontSize: '0.95rem',
                       fontWeight: 800,
-                      borderColor: 'var(--neon-cyan)',
-                      background: 'rgba(0, 255, 204, 0.1)',
-                      opacity: textAnswer ? 1 : 0.5,
+                      borderColor: isFeedbackActive ? 'rgba(255,255,255,0.1)' : 'var(--neon-cyan)',
+                      background: isFeedbackActive ? 'rgba(255,255,255,0.05)' : 'rgba(0, 255, 204, 0.1)',
+                      opacity: (textAnswer && !isFeedbackActive) ? 1 : 0.5,
+                      cursor: isFeedbackActive ? 'not-allowed' : 'pointer'
                     }}
                   >
                     Enviar ➔

@@ -97,7 +97,7 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
       // Rebirth gives cosmic stardust floating upwards
       const particleSpawnChance = rebirths > 0 ? 0.3 : (level >= 10 ? 0.15 : 0);
 
-      if (Math.random() < particleSpawnChance) {
+      if (Math.random() < particleSpawnChance && particles.length < 45) {
         const size = Math.random() * 3 + 1;
         const isRebirth = rebirths > 0;
         

@@ -11,6 +11,32 @@ interface PetShopProps {
   onBack: () => void;
 }
 
+function rollPetRarityAndType(type: 'standard' | 'golden'): string {
+  const random = Math.random() * 100;
+  let rolledRarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
+
+  if (type === 'standard') {
+    if (random < 1) rolledRarity = 'legendary';
+    else if (random < 10) rolledRarity = 'epic';
+    else if (random < 30) rolledRarity = 'rare';
+    else rolledRarity = 'common';
+  } else {
+    if (random < 15) rolledRarity = 'legendary';
+    else if (random < 60) rolledRarity = 'epic';
+    else rolledRarity = 'rare';
+  }
+
+  const eligibleTypes = PET_TYPES.filter(pt => pt.rarity === rolledRarity && pt.cost < 999);
+  const selectedPetType = eligibleTypes.length > 0
+    ? eligibleTypes[Math.floor(Math.random() * eligibleTypes.length)]
+    : PET_TYPES[0]; // fallback
+  return selectedPetType.id;
+}
+
+function calculateTimeLeftSec(endTimeStr: string, _tick: number): number {
+  return Math.max(0, Math.floor((new Date(endTimeStr).getTime() - Date.now()) / 1000));
+}
+
 export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpdate, onBack }) => {
   const [pets, setPets] = useState<Pet[]>(mockDb.getPets(userId));
   const [isHatching, setIsHatching] = useState(false);
@@ -39,6 +65,16 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const [petSuccessMsg, setPetSuccessMsg] = useState<string | null>(null);
   const [petErrorMsg, setPetErrorMsg] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [filterRarity, setFilterRarity] = useState<string>('all');
+  const [filterElement, setFilterElement] = useState<string>('all');
+
+  const getPetElement = (petName: string) => {
+    if (petName.includes('🔥') || petName.includes('Flamejante')) return 'fire';
+    if (petName.includes('⚡') || petName.includes('Voltaico')) return 'electric';
+    if (petName.includes('❄️') || petName.includes('Glacial')) return 'ice';
+    if (petName.includes('🌌') || petName.includes('Cósmico')) return 'cosmic';
+    return 'none';
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -406,29 +442,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const startSpinning = (type: 'standard' | 'golden') => {
     setHatchStage('spinning');
 
-    const random = Math.random() * 100;
-    let rolledRarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
-
-    if (type === 'standard') {
-      // Standard: 70% Common, 20% Rare, 9% Epic, 1% Legendary
-      if (random < 1) rolledRarity = 'legendary';
-      else if (random < 10) rolledRarity = 'epic';
-      else if (random < 30) rolledRarity = 'rare';
-      else rolledRarity = 'common';
-    } else {
-      // Golden: 40% Rare, 45% Epic, 15% Legendary (0% Common)
-      if (random < 15) rolledRarity = 'legendary';
-      else if (random < 60) rolledRarity = 'epic';
-      else rolledRarity = 'rare';
-    }
-
-    // Filter PET_TYPES matching the rolled rarity
-    // Note: exclude story mode cosmic_owl or specific aura pass rewards if cost is 999
-    const eligibleTypes = PET_TYPES.filter(pt => pt.rarity === rolledRarity && pt.cost < 999);
-    const selectedPetType = eligibleTypes.length > 0
-      ? eligibleTypes[Math.floor(Math.random() * eligibleTypes.length)]
-      : PET_TYPES[0]; // fallback
-    const selectedPetTypeId = selectedPetType.id;
+    const selectedPetTypeId = rollPetRarityAndType(type);
 
     // Spin roulette animation (1.2 seconds)
     let spinIndex = 0;
@@ -995,7 +1009,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     const pet = pets.find(p => p.id === exp.petId);
                     if (!pet) return null;
                     const pt = PET_TYPES.find(p => p.id === pet.petTypeId);
-                    const timeLeftSec = Math.max(0, Math.floor((new Date(exp.endTime).getTime() - Date.now()) / 1000));
+                    const timeLeftSec = calculateTimeLeftSec(exp.endTime, tick);
                     const isFinished = timeLeftSec <= 0;
                     
                     return (
@@ -1550,6 +1564,60 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             Seus Pets ({pets.length})
           </h2>
 
+          {/* New Filters UI Block */}
+          {pets.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', minWidth: '60px' }}>Raridade:</span>
+                <select
+                  value={filterRarity}
+                  onChange={(e) => setFilterRarity(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: '#030712',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    padding: '4px 8px',
+                    fontSize: '0.8rem',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Todos</option>
+                  <option value="common">Common</option>
+                  <option value="rare">Rare</option>
+                  <option value="epic">Epic</option>
+                  <option value="legendary">Legendary</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', minWidth: '60px' }}>Elemento:</span>
+                <select
+                  value={filterElement}
+                  onChange={(e) => setFilterElement(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: '#030712',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    padding: '4px 8px',
+                    fontSize: '0.8rem',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Todos</option>
+                  <option value="fire">Fogo 🔥</option>
+                  <option value="electric">Raio ⚡</option>
+                  <option value="ice">Gelo ❄️</option>
+                  <option value="cosmic">Cósmico 🌌</option>
+                  <option value="none">Nenhum</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           {pets.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', padding: '40px' }}>
               <span style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🎒</span>
@@ -1558,7 +1626,16 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
-              {pets.map(pet => {
+              {pets
+                .filter(pet => {
+                  if (filterRarity !== 'all' && pet.rarity !== filterRarity) return false;
+                  if (filterElement !== 'all') {
+                    const petElem = getPetElement(pet.nickname);
+                    if (filterElement !== petElem) return false;
+                  }
+                  return true;
+                })
+                .map(pet => {
                 const isEquipped = gameState.equippedPetId === pet.id;
                 const petType = PET_TYPES.find(p => p.id === pet.petTypeId);
                 const rarityColor = getRarityColor(pet.rarity);
