@@ -1363,13 +1363,11 @@ export const mockDb = {
       let xp = updatedState.auraXp ?? 0;
       const getXpNeeded = (l: number) => Math.round(100 * Math.pow(1.15, l - 1));
       let nextLevelXp = getXpNeeded(level);
-      let leveledUp = false;
 
       while (xp >= nextLevelXp && level < 100) {
         xp -= nextLevelXp;
         level += 1;
         nextLevelXp = getXpNeeded(level);
-        leveledUp = true;
       }
 
       updatedState.auraLevel = level;
