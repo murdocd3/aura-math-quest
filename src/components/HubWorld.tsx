@@ -183,6 +183,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const [newClanBadge, setNewClanBadge] = useState('🛡️');
   const [clanSuccess, setClanSuccess] = useState<string | null>(null);
   const [clanError, setClanError] = useState<string | null>(null);
+  const [expandedClanId, setExpandedClanId] = useState<string | null>(null);
 
   const loadClans = async () => {
     const board = await backendService.getClanLeaderboard();
@@ -1655,6 +1656,8 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
                     {clansList.map((clan, index) => {
                       const isMyClan = gameState.clanId === clan.id;
+                      const isExpanded = expandedClanId === clan.id;
+                      const bossLvl = clan.bossLevel || 1;
                       
                       return (
                         <div
@@ -1665,45 +1668,155 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                             border: isMyClan ? '1.5px solid var(--neon-pink)' : '1px solid rgba(255,255,255,0.05)',
                             background: isMyClan ? 'rgba(244, 63, 94, 0.08)' : 'rgba(15, 23, 42, 0.3)',
                             display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            cursor: 'pointer',
                           }}
+                          onClick={() => setExpandedClanId(isExpanded ? null : clan.id)}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', minWidth: '20px' }}>
-                              #{index + 1}
-                            </span>
-                            <span style={{ fontSize: '1.8rem' }}>{clan.badgeEmoji}</span>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff' }}>{clan.name}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--neon-pink)' }}>[{clan.tag}]</span>
+                          {/* Main Row / Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '1rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', minWidth: '20px' }}>
+                                #{index + 1}
+                              </span>
+                              <span style={{ fontSize: '1.6rem' }}>{clan.badgeEmoji}</span>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#fff' }}>{clan.name}</span>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--neon-pink)' }}>[{clan.tag}]</span>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                                  {clan.members.length} {clan.members.length === 1 ? 'membro' : 'membros'}
+                                </span>
                               </div>
-                              <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
-                                {clan.members.length} {clan.members.length === 1 ? 'membro' : 'membros'}
+                            </div>
+
+                            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                                <strong style={{ fontSize: '0.8rem', color: 'var(--neon-pink)' }}>
+                                  Nível {clan.level || 1}
+                                </strong>
+                                <strong style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)' }}>
+                                  ⭐ {clan.totalRebirths}
+                                </strong>
+                              </div>
+                              <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', userSelect: 'none' }}>
+                                {isExpanded ? '▲' : '▼'}
                               </span>
                             </div>
                           </div>
 
-                          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <strong style={{ fontSize: '0.85rem', color: 'var(--neon-pink)' }}>
-                              Nível {clan.level || 1}
-                            </strong>
-                            <strong style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
-                              ⭐ {clan.totalRebirths}
-                            </strong>
-                            
-                            {(!gameState.clanId || !clansList.some(c => c.id === gameState.clanId)) && !isMyClan && (
-                              <button
-                                className="cyber-btn"
-                                onClick={() => handleApplyToClan(clan.id, clan.name)}
-                                disabled={(clan.joinRequests || []).includes(playerUser.id)}
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', height: '24px', opacity: (clan.joinRequests || []).includes(playerUser.id) ? 0.5 : 1 }}
-                              >
-                                {(clan.joinRequests || []).includes(playerUser.id) ? 'Pendente ⏳' : 'Candidatar-se 📝'}
-                              </button>
-                            )}
-                          </div>
+                          {/* Expanded Details Section */}
+                          {isExpanded && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                borderTop: '1px solid rgba(255,255,255,0.08)',
+                                paddingTop: '8px',
+                                marginTop: '4px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                cursor: 'default',
+                              }}
+                            >
+                              {clan.motto && (
+                                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', margin: '0 0 2px 0' }}>
+                                  "{clan.motto}"
+                                </p>
+                              )}
+
+                              {/* Passive bonus info */}
+                              <div style={{ fontSize: '0.7rem', color: '#fff', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '4px', borderLeft: '3px solid var(--neon-pink)' }}>
+                                <span style={{ color: 'var(--neon-pink)', fontWeight: 'bold' }}>✨ Bônus de XP/Gemas:</span> +{((clan.level || 1) * 2)}% multiplicador de recompensa.
+                              </div>
+
+                              {/* Clan Boss Status */}
+                              <div style={{ fontSize: '0.7rem', color: '#fff', background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '6px', borderRadius: '4px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontWeight: 'bold' }}>
+                                  <span style={{ color: 'var(--neon-purple)' }}>⚔️ Chefe: Nvl {bossLvl}</span>
+                                  <span>HP: {clan.bossHp ?? 5000} / {clan.bossMaxHp ?? 5000}</span>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '2px', height: '6px', width: '100%', overflow: 'hidden' }}>
+                                  <div
+                                    style={{
+                                      height: '100%',
+                                      width: `${Math.max(0, Math.min(100, (((clan.bossHp ?? 5000) / (clan.bossMaxHp ?? 5000)) * 100)))}%`,
+                                      background: 'linear-gradient(90deg, #ec4899, #a855f7)',
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Conquistas (Achievements) */}
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                {clan.level >= 5 && <span style={{ fontSize: '0.65rem', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '2px 6px', borderRadius: '4px', color: 'var(--neon-yellow)' }} title="Clã Nível 5+">🛡️ Guardião</span>}
+                                {clan.level >= 10 && <span style={{ fontSize: '0.65rem', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '2px 6px', borderRadius: '4px', color: 'var(--neon-cyan)' }} title="Clã Nível 10+">🔮 Mestre de Aura</span>}
+                                {bossLvl > 1 && (
+                                  <span style={{ fontSize: '0.65rem', background: 'rgba(236, 72, 153, 0.1)', border: '1px solid rgba(236, 72, 153, 0.3)', padding: '2px 6px', borderRadius: '4px', color: 'var(--neon-pink)' }} title={`Derrotou ${bossLvl - 1} chefes`}>
+                                    ⚔️ {bossLvl - 1} Derrotado{(bossLvl - 1) > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                                {clan.totalRebirths >= 10 && <span style={{ fontSize: '0.65rem', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '2px 6px', borderRadius: '4px', color: 'var(--neon-purple)' }} title="Mais de 10 Rebirths somados">⭐ Poder Coletivo</span>}
+                              </div>
+
+                              {/* Members list */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.7)', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '2px' }}>
+                                  👥 Membros ({clan.members.length}):
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxHeight: '120px', overflowY: 'auto' }}>
+                                  {clan.members.map((memberId) => {
+                                    const allUsers = allUsersList.length > 0 ? allUsersList : mockDb.getUsers();
+                                    const member = allUsers.find(u => u.id === memberId);
+                                    if (!member) return null;
+                                    const mState = mockDb.getGameState(member.id);
+                                    const isLeader = clan.leaderId === member.id;
+                                    return (
+                                      <div
+                                        key={memberId}
+                                        style={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          fontSize: '0.7rem',
+                                          padding: '4px 6px',
+                                          borderRadius: '4px',
+                                          background: 'rgba(255, 255, 255, 0.02)',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                          {isLeader && <span title="Líder do Clã">👑</span>}
+                                          <span style={{ color: member.id === playerUser.id ? 'var(--neon-pink)' : '#fff', fontWeight: member.id === playerUser.id ? 800 : 500 }}>
+                                            {member.username} {member.id === playerUser.id ? '(Você)' : ''}
+                                          </span>
+                                        </div>
+                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem' }}>
+                                          Nvl {mState?.auraLevel || 1} • ⭐ {mState?.rebirths || 0}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Application button if player is not in this clan and not in any clan */}
+                              {(!gameState.clanId || !clansList.some(c => c.id === gameState.clanId)) && !isMyClan && (
+                                <button
+                                  className="cyber-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleApplyToClan(clan.id, clan.name);
+                                  }}
+                                  disabled={(clan.joinRequests || []).includes(playerUser.id)}
+                                  style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px', width: '100%', marginTop: '4px', opacity: (clan.joinRequests || []).includes(playerUser.id) ? 0.5 : 1 }}
+                                >
+                                  {(clan.joinRequests || []).includes(playerUser.id) ? 'Candidatura Pendente ⏳' : 'Enviar Candidatura para o Clã 📝'}
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
