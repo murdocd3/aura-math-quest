@@ -177,6 +177,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
   // Clan Management states
   const [clansList, setClansList] = useState<Clan[]>([]);
+  const [allUsersList, setAllUsersList] = useState<any[]>([]);
   const [newClanName, setNewClanName] = useState('');
   const [newClanTag, setNewClanTag] = useState('');
   const [newClanMotto, setNewClanMotto] = useState('');
@@ -187,11 +188,17 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const loadClans = async () => {
     const board = await backendService.getClanLeaderboard();
     setClansList(board);
+    try {
+      const users = await backendService.getUsers();
+      setAllUsersList(users);
+    } catch (err) {
+      console.error('Error loading users in loadClans:', err);
+    }
   };
 
   useEffect(() => {
     loadClans();
-  }, [gameState.clanId]);
+  }, [gameState.clanId, activeHubTab]);
 
   const handleSelectClass = (classId: 'warrior' | 'chronomancer' | 'alchemist') => {
     audioEngine.playLevelUp();
@@ -1444,83 +1451,89 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     const myClan = gameState.clanId ? clansList.find(c => c.id === gameState.clanId) : null;
                     
                     if (myClan) {
-                      const allUsers = mockDb.getUsers();
-                      const clanMembers = allUsers.filter(u => myClan.members.includes(u.id));
+                       const allUsers = allUsersList.length > 0 ? allUsersList : mockDb.getUsers();
+                       const clanMembers = allUsers.filter(u => myClan.members.includes(u.id));
 
-                      return (
-                        <div className="cyber-card" style={{ borderColor: 'var(--neon-pink)', background: 'rgba(244, 63, 94, 0.03)', padding: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
-                            <span style={{ fontSize: '3rem' }}>{myClan.badgeEmoji}</span>
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>{myClan.name}</h4>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', fontWeight: 800, border: '1px solid var(--neon-pink)', padding: '1px 6px', borderRadius: '4px' }}>
-                                  [{myClan.tag}]
-                                </span>
-                              </div>
-                              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic' }}>"{myClan.motto}"</p>
-                            </div>
-                          </div>
+                       return (
+                         <div className="cyber-card" style={{ borderColor: 'var(--neon-pink)', background: 'rgba(244, 63, 94, 0.03)', padding: '16px' }}>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                             <span style={{ fontSize: '3rem' }}>{myClan.badgeEmoji}</span>
+                             <div>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                 <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>{myClan.name}</h4>
+                                 <span style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', fontWeight: 800, border: '1px solid var(--neon-pink)', padding: '1px 6px', borderRadius: '4px' }}>
+                                   [{myClan.tag}]
+                                 </span>
+                               </div>
+                               <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic' }}>"{myClan.motto}"</p>
+                             </div>
+                           </div>
 
-                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                              <h5 style={{ fontSize: '0.9rem', color: '#fff' }}>🛡️ Nível do Clã: {myClan.level || 1}</h5>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', fontWeight: 'bold' }}>Bônus: +{( ((myClan.level || 1) * 0.02) * 100 ).toFixed(0)}% XP/Gemas</span>
-                            </div>
-                            <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '8px', width: '100%', marginBottom: '16px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${Math.min(((myClan.xp || 0) / ((myClan.level || 1) * 500)) * 100, 100)}%`, background: 'var(--neon-pink)', transition: 'width 0.3s ease' }}></div>
-                            </div>
+                           <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px', marginBottom: '16px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                               <h5 style={{ fontSize: '0.9rem', color: '#fff' }}>🛡️ Nível do Clã: {myClan.level || 1}</h5>
+                               <span style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', fontWeight: 'bold' }}>Bônus: +{( ((myClan.level || 1) * 0.02) * 100 ).toFixed(0)}% XP/Gemas</span>
+                             </div>
+                             <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '8px', width: '100%', marginBottom: '16px', overflow: 'hidden' }}>
+                               <div style={{ height: '100%', width: `${Math.min(((myClan.xp || 0) / ((myClan.level || 1) * 500)) * 100, 100)}%`, background: 'var(--neon-pink)', transition: 'width 0.3s ease' }}></div>
+                             </div>
 
-                            <h5 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '10px' }}>👥 Membros do Clã ({clanMembers.length}):</h5>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                              {clanMembers.map(member => {
-                                const mState = mockDb.getGameState(member.id);
-                                const isLeader = myClan.leaderId === member.id;
-                                return (
-                                  <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '6px 8px', borderRadius: '4px', background: 'rgba(15, 23, 42, 0.4)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      {isLeader && <span title="Líder do Clã">👑</span>}
-                                      <span style={{ color: member.id === playerUser.id ? 'var(--neon-pink)' : '#fff', fontWeight: member.id === playerUser.id ? 800 : 500 }}>
-                                        {member.username} {member.id === playerUser.id ? '(Você)' : ''}
-                                      </span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>
-                                        Nvl Aura {mState?.auraLevel || 1} • ⭐ {mState?.rebirths || 0}
-                                      </span>
-                                      {myClan.leaderId === playerUser.id && member.id !== playerUser.id && (
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                          <button onClick={() => handleTransferLeadership(myClan.id, member.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }} title="Promover a Líder">👑</button>
-                                          <button onClick={() => handleKickMember(myClan.id, member.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }} title="Expulsar">👢</button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
+                             <h5 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '10px' }}>👥 Membros do Clã ({clanMembers.length}):</h5>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                               {clanMembers.map(member => {
+                                 const mState = mockDb.getGameState(member.id);
+                                 const isLeader = myClan.leaderId === member.id;
+                                 return (
+                                   <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '6px 8px', borderRadius: '4px', background: 'rgba(15, 23, 42, 0.4)' }}>
+                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                       {isLeader && <span title="Líder do Clã">👑</span>}
+                                       <span style={{ color: member.id === playerUser.id ? 'var(--neon-pink)' : '#fff', fontWeight: member.id === playerUser.id ? 800 : 500 }}>
+                                         {member.username} {member.id === playerUser.id ? '(Você)' : ''}
+                                       </span>
+                                     </div>
+                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                         Nvl Aura {mState?.auraLevel || 1} • ⭐ {mState?.rebirths || 0}
+                                       </span>
+                                       {myClan.leaderId === playerUser.id && member.id !== playerUser.id && (
+                                         <div style={{ display: 'flex', gap: '4px' }}>
+                                           <button onClick={() => handleTransferLeadership(myClan.id, member.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }} title="Promover a Líder">👑</button>
+                                           <button onClick={() => handleKickMember(myClan.id, member.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }} title="Expulsar">👢</button>
+                                         </div>
+                                       )}
+                                     </div>
+                                   </div>
+                                 );
+                               })}
+                             </div>
+                           </div>
 
-                          {myClan.leaderId === playerUser.id && (myClan.joinRequests?.length || 0) > 0 && (
-                            <div style={{ marginBottom: '16px', background: 'rgba(234, 179, 8, 0.05)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '12px', borderRadius: '8px' }}>
-                              <h5 style={{ fontSize: '0.85rem', color: 'var(--neon-yellow)', marginBottom: '8px' }}>👑 Candidaturas Pendentes:</h5>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                {myClan.joinRequests.map((reqId: string) => {
-                                  const user = mockDb.getUsers().find(u => u.id === reqId);
-                                  if (!user) return null;
-                                  return (
-                                    <div key={reqId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '4px' }}>
-                                      <span style={{ fontSize: '0.8rem', color: '#fff' }}>{user.username}</span>
-                                      <div style={{ display: 'flex', gap: '6px' }}>
-                                        <button onClick={() => handleAcceptApplication(myClan.id, reqId)} style={{ background: 'var(--neon-cyan)', color: '#000', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Aceitar</button>
-                                        <button onClick={() => handleRejectApplication(myClan.id, reqId)} style={{ background: 'var(--neon-pink)', color: '#fff', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Recusar</button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
+                           {myClan.leaderId === playerUser.id && (
+                             <div style={{ marginBottom: '16px', background: 'rgba(234, 179, 8, 0.05)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '12px', borderRadius: '8px' }}>
+                               <h5 style={{ fontSize: '0.85rem', color: 'var(--neon-yellow)', marginBottom: '8px' }}>👑 Painel do Líder / Candidaturas:</h5>
+                               {(myClan.joinRequests?.length || 0) === 0 ? (
+                                 <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', margin: 0 }}>
+                                   Nenhum pedido de entrada pendente.
+                                 </p>
+                               ) : (
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                   {myClan.joinRequests.map((reqId: string) => {
+                                     const user = allUsersList.find(u => u.id === reqId) || mockDb.getUsers().find(u => u.id === reqId);
+                                     if (!user) return null;
+                                     return (
+                                       <div key={reqId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '4px' }}>
+                                         <span style={{ fontSize: '0.8rem', color: '#fff' }}>{user.username}</span>
+                                         <div style={{ display: 'flex', gap: '6px' }}>
+                                           <button onClick={() => handleAcceptApplication(myClan.id, reqId)} style={{ background: 'var(--neon-cyan)', color: '#000', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Aceitar</button>
+                                           <button onClick={() => handleRejectApplication(myClan.id, reqId)} style={{ background: 'var(--neon-pink)', color: '#fff', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Recusar</button>
+                                         </div>
+                                       </div>
+                                     );
+                                   })}
+                                 </div>
+                               )}
+                             </div>
+                           )}
 
                           <button
                             className="cyber-btn cyber-btn-pink"
