@@ -28,8 +28,9 @@ interface LeaderboardProps {
   currentUsername: string;
 }
 
-export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername }) => {
+export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUsername }) => {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const safeEntries = Array.isArray(entries) ? entries : [];
 
   const getRankBadge = (index: number) => {
     switch (index) {
@@ -81,8 +82,8 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername })
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '480px', overflowY: 'auto', paddingRight: '4px' }}>
-        {entries.map((entry, index) => {
-          const isCurrentUser = entry.username.toLowerCase() === currentUsername.toLowerCase();
+        {safeEntries.map((entry, index) => {
+          const isCurrentUser = entry && entry.username && currentUsername && entry.username.toLowerCase() === currentUsername.toLowerCase();
           const isExpanded = expandedUser === entry.username;
           
           const nameColor = entry.rebirths > 0 ? 'var(--neon-pink)' : '#fff';
@@ -260,6 +261,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername })
               {/* Expandable details panel */}
               {isExpanded && (
                 <div 
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     borderTop: '1px solid rgba(255,255,255,0.06)',
                     background: 'rgba(10, 15, 30, 0.5)',
