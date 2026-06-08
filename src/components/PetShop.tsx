@@ -21,10 +21,31 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const [petNicknameInput, setPetNicknameInput] = useState('');
 
   // Fusion States
-  const [activeTab, setActiveTab] = useState<'hatch' | 'fusion' | 'trade' | 'album'>('hatch');
+  const [activeTab, setActiveTab] = useState<'hatch' | 'fusion' | 'trade' | 'album' | 'train' | 'expedition'>('hatch');
   const [selectedPet1Id, setSelectedPet1Id] = useState<string | null>(null);
   const [selectedPet2Id, setSelectedPet2Id] = useState<string | null>(null);
   const [fusionSuccessMsg, setFusionSuccessMsg] = useState<string | null>(null);
+
+  // Training & Feeding States
+  const [trainingQuestion, setTrainingQuestion] = useState<{ num1: number; num2: number; op: string; answer: number } | null>(null);
+  const [trainingAnswerInput, setTrainingAnswerInput] = useState('');
+  const [trainingFeedback, setTrainingFeedback] = useState<string | null>(null);
+
+  // Expedition States
+  const [expeditionPetId, setExpeditionPetId] = useState<string | null>(null);
+  const [expeditionDuration, setExpeditionDuration] = useState<'short' | 'medium' | 'long'>('short');
+
+  // General Notification States
+  const [petSuccessMsg, setPetSuccessMsg] = useState<string | null>(null);
+  const [petErrorMsg, setPetErrorMsg] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Trading States
   const [tradeListings, setTradeListings] = useState<TradeListing[]>([]);
@@ -38,6 +59,160 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const loadTrades = () => {
     setTradeListings(mockDb.getTradeListings());
   };
+
+  const generateTrainingQuestion = () => {
+    const ops = ['+', '-', 'x'];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    let num1 = 0;
+    let num2 = 0;
+    let answer = 0;
+    
+    if (op === '+') {
+      num1 = Math.floor(Math.random() * 20) + 1;
+      num2 = Math.floor(Math.random() * 20) + 1;
+      answer = num1 + num2;
+    } else if (op === '-') {
+      num1 = Math.floor(Math.random() * 20) + 10;
+      num2 = Math.floor(Math.random() * num1);
+      answer = num1 - num2;
+    } else {
+      num1 = Math.floor(Math.random() * 9) + 2;
+      num2 = Math.floor(Math.random() * 9) + 2;
+      answer = num1 * num2;
+    }
+    
+    setTrainingQuestion({ num1, num2, op, answer });
+    setTrainingAnswerInput('');
+    setTrainingFeedback(null);
+  };
+
+  const handleCheckTrainingAnswer = async () => {
+    if (!trainingQuestion) return;
+    const userAnswer = parseInt(trainingAnswerInput);
+    if (userAnswer === trainingQuestion.answer) {
+      audioEngine.playCorrect();
+      setTrainingFeedback('Correto! Você ganhou 1 Guloseima 🍖!');
+      
+      const currentTreats = gameState.treats || 0;
+      const updatedState = await mockDb.updateGameState(userId, {
+        treats: currentTreats + 1
+      });
+      if (updatedState) {
+        onStateUpdate(updatedState);
+      }
+      setTimeout(() => {
+        generateTrainingQuestion();
+      }, 2000);
+    } else {
+      audioEngine.playError();
+      setTrainingFeedback(`Ops! Tente novamente. A resposta certa era ${trainingQuestion.answer}.`);
+      setTimeout(() => {
+        generateTrainingQuestion();
+      }, 2500);
+    }
+  };
+
+  const handleFeedPet = async (_petId: string) => {
+    const currentTreats = gameState.treats || 0;
+    if (currentTreats < 5) {
+      audioEngine.playError();
+      setPetErrorMsg('Você precisa de pelo menos 5 Guloseimas 🍖 para alimentar o pet!');
+      setTimeout(() => setPetErrorMsg(null), 3000);
+      return;
+    }
+    
+    audioEngine.playLevelUp();
+    
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const updatedState = await mockDb.updateGameState(userId, {
+      treats: currentTreats - 5,
+      fedBonusUntil: twoHoursFromNow
+    });
+    
+    if (updatedState) {
+      onStateUpdate(updatedState);
+      setPetSuccessMsg('Seu pet foi alimentado! +50% de bônus ativo por 2 horas!');
+      setTimeout(() => setPetSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleStartExpedition = async () => {
+    if (!expeditionPetId) return;
+    
+    if (gameState.equippedPetId === expeditionPetId) {
+      audioEngine.playError();
+      setPetErrorMsg('Você não pode enviar o seu pet equipado em uma expedição! Desequipe-o primeiro.');
+      setTimeout(() => setPetErrorMsg(null), 3000);
+      return;
+    }
+    
+    let durationMs = 0;
+    let rewardGems = 0;
+    if (expeditionDuration === 'short') {
+      durationMs = 30 * 1000;
+      rewardGems = 15;
+    } else if (expeditionDuration === 'medium') {
+      durationMs = 30 * 60 * 1000;
+      rewardGems = 100;
+    } else {
+      durationMs = 2 * 60 * 60 * 1000;
+      rewardGems = 300;
+    }
+    
+    const endTime = new Date(Date.now() + durationMs).toISOString();
+    const currentExpeditions = gameState.activeExpeditions || [];
+    
+    if (currentExpeditions.some(e => e.petId === expeditionPetId)) {
+      audioEngine.playError();
+      setPetErrorMsg('Este pet já está em uma expedição!');
+      setTimeout(() => setPetErrorMsg(null), 3000);
+      return;
+    }
+    
+    audioEngine.playHatchRoll();
+    const updatedState = await mockDb.updateGameState(userId, {
+      activeExpeditions: [...currentExpeditions, { petId: expeditionPetId, endTime, rewardGems }]
+    });
+    
+    if (updatedState) {
+      onStateUpdate(updatedState);
+      setPetSuccessMsg('Expedição iniciada com sucesso! O pet partiu em sua jornada.');
+      setExpeditionPetId(null);
+      setTimeout(() => setPetSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleCollectExpedition = async (petId: string) => {
+    const currentExpeditions = gameState.activeExpeditions || [];
+    const expedition = currentExpeditions.find(e => e.petId === petId);
+    if (!expedition) return;
+    
+    if (new Date(expedition.endTime) > new Date()) {
+      audioEngine.playError();
+      setPetErrorMsg('Esta expedição ainda não terminou!');
+      setTimeout(() => setPetErrorMsg(null), 3000);
+      return;
+    }
+    
+    audioEngine.playLevelUp();
+    const updatedExpeditions = currentExpeditions.filter(e => e.petId !== petId);
+    const updatedState = await mockDb.updateGameState(userId, {
+      gems: gameState.gems + expedition.rewardGems,
+      activeExpeditions: updatedExpeditions
+    });
+    
+    if (updatedState) {
+      onStateUpdate(updatedState);
+      setPetSuccessMsg(`Expedição Concluída! Você resgatou seu pet e coletou +${expedition.rewardGems} Gemas! 🎁`);
+      setTimeout(() => setPetSuccessMsg(null), 4000);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'train' && !trainingQuestion) {
+      generateTrainingQuestion();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     setPets(mockDb.getPets(userId));
@@ -391,6 +566,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
   return (
     <div style={{ padding: '20px', minHeight: '80vh' }}>
+      <span style={{ display: 'none' }}>{tick}</span>
       {/* Title & Hub Nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
         <div>
@@ -404,59 +580,91 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
         </button>
       </div>
 
-      {/* Tabs Selector: Gacha vs Fusion */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+      {/* Tabs Selector */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button
           className="cyber-btn"
           onClick={() => { audioEngine.playHatchRoll(); setActiveTab('hatch'); }}
           style={{
-            flex: 1,
-            padding: '12px',
+            flex: '1 1 140px',
+            padding: '10px',
             background: activeTab === 'hatch' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(15,23,42,0.6)',
             borderColor: activeTab === 'hatch' ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
             color: activeTab === 'hatch' ? '#fff' : 'rgba(255,255,255,0.7)',
+            fontSize: '0.85rem'
           }}
         >
-          🥚 Chocar Ovos Gacha
+          🥚 Chocar Ovos
         </button>
         <button
           className="cyber-btn"
           onClick={() => { audioEngine.playHatchRoll(); setActiveTab('fusion'); }}
           style={{
-            flex: 1,
-            padding: '12px',
+            flex: '1 1 140px',
+            padding: '10px',
             background: activeTab === 'fusion' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(15,23,42,0.6)',
             borderColor: activeTab === 'fusion' ? 'var(--neon-purple)' : 'rgba(255,255,255,0.1)',
             color: activeTab === 'fusion' ? '#fff' : 'rgba(255,255,255,0.7)',
+            fontSize: '0.85rem'
           }}
         >
-          🧬 Fusão de Pets (Evolução)
+          🧬 Fusão de Pets
         </button>
         <button
           className="cyber-btn"
           onClick={() => { audioEngine.playHatchRoll(); setActiveTab('trade'); }}
           style={{
-            flex: 1,
-            padding: '12px',
+            flex: '1 1 140px',
+            padding: '10px',
             background: activeTab === 'trade' ? 'rgba(0, 255, 204, 0.15)' : 'rgba(15,23,42,0.6)',
             borderColor: activeTab === 'trade' ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.1)',
             color: activeTab === 'trade' ? '#fff' : 'rgba(255,255,255,0.7)',
+            fontSize: '0.85rem'
           }}
         >
-          🌌 Trocas Cósmicas (Mercado)
+          🌌 Trocas
         </button>
         <button
           className="cyber-btn"
           onClick={() => { audioEngine.playHatchRoll(); setActiveTab('album'); }}
           style={{
-            flex: 1,
-            padding: '12px',
+            flex: '1 1 140px',
+            padding: '10px',
             background: activeTab === 'album' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(15,23,42,0.6)',
             borderColor: activeTab === 'album' ? 'var(--neon-pink)' : 'rgba(255,255,255,0.1)',
             color: activeTab === 'album' ? '#fff' : 'rgba(255,255,255,0.7)',
+            fontSize: '0.85rem'
           }}
         >
-          📖 Álbum de Figurinhas
+          📖 Álbum
+        </button>
+        <button
+          className="cyber-btn"
+          onClick={() => { audioEngine.playHatchRoll(); setActiveTab('train'); }}
+          style={{
+            flex: '1 1 140px',
+            padding: '10px',
+            background: activeTab === 'train' ? 'rgba(234, 88, 12, 0.15)' : 'rgba(15,23,42,0.6)',
+            borderColor: activeTab === 'train' ? '#ea580c' : 'rgba(255,255,255,0.1)',
+            color: activeTab === 'train' ? '#fff' : 'rgba(255,255,255,0.7)',
+            fontSize: '0.85rem'
+          }}
+        >
+          🍖 Treinar & Alimentar
+        </button>
+        <button
+          className="cyber-btn"
+          onClick={() => { audioEngine.playHatchRoll(); setActiveTab('expedition'); }}
+          style={{
+            flex: '1 1 140px',
+            padding: '10px',
+            background: activeTab === 'expedition' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(15,23,42,0.6)',
+            borderColor: activeTab === 'expedition' ? '#22c55e' : 'rgba(255,255,255,0.1)',
+            color: activeTab === 'expedition' ? '#fff' : 'rgba(255,255,255,0.7)',
+            fontSize: '0.85rem'
+          }}
+        >
+          🎒 Expedições
         </button>
       </div>
 
@@ -544,6 +752,283 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 </div>
               );
             })}
+          </div>
+        </div>
+      ) : activeTab === 'train' ? (
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tutorial / Help header */}
+          <div className="cyber-card" style={{ borderColor: '#ea580c', background: 'rgba(234, 88, 12, 0.03)', padding: '16px' }}>
+            <h3 style={{ color: '#ea580c', fontSize: '1.2rem', marginBottom: '6px', fontWeight: 'bold' }}>
+              🍖 Como Treinar e Alimentar seus Pets?
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', lineHeight: '1.3rem', margin: 0 }}>
+              1. Resolva as contas do <strong>Treino Matemático</strong> abaixo para ganhar <strong>Guloseimas 🍖</strong>!<br />
+              2. Junte <strong>5 Guloseimas 🍖</strong> e alimente qualquer pet para ativar o <strong>Super Bônus Elemental</strong> (+50% bônus de XP/Gemas) por 2 horas!
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Left Card: Training challenges */}
+            <div className="cyber-card" style={{ borderColor: '#ea580c', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
+                🎯 Treino Matemático Rápido
+              </h3>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '12px 18px', borderRadius: '8px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>Minhas Guloseimas:</span>
+                <strong style={{ fontSize: '1.4rem', color: '#ea580c' }}>🍖 {gameState.treats || 0}</strong>
+              </div>
+
+              {trainingQuestion ? (
+                <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 8px 0' }}>Quanto é:</p>
+                  <h2 style={{ fontSize: '2.5rem', color: '#fff', fontWeight: 900, letterSpacing: '2px', margin: '0 0 16px 0' }}>
+                    {trainingQuestion.num1} {trainingQuestion.op === 'x' ? '×' : trainingQuestion.op} {trainingQuestion.num2}
+                  </h2>
+                  
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', maxWidth: '300px', margin: '0 auto 12px auto' }}>
+                    <input
+                      type="number"
+                      value={trainingAnswerInput}
+                      onChange={(e) => setTrainingAnswerInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleCheckTrainingAnswer(); }}
+                      placeholder="Resposta"
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        fontSize: '1.2rem',
+                        textAlign: 'center',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        backgroundColor: '#0b0f19',
+                        color: '#fff'
+                      }}
+                    />
+                    <button className="cyber-btn" onClick={handleCheckTrainingAnswer} style={{ padding: '0 16px', background: 'rgba(234, 88, 12, 0.1)', borderColor: '#ea580c' }}>
+                      Enviar
+                    </button>
+                  </div>
+
+                  {trainingFeedback && (
+                    <div style={{ fontSize: '0.9rem', color: trainingFeedback.includes('Correto') ? 'var(--neon-green)' : 'var(--neon-pink)', fontWeight: 'bold', marginTop: '10px' }}>
+                      {trainingFeedback}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <button className="cyber-btn" onClick={generateTrainingQuestion} style={{ padding: '10px 20px' }}>
+                    Começar Treino 🚀
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Right Card: Pet inventory & feeding panel */}
+            <div className="cyber-card" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
+                🍪 Escolha o Pet para Alimentar
+              </h3>
+
+              {petSuccessMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', fontSize: '0.8rem', marginBottom: '12px' }}>{petSuccessMsg}</div>}
+              {petErrorMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.8rem', marginBottom: '12px' }}>{petErrorMsg}</div>}
+
+              {gameState.fedBonusUntil && new Date(gameState.fedBonusUntil) > new Date() ? (
+                <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '10px', borderRadius: '6px', color: '#22c55e', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <span>🔥 Super Bônus Elemental de 1.5x Ativo!</span>
+                  <span>Expira às {new Date(gameState.fedBonusUntil).toLocaleTimeString()}</span>
+                </div>
+              ) : (
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginBottom: '14px' }}>
+                  Pet com fome! Alimente-o com 5 Guloseimas 🍖 para ativar o Super Bônus de 1.5x.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                {pets.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Você não tem pets ainda. Hatch no gacha para conseguir!</p>
+                ) : (
+                  pets.map(pet => {
+                    const pt = PET_TYPES.find(p => p.id === pet.petTypeId);
+                    const isEquipped = gameState.equippedPetId === pet.id;
+                    
+                    return (
+                      <div key={pet.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '6px', border: isEquipped ? '1px solid var(--neon-pink)' : '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '2rem' }}>{pt?.emoji || '🐾'}</span>
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff' }}>
+                              {pet.nickname} {isEquipped ? ' (Equipado)' : ''}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                              Nvl {pet.level} • {pt ? getBuffDescription(pt) : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          className="cyber-btn"
+                          onClick={() => handleFeedPet(pet.id)}
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', height: '28px', background: 'rgba(234, 88, 12, 0.1)', borderColor: '#ea580c' }}
+                        >
+                          Alimentar 🍖
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'expedition' ? (
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tutorial / Help Header */}
+          <div className="cyber-card" style={{ borderColor: '#22c55e', background: 'rgba(34, 197, 94, 0.03)', padding: '16px' }}>
+            <h3 style={{ color: '#22c55e', fontSize: '1.2rem', marginBottom: '6px', fontWeight: 'bold' }}>
+              🎒 Expedições Espaciais de Pets
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', lineHeight: '1.3rem', margin: 0 }}>
+              Envie seus pets não equipados em expedições espaciais. Quando o tempo acabar, eles voltarão carregados de gemas grátis para você gastar!
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Left Card: Send Pet on Expedition */}
+            <div className="cyber-card" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
+                🚀 Lançar Nova Expedição
+              </h3>
+
+              {petErrorMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.8rem', marginBottom: '12px' }}>{petErrorMsg}</div>}
+              {petSuccessMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', fontSize: '0.8rem', marginBottom: '12px' }}>{petSuccessMsg}</div>}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Selecione o Pet:</label>
+                  <select
+                    value={expeditionPetId || ''}
+                    onChange={(e) => setExpeditionPetId(e.target.value || null)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }}
+                  >
+                    <option value="">-- Escolha um Pet --</option>
+                    {pets
+                      .filter(p => p.id !== gameState.equippedPetId && !(gameState.activeExpeditions || []).some(e => e.petId === p.id))
+                      .map(p => {
+                        const emoji = PET_TYPES.find(x => x.id === p.petTypeId)?.emoji || '🐾';
+                        return (
+                          <option key={p.id} value={p.id}>{emoji} {p.nickname} (Nvl {p.level})</option>
+                        );
+                      })
+                    }
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Duração da Expedição:</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                    <button
+                      className="cyber-btn"
+                      onClick={() => setExpeditionDuration('short')}
+                      style={{
+                        padding: '8px',
+                        fontSize: '0.8rem',
+                        background: expeditionDuration === 'short' ? 'rgba(34,197,94,0.15)' : 'rgba(0,0,0,0.3)',
+                        borderColor: expeditionDuration === 'short' ? '#22c55e' : 'rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      Curta ⚡<br />
+                      <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>30 seg (+15 💎)</span>
+                    </button>
+                    <button
+                      className="cyber-btn"
+                      onClick={() => setExpeditionDuration('medium')}
+                      style={{
+                        padding: '8px',
+                        fontSize: '0.8rem',
+                        background: expeditionDuration === 'medium' ? 'rgba(34,197,94,0.15)' : 'rgba(0,0,0,0.3)',
+                        borderColor: expeditionDuration === 'medium' ? '#22c55e' : 'rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      Média 🛰️<br />
+                      <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>30 min (+100 💎)</span>
+                    </button>
+                    <button
+                      className="cyber-btn"
+                      onClick={() => setExpeditionDuration('long')}
+                      style={{
+                        padding: '8px',
+                        fontSize: '0.8rem',
+                        background: expeditionDuration === 'long' ? 'rgba(34,197,94,0.15)' : 'rgba(0,0,0,0.3)',
+                        borderColor: expeditionDuration === 'long' ? '#22c55e' : 'rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      Longa 🚀<br />
+                      <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>2 horas (+300 💎)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  className="cyber-btn"
+                  onClick={handleStartExpedition}
+                  disabled={!expeditionPetId}
+                  style={{ width: '100%', padding: '12px', marginTop: '10px', background: 'rgba(34, 197, 94, 0.1)', borderColor: '#22c55e', color: '#fff', fontSize: '0.9rem', opacity: expeditionPetId ? 1 : 0.5 }}
+                >
+                  🚀 Lançar ao Espaço
+                </button>
+              </div>
+            </div>
+
+            {/* Right Card: Active Expeditions List */}
+            <div className="cyber-card" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
+                🛰️ Expedições Ativas / Concluídas
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+                {(gameState.activeExpeditions || []).length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', textAlign: 'center', marginTop: '20px' }}>
+                    Nenhuma expedição ativa. Escolha um pet e lance-o em órbita!
+                  </p>
+                ) : (
+                  (gameState.activeExpeditions || []).map(exp => {
+                    const pet = pets.find(p => p.id === exp.petId);
+                    if (!pet) return null;
+                    const pt = PET_TYPES.find(p => p.id === pet.petTypeId);
+                    const timeLeftSec = Math.max(0, Math.floor((new Date(exp.endTime).getTime() - Date.now()) / 1000));
+                    const isFinished = timeLeftSec <= 0;
+                    
+                    return (
+                      <div key={exp.petId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '2rem' }}>{pt?.emoji || '🐾'}</span>
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff' }}>{pet.nickname}</div>
+                            <div style={{ fontSize: '0.7rem', color: isFinished ? '#22c55e' : 'rgba(255,255,255,0.5)' }}>
+                              {isFinished ? 'Pronto para retorno!' : `Tempo restante: ${Math.floor(timeLeftSec / 60)}m ${timeLeftSec % 60}s`}
+                            </div>
+                          </div>
+                        </div>
+
+                        {isFinished ? (
+                          <button
+                            className="cyber-btn animate-pulse"
+                            onClick={() => handleCollectExpedition(exp.petId)}
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', height: '32px', background: 'rgba(34, 197, 94, 0.2)', borderColor: '#22c55e', color: '#fff', fontWeight: 'bold' }}
+                          >
+                            Resgatar +{exp.rewardGems} 💎
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '4px' }}>
+                            Em Órbita ⏳
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
       ) : (

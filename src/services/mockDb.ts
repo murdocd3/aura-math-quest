@@ -48,6 +48,9 @@ export interface GameState {
   auraPassXp?: number;
   hasElitePass?: boolean;
   claimedPassTiers?: number[];
+  treats?: number;
+  activeExpeditions?: { petId: string; endTime: string; rewardGems: number }[];
+  fedBonusUntil?: string;
 }
 
 export interface Skill {

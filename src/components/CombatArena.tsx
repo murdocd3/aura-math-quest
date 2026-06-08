@@ -101,6 +101,29 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   campaignStageId,
 }) => {
   const userId = playerUser.id;
+
+  const getPetElement = () => {
+    if (gameState.equippedPetId) {
+      const pets = mockDb.getPets(userId);
+      const pet = pets.find(p => p.id === gameState.equippedPetId);
+      if (pet) {
+        if (pet.nickname.includes('🔥') || pet.nickname.includes('Flamejante')) return 'fire';
+        if (pet.nickname.includes('⚡') || pet.nickname.includes('Voltaico')) return 'electric';
+        if (pet.nickname.includes('❄️') || pet.nickname.includes('Glacial')) return 'ice';
+        if (pet.nickname.includes('🌌') || pet.nickname.includes('Cósmico')) return 'cosmic';
+      }
+    }
+    return null;
+  };
+
+  const getMonsterElement = (mName: string, mEmoji: string) => {
+    const combined = (mName + ' ' + mEmoji).toLowerCase();
+    if (combined.includes('🔥') || combined.includes('fire') || combined.includes('fogo') || combined.includes('dragão')) return 'fire';
+    if (combined.includes('❄️') || combined.includes('ice') || combined.includes('glacial') || combined.includes('sapo') || combined.includes('slime')) return 'ice';
+    if (combined.includes('⚡') || combined.includes('raio') || combined.includes('voltaico') || combined.includes('cão') || combined.includes('spy')) return 'electric';
+    if (combined.includes('🌌') || combined.includes('cósmico') || combined.includes('cosmic') || combined.includes('glitch') || combined.includes('👾') || combined.includes('bug')) return 'cosmic';
+    return null;
+  };
   // Battle Config & Constants
   const baseTimeLimit = zone === 'forest' ? 9 : 6; // seconds
   const isVolcano = zone === 'volcano';
@@ -128,6 +151,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       const pets = mockDb.getPets(userId);
       const pet = pets.find(p => p.id === gameState.equippedPetId);
       if (pet) {
+        const isFed = gameState.fedBonusUntil ? (new Date(gameState.fedBonusUntil) > new Date()) : false;
+        
         // Find pet details from PET_TYPES catalog to support hybrid/combined buffs
         const petType = PET_TYPES.find(pt => pt.id === pet.petTypeId);
         if (petType) {
@@ -136,10 +161,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
             extraTime += petType.extraTime * pet.level;
           }
           if (petType.xpMultiplier) {
-            xpMultiplier += (petType.xpMultiplier - 1) * pet.level;
+            xpMultiplier += (petType.xpMultiplier - 1) * pet.level * (isFed ? 1.5 : 1);
           }
           if (petType.gemMultiplier) {
-            gemMultiplier += (petType.gemMultiplier - 1) * pet.level;
+            gemMultiplier += (petType.gemMultiplier - 1) * pet.level * (isFed ? 1.5 : 1);
           }
 
           // Fallback to legacy single buff columns
@@ -147,9 +172,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
             if (pet.buffType === 'time_bonus') {
               extraTime = pet.buffValue;
             } else if (pet.buffType === 'aura_multiplier') {
-              xpMultiplier = pet.buffValue;
+              xpMultiplier = isFed ? 1 + (pet.buffValue - 1) * 1.5 : pet.buffValue;
             } else if (pet.buffType === 'gem_multiplier') {
-              gemMultiplier = pet.buffValue;
+              gemMultiplier = isFed ? 1 + (pet.buffValue - 1) * 1.5 : pet.buffValue;
             }
           }
         }
@@ -703,15 +728,32 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         setBattleCriticals(prev => prev + 1);
       }
 
+      const petElem = getPetElement();
+      const monsterElem = getMonsterElement(monster.name, monster.emoji);
+      let isElementAdvantage = false;
+      if (petElem && monsterElem) {
+        if (
+          (petElem === 'fire' && monsterElem === 'ice') ||
+          (petElem === 'ice' && monsterElem === 'electric') ||
+          (petElem === 'electric' && monsterElem === 'fire') ||
+          (petElem === 'cosmic')
+        ) {
+          isElementAdvantage = true;
+        }
+      }
+
+      const baseDamage = isCritical ? 2 : 1;
+      const damageDealt = isElementAdvantage ? baseDamage + 1 : baseDamage;
+
       const op = currentQuestion.op || gameState.selectedOperation || 'multiplication';
       vfxCanvasRef.current?.fireProjectile('player', () => {
         vfxCanvasRef.current?.triggerExplosion('monster', isCritical ? 'critical' : 'normal', op);
         if (isCritical) {
           audioEngine.playCritical();
           triggerFlashEffect('critical');
-          spawnHitSplat('💥 CRITICAL! -2 HP', false, 'critical');
+          spawnHitSplat(`💥 CRITICAL! -${damageDealt} HP${isElementAdvantage ? ' ⚡BÔNUS!' : ''}`, false, 'critical');
           setMonster(prev => {
-            const nextHp = prev.hp - 2;
+            const nextHp = prev.hp - damageDealt;
             if (nextHp <= 0) {
               handleVictory();
             }
@@ -720,9 +762,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         } else {
           audioEngine.playCorrect();
           triggerFlashEffect('correct');
-          spawnHitSplat('-1 HP', false, 'normal');
+          spawnHitSplat(`-${damageDealt} HP${isElementAdvantage ? ' ⚡BÔNUS!' : ''}`, false, 'normal');
           setMonster(prev => {
-            const nextHp = prev.hp - 1;
+            const nextHp = prev.hp - damageDealt;
             if (nextHp <= 0) {
               handleVictory();
             }
@@ -733,12 +775,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       }, isCritical, op);
 
       if (isCritical) {
-        nextTurnLog(`Ataque Crítico! Acerto super rápido de ${currentQuestion.num1}${opSym}${currentQuestion.num2}. Causou 2 de dano!`);
+        nextTurnLog(`Ataque Crítico! Acerto super rápido de ${currentQuestion.num1}${opSym}${currentQuestion.num2}. Causou ${damageDealt} de dano! ${isElementAdvantage ? '🔥 Vantagem Elemental!' : ''}`);
       } else {
-        nextTurnLog(`Acerto normal! Resposta correta para ${currentQuestion.num1}${opSym}${currentQuestion.num2}. Causou 1 de dano!`);
+        nextTurnLog(`Acerto normal! Resposta correta para ${currentQuestion.num1}${opSym}${currentQuestion.num2}. Causou ${damageDealt} de dano! ${isElementAdvantage ? '🔥 Vantagem Elemental!' : ''}`);
       }
-
-      const damageDealt = isCritical ? 2 : 1;
       
       if (gameState.clanId) {
         backendService.damageClanBoss(userId, gameState.clanId, damageDealt).then(res => {
@@ -1091,8 +1131,34 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                 />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fff', textTransform: 'capitalize' }}>
-                    {gameState.equippedPetId ? '🦸‍♂️ ' + gameState.equippedPetId.slice(0, 5) : playerUser.username}
+                    {playerUser.username}
                   </div>
+                  {(() => {
+                    if (gameState.equippedPetId) {
+                      const pets = mockDb.getPets(userId);
+                      const pet = pets.find(p => p.id === gameState.equippedPetId);
+                      if (pet) {
+                        const pt = PET_TYPES.find(x => x.id === pet.petTypeId);
+                        const emoji = pt?.emoji || '🐾';
+                        const pElem = getPetElement();
+                        const elementLabel = pElem === 'fire' ? '🔥 Fogo' : pElem === 'ice' ? '❄️ Gelo' : pElem === 'electric' ? '⚡ Raio' : pElem === 'cosmic' ? '🌌 Cósmico' : null;
+                        const elementColor = pElem === 'fire' ? 'var(--neon-pink)' : pElem === 'ice' ? 'var(--neon-cyan)' : pElem === 'electric' ? 'var(--neon-yellow)' : 'var(--neon-purple)';
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>
+                              Ajudante: {emoji} {pet.nickname}
+                            </span>
+                            {elementLabel && (
+                              <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', background: elementColor + '20', color: elementColor, border: `1px solid ${elementColor}40`, padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                {elementLabel}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
                   {/* RAM health HUD slots */}
                   <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                     {[...Array(maxPlayerHp)].map((_, idx) => {
@@ -1154,6 +1220,19 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                   <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--neon-pink)' }}>
                     {monster.name}
                   </div>
+                  {(() => {
+                    const mElem = getMonsterElement(monster.name, monster.emoji);
+                    if (mElem) {
+                      const badge = mElem === 'fire' ? '🔥 Fogo' : mElem === 'ice' ? '❄️ Gelo' : mElem === 'electric' ? '⚡ Raio' : '🌌 Cósmico';
+                      const badgeColor = mElem === 'fire' ? 'var(--neon-pink)' : mElem === 'ice' ? 'var(--neon-cyan)' : mElem === 'electric' ? 'var(--neon-yellow)' : 'var(--neon-purple)';
+                      return (
+                        <div style={{ display: 'inline-block', fontSize: '0.65rem', background: badgeColor + '20', color: badgeColor, border: `1px solid ${badgeColor}40`, padding: '1px 6px', borderRadius: '4px', marginTop: '2px', fontWeight: 'bold' }}>
+                          Elemento: {badge}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   {/* Monster HP Progress Bar */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', marginTop: '6px' }}>
                     <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
@@ -1175,6 +1254,18 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                 <CyberSprite type="monster" name={monster.name} width={45} height={45} />
               </div>
 
+            </div>
+
+            {/* Element Advantage Guide */}
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px', background: 'rgba(15,23,42,0.4)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '6px 12px', fontSize: '0.75rem', color: '#fff' }}>
+              <span style={{ fontWeight: 'bold', color: 'var(--neon-yellow)' }}>🌲 Dicas de Elementos:</span>
+              <span>🔥 Ganha de ❄️</span>
+              <span>•</span>
+              <span>❄️ Ganha de ⚡</span>
+              <span>•</span>
+              <span>⚡ Ganha de 🔥</span>
+              <span>•</span>
+              <span>🌌 Cósmico Ganha de Todos! (+1 Dano)</span>
             </div>
 
             {/* Core Arena Canvas Area */}
