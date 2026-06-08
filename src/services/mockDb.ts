@@ -76,6 +76,8 @@ export interface Clan {
   members: string[];
   totalAuraLevel: number;
   totalRebirths: number;
+  level: number;
+  xp: number;
 }
 
 export interface TradeListing {
@@ -534,7 +536,7 @@ export function seedDatabase() {
         classId: 'warrior',
         skillPoints: 2,
         unlockedSkills: ['extra_shield'],
-        clanId: 'clan-alpha',
+        clanId: null,
         clanContributions: 150,
         campaignStage: 3,
       },
@@ -560,7 +562,7 @@ export function seedDatabase() {
         classId: 'chronomancer',
         skillPoints: 1,
         unlockedSkills: [],
-        clanId: 'clan-alpha',
+        clanId: null,
         clanContributions: 50,
         campaignStage: 2,
       },
@@ -612,7 +614,7 @@ export function seedDatabase() {
         classId: 'alchemist',
         skillPoints: 4,
         unlockedSkills: ['alchemy_gems', 'lucky_hatch'],
-        clanId: 'clan-glitch',
+        clanId: null,
         clanContributions: 300,
         campaignStage: 5,
       },
@@ -1393,6 +1395,9 @@ export const mockDb = {
     const clanIndex = clans.findIndex(c => c.id === state.clanId);
     if (clanIndex !== -1) {
       clans[clanIndex].members = clans[clanIndex].members.filter(id => id !== userId);
+      if (clans[clanIndex].members.length === 0) {
+        clans.splice(clanIndex, 1);
+      }
       setStorageItem(STORAGE_KEYS.CLANS, clans);
     }
     
@@ -1420,7 +1425,9 @@ export const mockDb = {
       badgeEmoji: badgeEmoji,
       members: [userId],
       totalAuraLevel: state.auraLevel,
-      totalRebirths: state.rebirths
+      totalRebirths: state.rebirths,
+      level: 1,
+      xp: 0
     };
     
     const currentClans = this.getClans();
@@ -1428,6 +1435,40 @@ export const mockDb = {
     setStorageItem(STORAGE_KEYS.CLANS, currentClans);
     
     return this.updateGameState(userId, { clanId: newClan.id });
+  },
+
+  addClanXp(clanId: string, amount: number): void {
+    const clans = this.getClans();
+    const clanIndex = clans.findIndex(c => c.id === clanId);
+    if (clanIndex !== -1) {
+      let clan = clans[clanIndex];
+      clan.xp += amount;
+      
+      let nextLevelXp = clan.level * 500;
+      while (clan.xp >= nextLevelXp && clan.level < 10) {
+        clan.xp -= nextLevelXp;
+        clan.level += 1;
+        nextLevelXp = clan.level * 500;
+      }
+      if (clan.level >= 10) {
+        clan.level = 10;
+        clan.xp = Math.min(clan.xp, nextLevelXp);
+      }
+      setStorageItem(STORAGE_KEYS.CLANS, clans);
+    }
+  },
+
+  getClanBonus(clanId: string): { xpMultiplier: number, gemMultiplier: number } {
+    const clans = this.getClans();
+    const clan = clans.find(c => c.id === clanId);
+    if (!clan) return { xpMultiplier: 1.0, gemMultiplier: 1.0 };
+    
+    // Each level gives 2% bonus up to 20% at level 10
+    const bonus = clan.level * 0.02;
+    return {
+      xpMultiplier: 1.0 + bonus,
+      gemMultiplier: 1.0 + bonus
+    };
   },
 
   // Skill Tree APIs

@@ -42,6 +42,18 @@ import type { User, GameState, Pet, MathStatistic } from './mockDb';
  *   updated_at TIMESTAMPTZ DEFAULT NOW()
  * );
  * 
+ * -- 2.5. Table: clans
+ * CREATE TABLE clans (
+ *   id TEXT PRIMARY KEY,
+ *   name TEXT NOT NULL,
+ *   tag TEXT NOT NULL,
+ *   motto TEXT,
+ *   badge_emoji TEXT,
+ *   members TEXT[] DEFAULT '{}',
+ *   level INT DEFAULT 1,
+ *   xp INT DEFAULT 0
+ * );
+ * 
  * -- 3. Table: pets
  * CREATE TABLE pets (
  *   id TEXT PRIMARY KEY,
@@ -612,6 +624,10 @@ export const backendService = {
 
           const freshState = await this.updateGameState(userId, mapDbToGameState(updates));
           
+          if (freshState?.clanId) {
+            await this.addClanXp(freshState.clanId, Math.max(1, Math.round(xpReward / 2)));
+          }
+
           if (stageId === 5 && isFirstTime) {
             await this.createPet(userId, 'cosmic_owl', 'Coruja Cósmica');
           }
@@ -723,7 +739,9 @@ export const backendService = {
             badgeEmoji: clan.badge_emoji || '🛡️',
             members: membersList,
             totalAuraLevel,
-            totalRebirths
+            totalRebirths,
+            level: clan.level ?? 1,
+            xp: clan.xp ?? 0
           };
         }).sort((a, b) => {
           if (b.totalRebirths !== a.totalRebirths) {
@@ -812,7 +830,9 @@ export const backendService = {
           tag: tag.trim().toUpperCase(),
           motto: motto.trim(),
           badge_emoji: badgeEmoji,
-          members: [userId]
+          members: [userId],
+          level: 1,
+          xp: 0
         });
 
         if (insertErr) throw insertErr;
@@ -824,5 +844,47 @@ export const backendService = {
       }
     }
     return mockDb.createClan(userId, name, tag, motto, badgeEmoji);
+  },
+
+  async addClanXp(clanId: string, amount: number): Promise<void> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('level, xp').eq('id', clanId);
+        if (data && data.length > 0) {
+          let { level, xp } = data[0];
+          xp += amount;
+          let nextLevelXp = level * 500;
+          while (xp >= nextLevelXp && level < 10) {
+            xp -= nextLevelXp;
+            level += 1;
+            nextLevelXp = level * 500;
+          }
+          if (level >= 10) {
+            level = 10;
+            xp = Math.min(xp, nextLevelXp);
+          }
+          await supabase.from('clans').update({ level, xp }).eq('id', clanId);
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in addClanXp:', err);
+      }
+    }
+    mockDb.addClanXp(clanId, amount);
+  },
+
+  async getClanBonus(clanId: string): Promise<{ xpMultiplier: number, gemMultiplier: number }> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('level').eq('id', clanId);
+        if (data && data.length > 0) {
+          const level = data[0].level ?? 1;
+          const bonus = level * 0.02;
+          return { xpMultiplier: 1.0 + bonus, gemMultiplier: 1.0 + bonus };
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in getClanBonus:', err);
+      }
+    }
+    return mockDb.getClanBonus(clanId);
   }
 };

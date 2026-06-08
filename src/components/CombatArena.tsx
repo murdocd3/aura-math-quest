@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { mockDb, PET_TYPES } from '../services/mockDb';
+import { backendService } from '../services/backendService';
 import type { User, GameState } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
 import { getCampaignStages } from './HubWorld';
@@ -104,6 +105,19 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const baseTimeLimit = zone === 'forest' ? 9 : 6; // seconds
   const isVolcano = zone === 'volcano';
 
+  // Clan Bonus state
+  const [clanBonus, setClanBonus] = useState<{ xpMultiplier: number, gemMultiplier: number }>({ xpMultiplier: 1, gemMultiplier: 1 });
+
+  useEffect(() => {
+    const fetchBonus = async () => {
+      if (gameState.clanId) {
+        const bonus = await backendService.getClanBonus(gameState.clanId);
+        setClanBonus(bonus);
+      }
+    };
+    fetchBonus();
+  }, [gameState.clanId]);
+
   // Apply Pet Buffs
   const getPetBuffs = () => {
     let extraTime = 0;
@@ -144,7 +158,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     return { extraTime, xpMultiplier, gemMultiplier };
   };
 
-  const { extraTime, xpMultiplier, gemMultiplier } = getPetBuffs();
+  const { extraTime, xpMultiplier: petXpMult, gemMultiplier: petGemMult } = getPetBuffs();
+  const xpMultiplier = petXpMult * clanBonus.xpMultiplier;
+  const gemMultiplier = petGemMult * clanBonus.gemMultiplier;
   const timeLimit = baseTimeLimit + extraTime;
 
   // Helper to scale monster HP dynamically
@@ -1703,6 +1719,12 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                   +🛡️ {victoryRewards.gems} Gemas
                 </span>
               </div>
+
+              {clanBonus.xpMultiplier > 1 && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', backgroundColor: 'rgba(244, 63, 94, 0.1)', padding: '6px', borderRadius: '4px', textAlign: 'center', marginTop: '12px' }}>
+                  📈 Bônus de Clã Ativo (+{( (clanBonus.xpMultiplier - 1) * 100 ).toFixed(0)}%)
+                </div>
+              )}
 
               {perfectBattle && (
                 <div

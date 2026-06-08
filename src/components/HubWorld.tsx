@@ -1441,6 +1441,14 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                           </div>
 
                           <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <h5 style={{ fontSize: '0.9rem', color: '#fff' }}>🛡️ Nível do Clã: {myClan.level || 1}</h5>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', fontWeight: 'bold' }}>Bônus: +{( ((myClan.level || 1) * 0.02) * 100 ).toFixed(0)}% XP/Gemas</span>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '8px', width: '100%', marginBottom: '16px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${Math.min(((myClan.xp || 0) / ((myClan.level || 1) * 500)) * 100, 100)}%`, background: 'var(--neon-pink)', transition: 'width 0.3s ease' }}></div>
+                            </div>
+
                             <h5 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '10px' }}>👥 Membros do Clã ({clanMembers.length}):</h5>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                               {clanMembers.map(member => {
@@ -1556,7 +1564,10 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
                           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <strong style={{ fontSize: '0.85rem', color: 'var(--neon-pink)' }}>
-                              ⭐ {clan.totalRebirths} Rebirths
+                              Nível {clan.level || 1}
+                            </strong>
+                            <strong style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                              ⭐ {clan.totalRebirths}
                             </strong>
                             
                             {!gameState.clanId && !isMyClan && (
