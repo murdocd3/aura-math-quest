@@ -133,6 +133,25 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
   }
 ];
 
+const getWrongQuestions = (userId: string): OlympicQuestion[] => {
+  const saved = localStorage.getItem(`amq_olympics_wrong_questions_${userId}`);
+  return saved ? JSON.parse(saved) : [];
+};
+
+const saveWrongQuestion = (userId: string, q: OlympicQuestion) => {
+  const list = getWrongQuestions(userId);
+  if (!list.some(existing => existing.question === q.question)) {
+    list.push(q);
+    localStorage.setItem(`amq_olympics_wrong_questions_${userId}`, JSON.stringify(list));
+  }
+};
+
+const removeWrongQuestion = (userId: string, questionText: string) => {
+  const list = getWrongQuestions(userId);
+  const updated = list.filter(q => q.question !== questionText);
+  localStorage.setItem(`amq_olympics_wrong_questions_${userId}`, JSON.stringify(updated));
+};
+
 export const Olympics: React.FC<OlympicsProps> = ({
   gameState,
   onBack,
@@ -142,6 +161,8 @@ export const Olympics: React.FC<OlympicsProps> = ({
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [answerSubmitted, setAnswerSubmitted] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
+  const [isReTrainingMode, setIsReTrainingMode] = useState<boolean>(false);
+  const [reTrainingIndex, setReTrainingIndex] = useState<number>(0);
   
   // Dynamic Score Tracking state (0-100 scale for each of the 10 skills)
   const [scores, setScores] = useState<Record<string, number>>(() => {
@@ -176,7 +197,10 @@ export const Olympics: React.FC<OlympicsProps> = ({
     localStorage.setItem(`amq_olympic_history_${gameState.userId}`, JSON.stringify(history));
   }, [history, gameState.userId]);
 
-  const activeQuestion = OLYMPIC_DATABASE[Math.min(currentLevel - 1, OLYMPIC_DATABASE.length - 1)];
+  const wrongQuestionsList = getWrongQuestions(gameState.userId);
+  const activeQuestion = isReTrainingMode
+    ? (wrongQuestionsList[reTrainingIndex] || wrongQuestionsList[0] || OLYMPIC_DATABASE[0])
+    : OLYMPIC_DATABASE[Math.min(currentLevel - 1, OLYMPIC_DATABASE.length - 1)];
 
   const handleOptionSelect = (opt: string) => {
     if (answerSubmitted) return;
@@ -195,9 +219,15 @@ export const Olympics: React.FC<OlympicsProps> = ({
     if (correct) {
       audioEngine.playHatchSuccess();
       setStreakCount(prev => prev + 1);
+      if (isReTrainingMode) {
+        removeWrongQuestion(gameState.userId, activeQuestion.question);
+      }
     } else {
       audioEngine.playError();
       setStreakCount(0);
+      if (!isReTrainingMode) {
+        saveWrongQuestion(gameState.userId, activeQuestion);
+      }
     }
 
     // Dynamic Skill Scoring Engine algorithm
@@ -239,7 +269,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
     // Record Progression History
     setHistory(prev => [
       ...prev,
-      { level: currentLevel, correct, timestamp: new Date().toLocaleTimeString() }
+      { level: isReTrainingMode ? 999 : currentLevel, correct, timestamp: new Date().toLocaleTimeString() }
     ].slice(-10)); // Keep last 10 entries for history line
   };
 
@@ -252,7 +282,23 @@ export const Olympics: React.FC<OlympicsProps> = ({
       });
     }
 
-    setCurrentLevel(prev => (prev % OLYMPIC_DATABASE.length) + 1);
+    if (isReTrainingMode) {
+      const updatedList = getWrongQuestions(gameState.userId);
+      if (updatedList.length === 0) {
+        setIsReTrainingMode(false);
+        setReTrainingIndex(0);
+        setCurrentLevel(prev => (prev % OLYMPIC_DATABASE.length) + 1);
+      } else {
+        if (!isCorrect) {
+          setReTrainingIndex(prev => (prev + 1) % updatedList.length);
+        } else {
+          setReTrainingIndex(prev => prev % updatedList.length);
+        }
+      }
+    } else {
+      setCurrentLevel(prev => (prev % OLYMPIC_DATABASE.length) + 1);
+    }
+    
     setSelectedOption(null);
     setAnswerSubmitted(false);
     setQuestionStartTime(Date.now());
@@ -383,20 +429,75 @@ export const Olympics: React.FC<OlympicsProps> = ({
         </button>
       </div>
 
+      {/* Mode Selection Toggle for Re-Treino */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+        <button
+          className="cyber-btn"
+          onClick={() => {
+            setIsReTrainingMode(false);
+            setSelectedOption(null);
+            setAnswerSubmitted(false);
+          }}
+          style={{
+            padding: '8px 16px',
+            borderColor: !isReTrainingMode ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
+            backgroundColor: !isReTrainingMode ? 'rgba(234, 179, 8, 0.15)' : 'rgba(15, 23, 42, 0.4)',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '0.85rem'
+          }}
+        >
+          🏆 Desafios do Templo
+        </button>
+        <button
+          className="cyber-btn"
+          onClick={() => {
+            const wrong = getWrongQuestions(gameState.userId);
+            if (wrong.length === 0) {
+              alert('Parabéns! Você não tem nenhuma questão no caderno de erros para re-treinar no momento.');
+              return;
+            }
+            setIsReTrainingMode(true);
+            setReTrainingIndex(0);
+            setSelectedOption(null);
+            setAnswerSubmitted(false);
+          }}
+          style={{
+            padding: '8px 16px',
+            borderColor: isReTrainingMode ? 'var(--neon-purple)' : 'rgba(255,255,255,0.1)',
+            backgroundColor: isReTrainingMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(15, 23, 42, 0.4)',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '0.85rem',
+            boxShadow: isReTrainingMode ? '0 0 10px rgba(168, 85, 247, 0.3)' : 'none'
+          }}
+        >
+          📖 Caderno de Re-Treino ({getWrongQuestions(gameState.userId).length})
+        </button>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '24px' }}>
         
         {/* Left Column: Active Question */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          <div className="cyber-card" style={{ borderColor: 'var(--neon-yellow)', minHeight: '430px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="cyber-card" style={{ borderColor: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', minHeight: '430px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: isReTrainingMode ? '0 0 15px rgba(168, 85, 247, 0.15)' : 'none' }}>
             
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--neon-yellow)', background: 'rgba(234, 179, 8, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                  {activeQuestion.category.toUpperCase()}
+                <span style={{ 
+                  fontSize: '0.85rem', 
+                  fontWeight: 800, 
+                  color: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', 
+                  background: isReTrainingMode ? 'rgba(168, 85, 247, 0.1)' : 'rgba(234, 179, 8, 0.1)', 
+                  padding: '2px 8px', 
+                  borderRadius: '4px',
+                  textShadow: isReTrainingMode ? '0 0 6px rgba(168, 85, 247, 0.4)' : '0 0 6px rgba(234, 179, 8, 0.4)'
+                }}>
+                  {isReTrainingMode ? '📖 RE-TREINO: ' : ''}{activeQuestion.category.toUpperCase()}
                 </span>
                 <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
-                  Questão do Templo <strong>#{currentLevel}</strong>
+                  {isReTrainingMode ? `Revisando Questão ${reTrainingIndex + 1}/${wrongQuestionsList.length}` : `Questão do Templo #${currentLevel}`}
                 </span>
               </div>
 

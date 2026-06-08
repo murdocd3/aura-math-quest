@@ -99,32 +99,57 @@ if (!isSupabaseEnabled) {
 }
 
 // Helpers for data mapping
-const mapDbToGameState = (row: any): GameState => ({
-  userId: row.user_id,
-  auraLevel: row.aura_level ?? 1,
-  auraXp: row.aura_xp ?? 0,
-  auraColor: row.aura_color ?? '#00ffcc',
-  rebirths: row.rebirths ?? 0,
-  gems: row.gems ?? 0,
-  currentZone: row.current_zone ?? 'forest',
-  equippedPetId: row.equipped_pet_id || null,
-  activeAuras: row.active_auras ?? [],
-  totalPlayTimeSeconds: row.total_play_time_seconds ?? 0,
-  updatedAt: row.updated_at || new Date().toISOString(),
-  purchasedCosmetics: row.purchased_cosmetics ?? [],
-  equippedCosmeticId: row.equipped_cosmetic_id || null,
-  selectedOperation: row.selected_operation ?? 'multiplication',
-  questWins: row.quest_wins ?? 0,
-  questCriticals: row.quest_criticals ?? 0,
-  questStreak: row.quest_streak ?? 0,
-  claimedQuests: row.claimed_quests ?? [],
-  classId: row.active_class || null,
-  skillPoints: row.skill_points ?? 0,
-  unlockedSkills: row.unlocked_skills ?? [],
-  clanId: row.clan_id || null,
-  clanContributions: row.clan_contributions ?? 0,
-  campaignStage: row.campaign_stage ?? 1,
-});
+const mapDbToGameState = (row: any): GameState => {
+  const rawEquipped = row.equipped_cosmetic_id || null;
+  let equippedCosmetics: Record<string, string> = {};
+  let equippedCosmeticId: string | null = null;
+  
+  if (rawEquipped) {
+    if (rawEquipped.startsWith('{')) {
+      try {
+        equippedCosmetics = JSON.parse(rawEquipped);
+        const values = Object.values(equippedCosmetics);
+        equippedCosmeticId = values.length > 0 ? values[0] : null;
+      } catch (e) {
+        console.error('Failed to parse equippedCosmetics JSON:', e);
+      }
+    } else {
+      equippedCosmeticId = rawEquipped;
+      const item = COSMETIC_ITEMS.find(c => c.id === rawEquipped);
+      if (item) {
+        equippedCosmetics = { [item.category]: rawEquipped };
+      }
+    }
+  }
+
+  return {
+    userId: row.user_id,
+    auraLevel: row.aura_level ?? 1,
+    auraXp: row.aura_xp ?? 0,
+    auraColor: row.aura_color ?? '#00ffcc',
+    rebirths: row.rebirths ?? 0,
+    gems: row.gems ?? 0,
+    currentZone: row.current_zone ?? 'forest',
+    equippedPetId: row.equipped_pet_id || null,
+    activeAuras: row.active_auras ?? [],
+    totalPlayTimeSeconds: row.total_play_time_seconds ?? 0,
+    updatedAt: row.updated_at || new Date().toISOString(),
+    purchasedCosmetics: row.purchased_cosmetics ?? [],
+    equippedCosmetics,
+    equippedCosmeticId,
+    selectedOperation: row.selected_operation ?? 'multiplication',
+    questWins: row.quest_wins ?? 0,
+    questCriticals: row.quest_criticals ?? 0,
+    questStreak: row.quest_streak ?? 0,
+    claimedQuests: row.claimed_quests ?? [],
+    classId: row.active_class || null,
+    skillPoints: row.skill_points ?? 0,
+    unlockedSkills: row.unlocked_skills ?? [],
+    clanId: row.clan_id || null,
+    clanContributions: row.clan_contributions ?? 0,
+    campaignStage: row.campaign_stage ?? 1,
+  };
+};
 
 const mapGameStateToDb = (state: Partial<GameState>) => {
   const dbRow: any = {};
@@ -139,7 +164,13 @@ const mapGameStateToDb = (state: Partial<GameState>) => {
   if (state.activeAuras !== undefined) dbRow.active_auras = state.activeAuras;
   if (state.totalPlayTimeSeconds !== undefined) dbRow.total_play_time_seconds = state.totalPlayTimeSeconds;
   if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
-  if (state.equippedCosmeticId !== undefined) dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
+  
+  if (state.equippedCosmetics !== undefined) {
+    dbRow.equipped_cosmetic_id = JSON.stringify(state.equippedCosmetics);
+  } else if (state.equippedCosmeticId !== undefined) {
+    dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
+  }
+  
   if (state.selectedOperation !== undefined) dbRow.selected_operation = state.selectedOperation;
   if (state.questWins !== undefined) dbRow.quest_wins = state.questWins;
   if (state.questCriticals !== undefined) dbRow.quest_criticals = state.questCriticals;
@@ -156,7 +187,48 @@ const mapGameStateToDb = (state: Partial<GameState>) => {
 
 export const backendService = {
   isCloudConnected(): boolean {
-    return isSupabaseEnabled;
+    return isSupabaseEnabled && typeof window !== 'undefined' && window.navigator.onLine;
+  },
+
+  async buyCosmetic(userId: string, cosmeticId: string): Promise<GameState | null> {
+    const cosmetic = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
+    if (!cosmetic) throw new Error('Item cosmético não encontrado.');
+
+    const state = await this.getGameState(userId);
+    if (!state) throw new Error('Estado do jogador não encontrado.');
+
+    const purchased = state.purchasedCosmetics || [];
+    if (purchased.includes(cosmeticId)) {
+      throw new Error('Você já possui este cosmético.');
+    }
+
+    if (state.gems < cosmetic.cost) {
+      throw new Error('Gemas insuficientes para comprar este cosmético.');
+    }
+
+    const updated = await this.updateGameState(userId, {
+      gems: state.gems - cosmetic.cost,
+      purchasedCosmetics: [...purchased, cosmeticId]
+    });
+
+    return updated;
+  },
+
+  async claimQuestReward(userId: string, questId: string, rewardGems: number): Promise<GameState | null> {
+    const state = await this.getGameState(userId);
+    if (!state) throw new Error('Estado do jogador não encontrado.');
+
+    const claimed = state.claimedQuests || [];
+    if (claimed.includes(questId)) {
+      throw new Error('Recompensa de missão já resgatada.');
+    }
+
+    const updated = await this.updateGameState(userId, {
+      gems: state.gems + rewardGems,
+      claimedQuests: [...claimed, questId]
+    });
+
+    return updated;
   },
 
   // 1. User Queries & Management
@@ -347,6 +419,8 @@ export const backendService = {
               return localState;
             }
           }
+          // Sync to local mockDb
+          mockDb.syncGameState(dbState);
           return dbState;
         }
         
@@ -436,6 +510,8 @@ export const backendService = {
           return localPets;
         }
 
+        // Sync to local mockDb
+        mockDb.syncPets(userId, dbPets);
         return dbPets;
       } catch (err) {
         console.error('[BackendService] Supabase error in getPets:', err);
@@ -529,26 +605,36 @@ export const backendService = {
       try {
         console.log(`[BackendService] Fusing pets ${parentId1} and ${parentId2} in Supabase...`);
         
-        // In Supabase, delete parentId2, and upgrade parentId1 stars/level
-        const { data: petData } = await supabase.from('pets').select('*').eq('id', parentId1);
-        if (petData && petData.length > 0) {
-          const pet = petData[0];
-          const currentStars = pet.stars ?? 1;
-          const { error: updateError } = await supabase
-            .from('pets')
-            .update({
-              stars: currentStars + 1,
-              buff_value: pet.buff_value * 1.5
-            })
-            .eq('id', parentId1);
-          if (updateError) throw updateError;
-
-          const { error: deleteError } = await supabase.from('pets').delete().eq('id', parentId2);
-          if (deleteError) throw deleteError;
+        // 1. Fetch both pets and verify they belong to userId (RPC simulation security validation)
+        const { data: petData1 } = await supabase.from('pets').select('*').eq('id', parentId1).eq('user_id', userId);
+        const { data: petData2 } = await supabase.from('pets').select('*').eq('id', parentId2).eq('user_id', userId);
+        
+        if (!petData1 || petData1.length === 0 || !petData2 || petData2.length === 0) {
+          throw new Error('Um ou ambos os pets não pertencem ao usuário ou não existem.');
         }
-      } catch (err) {
+
+        const pet = petData1[0];
+        const currentStars = pet.stars ?? 1;
+        const { error: updateError } = await supabase
+          .from('pets')
+          .update({
+            stars: currentStars + 1,
+            buff_value: pet.buff_value * 1.5
+          })
+          .eq('id', parentId1);
+        if (updateError) throw updateError;
+
+        const { error: deleteError } = await supabase.from('pets').delete().eq('id', parentId2);
+        if (deleteError) throw deleteError;
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in fusePets:', err);
+        throw err;
       }
+    }
+    const mockP1 = mockDb.getPets(userId).find(p => p.id === parentId1);
+    const mockP2 = mockDb.getPets(userId).find(p => p.id === parentId2);
+    if (!mockP1 || !mockP2) {
+      throw new Error('Um ou ambos os pets não pertencem ao usuário ou não existem no Banco Local.');
     }
     return mockDb.fusePets(userId, parentId1, parentId2);
   },
@@ -696,15 +782,34 @@ export const backendService = {
   },
 
   // 7. Real-Time Leaderboard View
-  async getLeaderboard(): Promise<{ username: string; level: number; rebirths: number; gems: number; equippedPetEmoji?: string; equippedTitle?: string }[]> {
+  async getLeaderboard(): Promise<{
+    username: string;
+    level: number;
+    rebirths: number;
+    gems: number;
+    equippedPetEmoji?: string;
+    equippedPetName?: string;
+    equippedPetLevel?: number;
+    equippedTitle?: string;
+    classId?: 'warrior' | 'chronomancer' | 'alchemist' | null;
+    auraColor?: string;
+    equippedCosmetics?: Record<string, string>;
+    equippedCosmeticId?: string | null;
+    clanName?: string;
+    clanContributions?: number;
+    totalPlayTimeSeconds?: number;
+    selectedOperation?: string;
+    unlockedSkillsCount?: number;
+  }[]> {
     if (isSupabaseEnabled && supabase) {
       try {
         console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
         // Fetch players, game_states, and pets in parallel
-        const [usersRes, statesRes, petsRes] = await Promise.all([
+        const [usersRes, statesRes, petsRes, clansRes] = await Promise.all([
           supabase.from('users').select('id, username').eq('role', 'player'),
-          supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id'),
-          supabase.from('pets').select('id, pet_type_id')
+          supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills'),
+          supabase.from('pets').select('*'),
+          supabase.from('clans').select('id, name')
         ]);
 
         if (usersRes.error) throw usersRes.error;
@@ -713,34 +818,64 @@ export const backendService = {
         const dbUsers = usersRes.data || [];
         const dbStates = statesRes.data || [];
         const dbPets = petsRes.data || [];
+        const dbClans = clansRes.data || [];
 
-        const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
         const PET_TYPES = [
-          { id: 'robot_pup', emoji: '🤖' },
-          { id: 'slime_buddy', emoji: '🧪' },
-          { id: 'phoenix_chick', emoji: '🔥' },
-          { id: 'dragon_kid', emoji: '🐉' },
-          { id: 'cosmic_owl', emoji: '🦉' },
-          { id: 'neon_kitten', emoji: '🐱' },
-          { id: 'cyber_phoenix', emoji: '🐦' }
+          { id: 'robot_pup', emoji: '🤖', name: 'Robô Pup' },
+          { id: 'slime_buddy', emoji: '🧪', name: 'Slime' },
+          { id: 'phoenix_chick', emoji: '🔥', name: 'Fênix' },
+          { id: 'dragon_kid', emoji: '🐉', name: 'Dragão' },
+          { id: 'cosmic_owl', emoji: '🦉', name: 'Coruja' },
+          { id: 'neon_kitten', emoji: '🐱', name: 'Gato Neon' },
+          { id: 'cyber_phoenix', emoji: '🐦', name: 'Cyber Fênix' }
         ];
 
         return dbUsers
-          .filter(u => !fictitiousUserIds.includes(u.id))
           .map(u => {
             const state = dbStates.find(s => s.user_id === u.id) || {
               aura_level: 1,
               rebirths: 0,
               gems: 0,
               equipped_pet_id: null,
-              equipped_cosmetic_id: null
+              equipped_cosmetic_id: null,
+              active_class: null,
+              aura_color: '#00ffcc',
+              clan_id: null,
+              clan_contributions: 0,
+              total_play_time_seconds: 0,
+              selected_operation: 'multiplication',
+              unlocked_skills: []
             };
             const equippedPet = state.equipped_pet_id ? dbPets.find(p => p.id === state.equipped_pet_id) : null;
-            const petEmoji = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.pet_type_id)?.emoji : undefined;
+            const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.pet_type_id) : null;
+            const petEmoji = petType?.emoji;
+            const petName = equippedPet?.nickname || petType?.name;
+            const petLevel = equippedPet?.level ?? 1;
 
-            const cosmeticId = state.equipped_cosmetic_id;
-            const cosmetic = cosmeticId ? COSMETIC_ITEMS.find(c => c.id === cosmeticId) : null;
-            const equippedTitle = cosmetic && cosmetic.id.startsWith('title_') ? cosmetic.name.replace('Título: ', '') : undefined;
+            const rawEquipped = state.equipped_cosmetic_id || null;
+            let equippedCosmetics: Record<string, string> = {};
+            let equippedCosmeticId: string | null = null;
+            if (rawEquipped) {
+              if (rawEquipped.startsWith('{')) {
+                try {
+                  equippedCosmetics = JSON.parse(rawEquipped);
+                  const values = Object.values(equippedCosmetics);
+                  equippedCosmeticId = values.length > 0 ? values[0] : null;
+                } catch (e) {}
+              } else {
+                equippedCosmeticId = rawEquipped;
+                const item = COSMETIC_ITEMS.find(c => c.id === rawEquipped);
+                if (item) {
+                  equippedCosmetics = { [item.category]: rawEquipped };
+                }
+              }
+            }
+
+            const activeTitleId = equippedCosmetics['title'] || (equippedCosmeticId?.startsWith('title_') ? equippedCosmeticId : null);
+            const titleItem = activeTitleId ? COSMETIC_ITEMS.find(c => c.id === activeTitleId) : null;
+            const titleText = titleItem ? titleItem.name.replace('Título: ', '') : undefined;
+
+            const clan = state.clan_id ? dbClans.find(c => c.id === state.clan_id) : null;
 
             return {
               username: u.username,
@@ -748,7 +883,18 @@ export const backendService = {
               rebirths: state.rebirths ?? 0,
               gems: state.gems ?? 0,
               equippedPetEmoji: petEmoji,
-              equippedTitle
+              equippedPetName: petName,
+              equippedPetLevel: petLevel,
+              equippedTitle: titleText,
+              classId: state.active_class || null,
+              auraColor: state.aura_color || '#00ffcc',
+              equippedCosmetics,
+              equippedCosmeticId,
+              clanName: clan ? clan.name : undefined,
+              clanContributions: state.clan_contributions ?? 0,
+              totalPlayTimeSeconds: state.total_play_time_seconds ?? 0,
+              selectedOperation: state.selected_operation ?? 'multiplication',
+              unlockedSkillsCount: (state.unlocked_skills || []).length
             };
           })
           .sort((a, b) => {

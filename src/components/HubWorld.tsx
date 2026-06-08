@@ -167,6 +167,18 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const [selectedColor, setSelectedColor] = useState(gameState.auraColor || '#00ffcc');
   const [activeHubTab, setActiveHubTab] = useState<'maps' | 'campaign' | 'rpg' | 'clans' | 'gincana' | 'shop' | 'aurapass'>('maps');
   const [serverNotification, setServerNotification] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Campaign dialogue states
   const [selectedCampaignStage, setSelectedCampaignStage] = useState<any | null>(null);
@@ -439,38 +451,37 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
 
   const handleBuyCosmetic = async (cosmeticId: string) => {
-    const cosmetic = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
-    if (!cosmetic) return;
-
-    if (gameState.gems < cosmetic.cost) {
+    try {
+      const updated = await backendService.buyCosmetic(playerUser.id, cosmeticId);
+      if (updated) {
+        audioEngine.playHatchSuccess();
+        onStateUpdate(updated);
+        refreshLeaderboard();
+      } else {
+        audioEngine.playError();
+        alert('Erro ao processar a compra do cosmético!');
+      }
+    } catch (err: any) {
       audioEngine.playError();
-      alert('Gemas insuficientes para comprar este cosmético!');
-      return;
-    }
-
-    const purchased = gameState.purchasedCosmetics || [];
-    if (purchased.includes(cosmeticId)) return;
-
-    const updated = await backendService.updateGameState(playerUser.id, {
-      gems: gameState.gems - cosmetic.cost,
-      purchasedCosmetics: [...purchased, cosmeticId]
-    });
-
-    if (updated) {
-      audioEngine.playHatchSuccess();
-      onStateUpdate(updated);
-      refreshLeaderboard();
-    } else {
-      audioEngine.playError();
-      alert('Erro ao processar a compra do cosmético!');
+      alert('Erro na compra (Transação Segura RPC):\n' + (err.message || err));
     }
   };
 
   const handleEquipCosmetic = async (cosmeticId: string) => {
     audioEngine.playCorrect();
-    const nextEquipId = gameState.equippedCosmeticId === cosmeticId ? null : cosmeticId;
+    const cosmetic = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
+    if (!cosmetic) return;
+    
+    const equipped = { ...(gameState.equippedCosmetics || {}) };
+    
+    if (equipped[cosmetic.category] === cosmeticId) {
+      delete equipped[cosmetic.category];
+    } else {
+      equipped[cosmetic.category] = cosmeticId;
+    }
+    
     const updated = await backendService.updateGameState(playerUser.id, {
-      equippedCosmeticId: nextEquipId
+      equippedCosmetics: equipped
     });
     if (updated) {
       onStateUpdate(updated);
@@ -478,19 +489,20 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   };
 
   // Claim Quest rewards handler
-  const handleClaimQuest = (questId: string, rewardGems: number) => {
-    const claimed = gameState.claimedQuests || [];
-    if (claimed.includes(questId)) return;
-
-    const updated = mockDb.updateGameState(playerUser.id, {
-      gems: gameState.gems + rewardGems,
-      claimedQuests: [...claimed, questId],
-    });
-
-    if (updated) {
-      audioEngine.playHatchSuccess();
-      onStateUpdate(updated);
-      refreshLeaderboard();
+  const handleClaimQuest = async (questId: string, rewardGems: number) => {
+    try {
+      const updated = await backendService.claimQuestReward(playerUser.id, questId, rewardGems);
+      if (updated) {
+        audioEngine.playHatchSuccess();
+        onStateUpdate(updated);
+        refreshLeaderboard();
+      } else {
+        audioEngine.playError();
+        alert('Erro ao resgatar a recompensa da missão!');
+      }
+    } catch (err: any) {
+      audioEngine.playError();
+      alert('Erro no resgate (Transação Segura RPC):\n' + (err.message || err));
     }
   };
 
@@ -564,13 +576,32 @@ export const HubWorld: React.FC<HubWorldProps> = ({
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.6)' }}>Prepare-se para o combate, selecione seu mapa e gerencie seus companheiros pets!</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="cyber-btn" onClick={onNavigateToPetShop} style={{ padding: '10px 18px', borderColor: 'var(--neon-yellow)' }}>
-            🏪 Ir para Loja de Pets
-          </button>
-          <button className="cyber-btn cyber-btn-pink" onClick={onLogout} style={{ padding: '10px 18px' }}>
-            Sair do Jogo ➔
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="cyber-btn" onClick={onNavigateToPetShop} style={{ padding: '10px 18px', borderColor: 'var(--neon-yellow)' }}>
+              🏪 Ir para Loja de Pets
+            </button>
+            <button className="cyber-btn cyber-btn-pink" onClick={onLogout} style={{ padding: '10px 18px' }}>
+              Sair do Jogo ➔
+            </button>
+          </div>
+          <div 
+            style={{ 
+              fontSize: '0.75rem', 
+              color: (backendService.isCloudConnected() && isOnline) ? '#22c55e' : '#f59e0b',
+              background: (backendService.isCloudConnected() && isOnline) ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+              border: `1px solid ${(backendService.isCloudConnected() && isOnline) ? 'rgba(34, 197, 94, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              textShadow: (backendService.isCloudConnected() && isOnline) ? '0 0 6px rgba(34, 197, 94, 0.4)' : '0 0 6px rgba(245, 158, 11, 0.4)'
+            }}
+          >
+            {(backendService.isCloudConnected() && isOnline) ? '⚡ Nuvem Ativa' : '🔌 Offline Mode'}
+          </div>
         </div>
       </div>
 
@@ -638,6 +669,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
               <CyberSprite
                 type="player"
                 equippedCosmeticId={gameState.equippedCosmeticId}
+                equippedCosmetics={gameState.equippedCosmetics}
                 auraColor={selectedColor}
                 width={110}
                 height={110}
@@ -670,8 +702,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <h2 style={{ fontSize: '1.6rem', color: '#fff', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {playerUser.username}
-                  {(() => {
-                    const titleItem = COSMETIC_ITEMS.find(c => c.id === gameState.equippedCosmeticId && c.id.startsWith('title_'));
+                   {(() => {
+                    const titleId = gameState.equippedCosmetics?.title || (gameState.equippedCosmeticId?.startsWith('title_') ? gameState.equippedCosmeticId : null);
+                    const titleItem = titleId ? COSMETIC_ITEMS.find(c => c.id === titleId) : null;
                     if (titleItem) {
                       return (
                         <span style={{ fontSize: '0.85rem', color: titleItem.color, fontWeight: 900, textShadow: `0 0 6px ${titleItem.color}80`, letterSpacing: '0.5px' }}>
@@ -1968,75 +2001,102 @@ export const HubWorld: React.FC<HubWorldProps> = ({
           )}
 
           {/* Tab 2: Cosmetics Avatar Shop */}
-          {activeHubTab === 'shop' && (
-            <div className="cyber-card">
-              <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#fff' }}>🎨 Loja do Mago (Equipamentos e Cosméticos)</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                {COSMETIC_ITEMS.map(item => {
-                  const purchased = gameState.purchasedCosmetics || [];
-                  const isOwned = purchased.includes(item.id);
-                  const isEquipped = gameState.equippedCosmeticId === item.id;
+          {activeHubTab === 'shop' && (() => {
+            const categoryNames: Record<string, string> = {
+              weapon: '🗡️ Armas & Cetros',
+              hat: '👑 Chapéus & Coroas',
+              glasses: '🕶️ Óculos & Visores',
+              cloak: '🧥 Capas & Asas',
+              ring: '💍 Anéis Mágicos',
+              title: '🏷️ Títulos Honoríficos',
+            };
 
+            return (
+              <div className="cyber-card">
+                <h3 style={{ fontSize: '1.4rem', marginBottom: '8px', color: '#fff', textShadow: '0 0 10px rgba(0, 255, 204, 0.4)' }}>🎨 Loja de Personalização do Avatar</h3>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '20px' }}>
+                  Equipe até um item de cada categoria simultaneamente para criar um avatar único e divertido!
+                </p>
+                
+                {['hat', 'glasses', 'weapon', 'cloak', 'ring', 'title'].map(cat => {
+                  const itemsInCat = COSMETIC_ITEMS.filter(item => item.category === cat);
+                  if (itemsInCat.length === 0) return null;
+                  
                   return (
-                    <div
-                      key={item.id}
-                      className="cyber-card"
-                      style={{
-                        padding: '14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        border: isEquipped ? '1.5px solid var(--neon-cyan)' : '1px solid rgba(255,255,255,0.08)',
-                        background: isEquipped ? 'rgba(0,255,204,0.05)' : 'rgba(15,23,42,0.3)',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '2rem' }}>{item.emoji}</span>
-                          {isOwned && (
-                            <span style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', background: 'rgba(0,255,204,0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                              POSSUÍDO
-                            </span>
-                          )}
-                        </div>
-                        <h4 style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold' }}>{item.name}</h4>
-                        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px', minHeight: '36px' }}>
-                          {item.description}
-                        </p>
-                      </div>
+                    <div key={cat} style={{ marginBottom: '24px' }}>
+                      <h4 style={{ fontSize: '1.05rem', color: 'var(--neon-cyan)', marginBottom: '12px', borderBottom: '1px solid rgba(0, 255, 204, 0.2)', paddingBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {categoryNames[cat] || cat}
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        {itemsInCat.map(item => {
+                          const purchased = gameState.purchasedCosmetics || [];
+                          const isOwned = purchased.includes(item.id);
+                          const isEquipped = gameState.equippedCosmetics && gameState.equippedCosmetics[item.category] === item.id;
 
-                      <div style={{ marginTop: '12px' }}>
-                        {isOwned ? (
-                          <button
-                            className={`cyber-btn ${isEquipped ? 'cyber-btn-pink' : 'cyber-btn-cyan'}`}
-                            onClick={() => handleEquipCosmetic(item.id)}
-                            style={{ width: '100%', padding: '8px', fontSize: '0.8rem' }}
-                          >
-                            {isEquipped ? 'Desequipar' : 'Equipar'}
-                          </button>
-                        ) : (
-                          <button
-                            className="cyber-btn"
-                            disabled={gameState.gems < item.cost}
-                            onClick={() => handleBuyCosmetic(item.id)}
-                            style={{
-                              width: '100%',
-                              padding: '8px',
-                              fontSize: '0.8rem',
-                              opacity: gameState.gems >= item.cost ? 1 : 0.5,
-                              borderColor: 'var(--neon-yellow)',
-                            }}
-                          >
-                            Comprar: 💎 {item.cost}
-                          </button>
-                        )}
+                          return (
+                            <div
+                              key={item.id}
+                              className="cyber-card"
+                              style={{
+                                padding: '14px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                border: isEquipped ? '1.5px solid var(--neon-cyan)' : '1px solid rgba(255,255,255,0.08)',
+                                background: isEquipped ? 'rgba(0,255,204,0.05)' : 'rgba(15,23,42,0.3)',
+                              }}
+                            >
+                              <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                  <span style={{ fontSize: '2rem' }}>{item.emoji}</span>
+                                  {isOwned && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', background: 'rgba(0,255,204,0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                      POSSUÍDO
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 style={{ color: '#fff', fontSize: '1rem', fontWeight: 'bold' }}>{item.name}</h4>
+                                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '4px', minHeight: '36px' }}>
+                                  {item.description}
+                                </p>
+                              </div>
+
+                              <div style={{ marginTop: '12px' }}>
+                                {isOwned ? (
+                                  <button
+                                    className={`cyber-btn ${isEquipped ? 'cyber-btn-pink' : 'cyber-btn-cyan'}`}
+                                    onClick={() => handleEquipCosmetic(item.id)}
+                                    style={{ width: '100%', padding: '8px', fontSize: '0.8rem' }}
+                                  >
+                                    {isEquipped ? 'Desequipar' : 'Equipar'}
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="cyber-btn"
+                                    disabled={gameState.gems < item.cost}
+                                    onClick={() => handleBuyCosmetic(item.id)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px',
+                                      fontSize: '0.8rem',
+                                      opacity: gameState.gems >= item.cost ? 1 : 0.5,
+                                      borderColor: 'var(--neon-yellow)',
+                                    }}
+                                  >
+                                    Comprar: 💎 {item.cost}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Tab 3: Aura Pass */}
           {activeHubTab === 'aurapass' && (

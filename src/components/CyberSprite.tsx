@@ -4,6 +4,7 @@ interface CyberSpriteProps {
   type: 'player' | 'monster';
   name?: string;
   equippedCosmeticId?: string | null;
+  equippedCosmetics?: Record<string, string>;
   auraColor?: string;
   width?: number | string;
   height?: number | string;
@@ -17,6 +18,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
   type,
   name = '',
   equippedCosmeticId = null,
+  equippedCosmetics = {},
   auraColor = '#00ffcc',
   width = 140,
   height = 140,
@@ -26,6 +28,13 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
   level = 1,
 }) => {
   const normalizedName = name.toLowerCase();
+
+  const hasCosmetic = (id: string): boolean => {
+    if (equippedCosmetics && Object.values(equippedCosmetics).includes(id)) {
+      return true;
+    }
+    return equippedCosmeticId === id;
+  };
 
   // Helper for glow filters
   const filterId = `glow-${Math.random().toString(36).substring(2, 9)}`;
@@ -370,7 +379,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           {/* 4. COSMETICS OVERLAYS */}
 
           {/* Item: Retro Shades (🕶️) */}
-          {equippedCosmeticId === 'retro_shades' && (
+          {hasCosmetic('retro_shades') && (
             <g transform="translate(43, 39)">
               {/* Left Lens */}
               <rect x="2" y="4" width="14" height="8" fill="#ec4899" rx="1" stroke="#fff" strokeWidth="1" />
@@ -384,7 +393,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Chapéu de Mago Neon (🧙‍♂️) */}
-          {equippedCosmeticId === 'neon_hat' && (
+          {hasCosmetic('neon_hat') && (
             <g transform="translate(60, 27)">
               <path
                 d="M -30,0 Q -25,-12 0,-35 Q 25,-12 30,0 Z"
@@ -399,7 +408,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Coroa Glitch (👑) */}
-          {equippedCosmeticId === 'glitch_crown' && (
+          {hasCosmetic('glitch_crown') && (
             <g transform="translate(60, 23)">
               <path
                 d="M -18,0 L -23,-13 L -9,-6 L 0,-17 L 9,-6 L 23,-13 L 18,0 Z"
@@ -421,7 +430,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Varinha Cyber (🪄) */}
-          {equippedCosmeticId === 'cyber_wand' && (
+          {hasCosmetic('cyber_wand') && (
             <g className="weapon-anim" transform="translate(26, 86)">
               {/* Staff stick */}
               <line x1="0" y1="15" x2="-10" y2="-9" stroke="#475569" strokeWidth="3" strokeLinecap="round" />
@@ -435,7 +444,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Visor Holográfico (🥽) */}
-          {equippedCosmeticId === 'cyber_visor' && (
+          {hasCosmetic('cyber_visor') && (
             <g transform="translate(40, 42)">
               <rect x="0" y="0" width="40" height="9" fill="rgba(6, 182, 212, 0.75)" rx="2" stroke="#fff" strokeWidth="1" className="glow-path" />
               <line x1="4" y1="4.5" x2="36" y2="4.5" stroke="#fff" strokeWidth="1.5" strokeDasharray="3 3" />
@@ -443,7 +452,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Sabre Voltaico (⚔️) */}
-          {equippedCosmeticId === 'laser_blade' && (
+          {hasCosmetic('laser_blade') && (
             <g className="weapon-anim-right" transform="translate(90, 85)">
               <line x1="0" y1="10" x2="15" y2="-25" stroke="#eab308" strokeWidth="4" strokeLinecap="round" className="glow-path" />
               <line x1="0" y1="10" x2="15" y2="-25" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
@@ -452,7 +461,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Asas de Fênix Digital (🪶) */}
-          {equippedCosmeticId === 'cosmic_wings' && (
+          {hasCosmetic('cosmic_wings') && (
             <g className="glow-path" opacity="0.9">
               <g className="wing-left">
                 <path d="M 40,65 L 5,30 Q 15,60 25,75 Z" fill="rgba(168, 85, 247, 0.4)" stroke="#a855f7" strokeWidth="1.5" />
@@ -464,7 +473,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Escudo Voxel (🛡️) */}
-          {equippedCosmeticId === 'pixel_shield' && (
+          {hasCosmetic('pixel_shield') && (
             <g className="weapon-anim" transform="translate(25, 92)">
               <polygon points="0,-10 10,-5 10,8 0,13 -10,8 -10,-5" fill="rgba(34, 397, 94, 0.4)" stroke="#22c55e" strokeWidth="2" className="glow-path" />
               <circle cx="0" cy="0" r="3" fill="#fff" />
@@ -472,12 +481,12 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Capa da Nebulosa (🧥) */}
-          {equippedCosmeticId === 'nebula_cloak' && (
+          {hasCosmetic('nebula_cloak') && (
             <path d="M 42,75 L 20,105 L 100,105 L 78,75 Z" fill="rgba(236, 72, 153, 0.3)" stroke="#ec4899" strokeWidth="1.5" className="glow-path" />
           )}
 
           {/* Item: Orbe Projetora (🔮) */}
-          {equippedCosmeticId === 'hologram_orb' && (
+          {hasCosmetic('hologram_orb') && (
             <g className="weapon-anim-right" transform="translate(92, 70)">
               <circle cx="0" cy="0" r="6" fill="rgba(0, 255, 204, 0.6)" stroke="#00ffcc" strokeWidth="1.5" className="glow-path" />
               <circle cx="0" cy="0" r="2" fill="#fff" />
@@ -486,7 +495,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Mochila de Fórmulas (🎒) */}
-          {equippedCosmeticId === 'math_backpack' && (
+          {hasCosmetic('math_backpack') && (
             <g transform="translate(48, 75)">
               <rect x="0" y="0" width="24" height="25" rx="4" fill="#64748b" stroke="#a1a1aa" strokeWidth="1.5" />
               <rect x="4" y="6" width="16" height="12" rx="2" fill="#475569" />
@@ -495,7 +504,7 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
           )}
 
           {/* Item: Anel da Aurora (💍) */}
-          {equippedCosmeticId === 'aurora_ring' && (
+          {hasCosmetic('aurora_ring') && (
             <g className="weapon-anim" transform="translate(34, 92)">
               <circle cx="0" cy="0" r="3" fill="none" stroke="#f97316" strokeWidth="1" />
               <circle cx="0" cy="-3" r="2.5" fill="#fff" className="glow-path" />

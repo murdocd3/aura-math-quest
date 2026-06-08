@@ -350,7 +350,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     setTimeout(() => setTradeSuccessMsg(null), 4000);
   };
 
-  const handleFusion = () => {
+  const handleFusion = async () => {
     if (!selectedPet1Id || !selectedPet2Id) return;
 
     const pet1 = pets.find(p => p.id === selectedPet1Id);
@@ -376,20 +376,25 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       return;
     }
 
-    const updatedState = mockDb.fusePets(userId, selectedPet1Id, selectedPet2Id);
-    if (updatedState) {
-      audioEngine.playHatchSuccess();
-      const nextLvl = pet1.level + 1;
-      const stars = '★'.repeat(nextLvl - 1);
-      setFusionSuccessMsg(`Fusão Completa! Seu pet "${pet1.nickname}" evoluiu para o Nível ${nextLvl} ${stars}!`);
-      setSelectedPet1Id(null);
-      setSelectedPet2Id(null);
-      onStateUpdate(updatedState);
-      loadPets();
-      setTimeout(() => setFusionSuccessMsg(null), 5000);
-    } else {
+    try {
+      const updatedState = await backendService.fusePets(userId, selectedPet1Id, selectedPet2Id);
+      if (updatedState) {
+        audioEngine.playHatchSuccess();
+        const nextLvl = pet1.level + 1;
+        const stars = '★'.repeat(nextLvl - 1);
+        setFusionSuccessMsg(`Fusão Completa! Seu pet "${pet1.nickname}" evoluiu para o Nível ${nextLvl} ${stars}!`);
+        setSelectedPet1Id(null);
+        setSelectedPet2Id(null);
+        onStateUpdate(updatedState);
+        loadPets();
+        setTimeout(() => setFusionSuccessMsg(null), 5000);
+      } else {
+        audioEngine.playError();
+        alert('Erro ao realizar a fusão dos pets. Verifique as regras.');
+      }
+    } catch (err: any) {
       audioEngine.playError();
-      alert('Erro ao realizar a fusão dos pets. Verifique as regras.');
+      alert('Erro na Fusão (Simulado RPC):\n' + (err.message || err));
     }
   };
 

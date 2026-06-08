@@ -1131,6 +1131,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                 <CyberSprite
                   type="player"
                   equippedCosmeticId={gameState.equippedCosmeticId}
+                  equippedCosmetics={gameState.equippedCosmetics}
                   auraColor={gameState.auraColor || '#00ffcc'}
                   width={45}
                   height={45}
@@ -1426,6 +1427,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                   <CyberSprite
                     type="player"
                     equippedCosmeticId={gameState.equippedCosmeticId}
+                    equippedCosmetics={gameState.equippedCosmetics}
                     auraColor={gameState.auraColor || '#00ffcc'}
                     width={110}
                     height={110}

@@ -33,7 +33,8 @@ export interface GameState {
   totalPlayTimeSeconds: number;
   updatedAt: string;
   purchasedCosmetics: string[];
-  equippedCosmeticId: string | null;
+  equippedCosmetics?: Record<string, string>; // Category -> CosmeticId mapping
+  equippedCosmeticId?: string | null;
   selectedOperation: 'addition' | 'subtraction' | 'multiplication' | 'division';
   questWins: number;
   questCriticals: number;
@@ -109,25 +110,26 @@ export interface CosmeticItem {
   cost: number;
   description: string;
   color: string;
+  category: 'weapon' | 'hat' | 'glasses' | 'cloak' | 'ring' | 'title';
 }
 
 export const COSMETIC_ITEMS: CosmeticItem[] = [
-  { id: 'cyber_wand', name: 'Varinha Cyber', emoji: '🪄', cost: 12, description: 'Dispara raios neon ao resolver contas.', color: '#00ffcc' },
-  { id: 'neon_hat', name: 'Chapéu de Mago Neon', emoji: '🧙‍♂️', cost: 18, description: 'Aumenta sua presença mágica.', color: '#a855f7' },
-  { id: 'glitch_crown', name: 'Coroa Glitch', emoji: '👑', cost: 30, description: 'Reservada para os maiores mestres da aura.', color: '#f97316' },
-  { id: 'retro_shades', name: 'Óculos Cyberpunk', emoji: '🕶️', cost: 15, description: 'Estilo pixelado retro para focar nas equações.', color: '#ec4899' },
-  { id: 'cyber_visor', name: 'Visor Holográfico', emoji: '🥽', cost: 22, description: 'Exibe coordenadas de dados neon na sua visão.', color: '#06b6d4' },
-  { id: 'laser_blade', name: 'Sabre Voltaico', emoji: '⚔️', cost: 35, description: 'Um sabre de luz pura feito de estática e energia.', color: '#eab308' },
-  { id: 'cosmic_wings', name: 'Asas de Fênix Digital', emoji: '🪶', cost: 45, description: 'Asas cintilantes feitas de pura informação espacial.', color: '#a855f7' },
-  { id: 'pixel_shield', name: 'Escudo Voxel', emoji: '🛡️', cost: 25, description: 'Escudo digital com animação de partículas em grade.', color: '#22c55e' },
-  { id: 'nebula_cloak', name: 'Capa da Nebulosa', emoji: '🧥', cost: 40, description: 'Capa mágica que distorce as cores do espaço ao redor.', color: '#ec4899' },
-  { id: 'hologram_orb', name: 'Orbe Projetora', emoji: '🔮', cost: 28, description: 'Pequeno satélite flutuante que projeta equações.', color: '#00ffcc' },
-  { id: 'math_backpack', name: 'Mochila de Fórmulas', emoji: '🎒', cost: 16, description: 'Guarde seus pergaminhos de matrizes e vetores.', color: '#a1a1aa' },
-  { id: 'aurora_ring', name: 'Anel da Aurora', emoji: '💍', cost: 50, description: 'Irradia partículas coloridas ao resolver cálculos rápidos.', color: '#f97316' },
-  { id: 'title_math_master', name: 'Título: [📐 Mestre do Cálculo]', emoji: '🏷️', cost: 20, description: 'Exibe o título ao lado do seu nome.', color: '#00ffcc' },
-  { id: 'title_math_lightning', name: 'Título: [⚡ Relâmpago Matemático]', emoji: '🏷️', cost: 30, description: 'Exibe o título ao lado do seu nome.', color: '#a855f7' },
-  { id: 'title_aura_alchemist', name: 'Título: [🔮 Alquimista de Aura]', emoji: '🏷️', cost: 50, description: 'Exibe o título ao lado do seu nome.', color: '#ec4899' },
-  { id: 'title_legendary_legend', name: 'Título: [👑 Lenda do Universo]', emoji: '🏷️', cost: 100, description: 'Exibe o título ao lado do seu nome.', color: '#f97316' },
+  { id: 'cyber_wand', name: 'Varinha Cyber', emoji: '🪄', cost: 12, description: 'Dispara raios neon ao resolver contas.', color: '#00ffcc', category: 'weapon' },
+  { id: 'neon_hat', name: 'Chapéu de Mago Neon', emoji: '🧙‍♂️', cost: 18, description: 'Aumenta sua presença mágica.', color: '#a855f7', category: 'hat' },
+  { id: 'glitch_crown', name: 'Coroa Glitch', emoji: '👑', cost: 30, description: 'Reservada para os maiores mestres da aura.', color: '#f97316', category: 'hat' },
+  { id: 'retro_shades', name: 'Óculos Cyberpunk', emoji: '🕶️', cost: 15, description: 'Estilo pixelado retro para focar nas equações.', color: '#ec4899', category: 'glasses' },
+  { id: 'cyber_visor', name: 'Visor Holográfico', emoji: '🥽', cost: 22, description: 'Exibe coordenadas de dados neon na sua visão.', color: '#06b6d4', category: 'glasses' },
+  { id: 'laser_blade', name: 'Sabre Voltaico', emoji: '⚔️', cost: 35, description: 'Um sabre de luz pura feito de estática e energia.', color: '#eab308', category: 'weapon' },
+  { id: 'cosmic_wings', name: 'Asas de Fênix Digital', emoji: '🪶', cost: 45, description: 'Asas cintilantes feitas de pura informação espacial.', color: '#a855f7', category: 'cloak' },
+  { id: 'pixel_shield', name: 'Escudo Voxel', emoji: '🛡️', cost: 25, description: 'Escudo digital com animação de partículas em grade.', color: '#22c55e', category: 'weapon' },
+  { id: 'nebula_cloak', name: 'Capa da Nebulosa', emoji: '🧥', cost: 40, description: 'Capa mágica que distorce as cores do espaço ao redor.', color: '#ec4899', category: 'cloak' },
+  { id: 'hologram_orb', name: 'Orbe Projetora', emoji: '🔮', cost: 28, description: 'Pequeno satélite flutuante que projeta equações.', color: '#00ffcc', category: 'weapon' },
+  { id: 'math_backpack', name: 'Mochila de Fórmulas', emoji: '🎒', cost: 16, description: 'Guarde seus pergaminhos de matrizes e vetores.', color: '#a1a1aa', category: 'cloak' },
+  { id: 'aurora_ring', name: 'Anel da Aurora', emoji: '💍', cost: 50, description: 'Irradia partículas coloridas ao resolver cálculos rápidos.', color: '#f97316', category: 'ring' },
+  { id: 'title_math_master', name: 'Título: [📐 Mestre do Cálculo]', emoji: '🏷️', cost: 20, description: 'Exibe o título ao lado do seu nome.', color: '#00ffcc', category: 'title' },
+  { id: 'title_math_lightning', name: 'Título: [⚡ Relâmpago Matemático]', emoji: '🏷️', cost: 30, description: 'Exibe o título ao lado do seu nome.', color: '#a855f7', category: 'title' },
+  { id: 'title_aura_alchemist', name: 'Título: [🔮 Alquimista de Aura]', emoji: '🏷️', cost: 50, description: 'Exibe o título ao lado do seu nome.', color: '#ec4899', category: 'title' },
+  { id: 'title_legendary_legend', name: 'Título: [👑 Lenda do Universo]', emoji: '🏷️', cost: 100, description: 'Exibe o título ao lado do seu nome.', color: '#f97316', category: 'title' },
 ];
 
 export interface Pet {
@@ -1164,7 +1166,11 @@ const mapGameStateToDb = (state: Partial<GameState>) => {
   if (state.activeAuras !== undefined) dbRow.active_auras = state.activeAuras;
   if (state.totalPlayTimeSeconds !== undefined) dbRow.total_play_time_seconds = state.totalPlayTimeSeconds;
   if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
-  if (state.equippedCosmeticId !== undefined) dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
+  if (state.equippedCosmetics !== undefined) {
+    dbRow.equipped_cosmetic_id = JSON.stringify(state.equippedCosmetics);
+  } else if (state.equippedCosmeticId !== undefined) {
+    dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
+  }
   if (state.selectedOperation !== undefined) dbRow.selected_operation = state.selectedOperation;
   if (state.questWins !== undefined) dbRow.quest_wins = state.questWins;
   if (state.questCriticals !== undefined) dbRow.quest_criticals = state.questCriticals;
@@ -1220,7 +1226,7 @@ export const mockDb = {
     // Initialize default game state for player
     if (role === 'player') {
       const gameStates = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
-      newState = {
+      const createdState: GameState = {
         userId: newUser.id,
         auraLevel: 1,
         auraXp: 0,
@@ -1246,7 +1252,8 @@ export const mockDb = {
         clanContributions: 0,
         campaignStage: 1,
       };
-      gameStates.push(newState);
+      gameStates.push(createdState);
+      newState = createdState;
       setStorageItem(STORAGE_KEYS.GAME_STATES, gameStates);
     }
 
@@ -1353,6 +1360,16 @@ export const mockDb = {
     if (state.auraPassXp === undefined) state.auraPassXp = 0;
     if (state.hasElitePass === undefined) state.hasElitePass = false;
     if (state.claimedPassTiers === undefined) state.claimedPassTiers = [];
+    
+    if (!state.equippedCosmetics) {
+      state.equippedCosmetics = {};
+      if (state.equippedCosmeticId) {
+        const item = COSMETIC_ITEMS.find(c => c.id === state.equippedCosmeticId);
+        if (item) {
+          state.equippedCosmetics[item.category] = state.equippedCosmeticId;
+        }
+      }
+    }
     
     return state;
   },
@@ -1590,16 +1607,31 @@ export const mockDb = {
   },
 
   // Global Leaderboard View
-  getLeaderboard(): { username: string; level: number; rebirths: number; gems: number; equippedPetEmoji?: string }[] {
+  getLeaderboard(): {
+    username: string;
+    level: number;
+    rebirths: number;
+    gems: number;
+    equippedPetEmoji?: string;
+    equippedPetName?: string;
+    equippedPetLevel?: number;
+    equippedTitle?: string;
+    classId?: 'warrior' | 'chronomancer' | 'alchemist' | null;
+    auraColor?: string;
+    equippedCosmetics?: Record<string, string>;
+    equippedCosmeticId?: string | null;
+    clanName?: string;
+    clanContributions?: number;
+    totalPlayTimeSeconds?: number;
+    selectedOperation?: string;
+    unlockedSkillsCount?: number;
+  }[] {
     const users = this.getUsers().filter(u => u.role === 'player');
     const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
+    const clans = getStorageItem<any>(STORAGE_KEYS.CLANS);
 
-    const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
-
-    // Map all entries, filtering out fictitious/seeded users
     return users
-      .filter(u => !fictitiousUserIds.includes(u.id))
       .map(u => {
         const state = states.find(gs => gs.userId === u.id) || {
           auraLevel: 1,
@@ -1607,13 +1639,32 @@ export const mockDb = {
           gems: 0,
           equippedPetId: null,
           equippedCosmeticId: null,
+          classId: null,
+          auraColor: '#00ffcc',
+          equippedCosmetics: {},
+          clanId: null,
+          clanContributions: 0,
+          totalPlayTimeSeconds: 0,
+          selectedOperation: 'multiplication',
+          unlockedSkills: []
         };
+
+        let equippedCosmetics: Record<string, string> = state.equippedCosmetics || {};
+        if (state.equippedCosmeticId && Object.keys(equippedCosmetics).length === 0) {
+          const item = COSMETIC_ITEMS.find(c => c.id === state.equippedCosmeticId);
+          if (item) {
+            equippedCosmetics = { [item.category]: state.equippedCosmeticId };
+          }
+        }
 
         const equippedPet = state.equippedPetId ? pets.find(p => p.id === state.equippedPetId) : null;
         const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.petTypeId) : null;
 
-        const cosmetic = state.equippedCosmeticId ? COSMETIC_ITEMS.find(c => c.id === state.equippedCosmeticId) : null;
-        const equippedTitle = cosmetic && cosmetic.id.startsWith('title_') ? cosmetic.name.replace('Título: ', '') : undefined;
+        const activeTitleId = equippedCosmetics['title'] || (state.equippedCosmeticId?.startsWith('title_') ? state.equippedCosmeticId : null);
+        const titleItem = activeTitleId ? COSMETIC_ITEMS.find(c => c.id === activeTitleId) : null;
+        const titleText = titleItem ? titleItem.name.replace('Título: ', '') : undefined;
+
+        const clan = state.clanId ? clans.find(c => c.id === state.clanId) : null;
 
         return {
           username: u.username,
@@ -1621,7 +1672,18 @@ export const mockDb = {
           rebirths: state.rebirths,
           gems: state.gems,
           equippedPetEmoji: petType?.emoji,
-          equippedTitle
+          equippedPetName: equippedPet?.nickname || petType?.name,
+          equippedPetLevel: equippedPet?.level,
+          equippedTitle: titleText,
+          classId: state.classId || null,
+          auraColor: state.auraColor || '#00ffcc',
+          equippedCosmetics,
+          equippedCosmeticId: state.equippedCosmeticId || null,
+          clanName: clan ? clan.name : undefined,
+          clanContributions: state.clanContributions ?? 0,
+          totalPlayTimeSeconds: state.totalPlayTimeSeconds ?? 0,
+          selectedOperation: state.selectedOperation ?? 'multiplication',
+          unlockedSkillsCount: (state.unlockedSkills || []).length
         };
       })
       .sort((a, b) => {
@@ -1650,17 +1712,22 @@ export const mockDb = {
     return updated;
   },
 
-  equipCosmetic(userId: string, cosmeticId: string | null): GameState | null {
+  equipCosmetic(userId: string, cosmeticId: string | null, category: string): GameState | null {
     const state = this.getGameState(userId);
     if (!state) return null;
 
-    if (cosmeticId !== null) {
+    const equipped = { ...state.equippedCosmetics };
+
+    if (cosmeticId === null) {
+      delete equipped[category];
+    } else {
       const purchased = state.purchasedCosmetics || [];
       if (!purchased.includes(cosmeticId)) return null; // not owned
+      equipped[category] = cosmeticId;
     }
 
     const updated = this.updateGameState(userId, {
-      equippedCosmeticId: cosmeticId,
+      equippedCosmetics: equipped,
     });
     return updated;
   },
@@ -2280,5 +2347,23 @@ export const mockDb = {
     }
 
     return this.getGameState(userId);
+  },
+
+  syncGameState(state: GameState): void {
+    const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
+    const index = states.findIndex(gs => gs.userId === state.userId);
+    if (index === -1) {
+      states.push(state);
+    } else {
+      states[index] = state;
+    }
+    setStorageItem(STORAGE_KEYS.GAME_STATES, states);
+  },
+
+  syncPets(userId: string, fetchedPets: Pet[]): void {
+    const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
+    const otherUsersPets = pets.filter(p => p.userId !== userId);
+    const newPetsList = [...otherUsersPets, ...fetchedPets];
+    setStorageItem(STORAGE_KEYS.PETS, newPetsList);
   },
 };
