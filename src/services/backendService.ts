@@ -849,8 +849,9 @@ export const backendService = {
 
         // 3. Update user's game state with new clan_id
         return await this.updateGameState(userId, { clanId: newClanId });
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in createClan:', err);
+        alert('Erro no Banco de Dados (Supabase):\n' + (err.message || JSON.stringify(err)) + '\n\nO clã foi salvo apenas no modo Offline/Local.');
       }
     }
     return mockDb.createClan(userId, name, tag, motto, badgeEmoji);
