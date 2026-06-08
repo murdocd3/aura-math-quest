@@ -33,9 +33,9 @@ class AudioEngine {
     return this.isMuted;
   }
 
-  private currentTheme: 'hub' | 'combat' | 'pet_shop' = 'hub';
+  private currentTheme: 'hub' | 'combat' | 'pet_shop' | 'olympics' = 'hub';
 
-  public startSoundtrack(theme: 'hub' | 'combat' | 'pet_shop' = 'hub') {
+  public startSoundtrack(theme: 'hub' | 'combat' | 'pet_shop' | 'olympics' = 'hub') {
     if (this.isMuted) return;
     
     // If we are already playing this exact theme, do nothing
@@ -68,6 +68,16 @@ class AudioEngine {
         melodyWave = 'triangle';
         bassVolume = 0.02;
         melodyVolume = 0.012;
+      } else if (theme === 'olympics') {
+        // Grand, triumphant, inspiring theme: C major progression, fanfare elements, brass style
+        // C major progression (C3 -> G3 -> A3 -> F3)
+        bassProgression = [130.81, 0, 196.00, 0, 220.00, 0, 174.61, 0];
+        melodyProgression = [261.63, 329.63, 392.00, 523.25, 440.00, 349.23, 392.00, 261.63];
+        tempo = 500; // Inspiring rhythm
+        bassWave = 'triangle';
+        melodyWave = 'square'; // Trumpet/fanfare style
+        bassVolume = 0.04;
+        melodyVolume = 0.01;
       } else if (theme === 'pet_shop') {
         // Playful, cute, bubbly pet shop theme: warm sine waves, major/pentatonic happy progression
         // Progression in F major (F3, A3, Bb3, C4)

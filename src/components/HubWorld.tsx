@@ -146,6 +146,7 @@ interface HubWorldProps {
   onSelectCampaignStage: (stageId: number) => void;
   onNavigateToPetShop: () => void;
   onNavigateToRunner: () => void;
+  onNavigateToOlympics: () => void;
   onLogout: () => void;
   gameState: GameState;
   onStateUpdate: (newState: GameState) => void;
@@ -157,6 +158,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   onSelectCampaignStage,
   onNavigateToPetShop,
   onNavigateToRunner,
+  onNavigateToOlympics,
   onLogout,
   gameState,
   onStateUpdate,
@@ -1271,6 +1273,44 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     }}
                   >
                     Iniciar Corrida ➔
+                  </button>
+                </div>
+
+                {/* Olimipadas dos Deuses Zone Card */}
+                <div
+                  className="cyber-card"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    border: '1.5px solid var(--neon-yellow)',
+                    background: 'linear-gradient(180deg, rgba(234, 179, 8, 0.05) 0%, rgba(3, 7, 18, 0.6) 100%)',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <h4 style={{ fontSize: '1.2rem', color: 'var(--neon-yellow)' }}>🏆 Olimpíadas dos Deuses</h4>
+                      <span style={{ fontSize: '0.8rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-yellow)', fontWeight: 800 }}>OLÍMPICO</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
+                      Preparatório OBMEP, OBM e competições nacionais! 100 níveis adaptativos avaliando Raciocínio Lógico, Padrões, Geometria e Lógica.
+                    </p>
+                  </div>
+                  <button
+                    className="cyber-btn"
+                    onClick={() => {
+                      audioEngine.playCorrect();
+                      onNavigateToOlympics();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderColor: 'var(--neon-yellow)',
+                      background: 'rgba(234,179,8,0.1)',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Iniciar Simulador Olímpico ➔
                   </button>
                 </div>
 

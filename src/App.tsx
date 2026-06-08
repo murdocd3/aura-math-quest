@@ -5,6 +5,7 @@ import { HubWorld } from './components/HubWorld';
 import { PetShop } from './components/PetShop';
 import { CombatArena } from './components/CombatArena';
 import { CyberRunner } from './components/CyberRunner';
+import { Olympics } from './components/Olympics';
 import { seedDatabase } from './services/mockDb';
 import { backendService } from './services/backendService';
 import type { User, GameState } from './services/mockDb';
@@ -13,7 +14,7 @@ import { audioEngine } from './components/AudioEngine';
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [screen, setScreen] = useState<'login' | 'hub' | 'admin' | 'pet_shop' | 'combat' | 'runner'>('login');
+  const [screen, setScreen] = useState<'login' | 'hub' | 'admin' | 'pet_shop' | 'combat' | 'runner' | 'olympics'>('login');
   const [selectedZone, setSelectedZone] = useState<'forest' | 'volcano'>('forest');
   const [isAudioMuted, setIsAudioMuted] = useState(false);
 
@@ -33,6 +34,8 @@ function App() {
         audioEngine.startSoundtrack('combat');
       } else if (screen === 'pet_shop') {
         audioEngine.startSoundtrack('pet_shop');
+      } else if (screen === 'olympics') {
+        audioEngine.startSoundtrack('olympics');
       } else {
         audioEngine.startSoundtrack('hub');
       }
@@ -183,6 +186,7 @@ function App() {
             }}
             onNavigateToPetShop={() => setScreen('pet_shop')}
             onNavigateToRunner={() => setScreen('runner')}
+            onNavigateToOlympics={() => setScreen('olympics')}
             onLogout={handleLogout}
           />
         )}
@@ -213,6 +217,14 @@ function App() {
         {screen === 'runner' && user && gameState && (
           <CyberRunner
             playerUser={user}
+            gameState={gameState}
+            onBack={() => setScreen('hub')}
+            onStateUpdate={setGameState}
+          />
+        )}
+
+        {screen === 'olympics' && user && gameState && (
+          <Olympics
             gameState={gameState}
             onBack={() => setScreen('hub')}
             onStateUpdate={setGameState}
