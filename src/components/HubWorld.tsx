@@ -1417,11 +1417,10 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 
                 {/* Left side: Player's Current Clan or Join/Create tabs */}
                 <div>
-                  {gameState.clanId ? (
-                    (() => {
-                      const myClan = clansList.find(c => c.id === gameState.clanId);
-                      if (!myClan) return null;
-                      
+                  {(() => {
+                    const myClan = gameState.clanId ? clansList.find(c => c.id === gameState.clanId) : null;
+                    
+                    if (myClan) {
                       const allUsers = mockDb.getUsers();
                       const clanMembers = allUsers.filter(u => myClan.members.includes(u.id));
 
@@ -1476,10 +1475,10 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                           </button>
                         </div>
                       );
-                    })()
-                  ) : (
-                    /* Create Clan Form */
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    } else {
+                      return (
+                        /* Create Clan Form */
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       <div className="cyber-card" style={{ background: 'rgba(15,23,42,0.4)', padding: '16px' }}>
                         <h4 style={{ fontSize: '1rem', color: '#fff', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
                           ➕ Criar um Novo Clã
@@ -1520,8 +1519,10 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                         </form>
                       </div>
                     </div>
-                  )}
-                </div>
+                  );
+                }
+              })()}
+            </div>
 
                 {/* Right side: Active Clans List & Leaderboard ranking */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1570,7 +1571,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                               ⭐ {clan.totalRebirths}
                             </strong>
                             
-                            {!gameState.clanId && !isMyClan && (
+                            {(!gameState.clanId || !clansList.some(c => c.id === gameState.clanId)) && !isMyClan && (
                               <button
                                 className="cyber-btn"
                                 onClick={() => handleJoinClan(clan.id, clan.name)}
