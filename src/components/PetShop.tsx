@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { mockDb, PET_TYPES } from '../services/mockDb';
 import type { Pet, GameState, TradeListing } from '../services/mockDb';
+import { backendService } from '../services/backendService';
 import { audioEngine } from './AudioEngine';
 
 interface PetShopProps {
@@ -299,36 +300,34 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     setHatchedPet(null);
   };
 
-  const handleEquip = (petId: string) => {
+  const handleEquip = async (petId: string) => {
     audioEngine.playCorrect();
-    // If selecting currently equipped, unequip it
     const nextEquipId = gameState.equippedPetId === petId ? null : petId;
-    const success = mockDb.equipPet(userId, nextEquipId);
-    if (success) {
-      const state = mockDb.getGameState(userId);
-      if (state) {
-        onStateUpdate(state);
-      }
+    const updated = await backendService.updateGameState(userId, {
+      equippedPetId: nextEquipId
+    });
+    if (updated) {
+      onStateUpdate(updated);
     }
   };
 
-  const handleRelease = (petId: string) => {
+  const handleRelease = async (petId: string) => {
     const pet = pets.find(p => p.id === petId);
     if (!pet) return;
 
     if (window.confirm(`Quer libertar o seu pet "${pet.nickname}"? Você receberá 3 Gemas de Matemática em troca.`)) {
       audioEngine.playCorrect();
       
-      // If equipped, unequip first
+      let nextEquipId = gameState.equippedPetId;
       if (gameState.equippedPetId === petId) {
-        mockDb.equipPet(userId, null);
+        nextEquipId = null;
       }
 
       mockDb.deletePet(petId);
       
-      // Add 3 gems
-      const updatedState = mockDb.updateGameState(userId, {
+      const updatedState = await backendService.updateGameState(userId, {
         gems: gameState.gems + 3,
+        equippedPetId: nextEquipId
       });
       
       if (updatedState) {

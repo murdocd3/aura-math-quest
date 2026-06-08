@@ -163,7 +163,6 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 }) => {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [selectedColor, setSelectedColor] = useState(gameState.auraColor || '#00ffcc');
-  const [playTimeCounter, setPlayTimeCounter] = useState(0);
   const [activeHubTab, setActiveHubTab] = useState<'maps' | 'campaign' | 'rpg' | 'clans' | 'gincana' | 'shop' | 'aurapass'>('maps');
   const [serverNotification, setServerNotification] = useState<string | null>(null);
 
@@ -328,11 +327,19 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   useEffect(() => {
     refreshLeaderboard();
     
-    // Playtime tracker: Increment play time in mockDb every 5 seconds
-    const interval = setInterval(() => {
-      mockDb.addPlayTime(playerUser.id, 5);
-      setPlayTimeCounter(prev => prev + 5);
-    }, 5000);
+    // Playtime tracker: Increment play time in database every 30 seconds
+    const interval = setInterval(async () => {
+      const freshState = await backendService.getGameState(playerUser.id);
+      if (freshState) {
+        const nextTime = (freshState.totalPlayTimeSeconds || 0) + 30;
+        const updated = await backendService.updateGameState(playerUser.id, {
+          totalPlayTimeSeconds: nextTime
+        });
+        if (updated) {
+          onStateUpdate(updated);
+        }
+      }
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [playerUser.id]);
@@ -385,14 +392,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return () => clearInterval(simulatorInterval);
   }, [playerUser.id]);
 
-  // Refresh database states occasionally
-  useEffect(() => {
-    const freshState = mockDb.getGameState(playerUser.id);
-    if (freshState) {
-      onStateUpdate(freshState);
-      setSelectedColor(freshState.auraColor);
-    }
-  }, [playTimeCounter]);
+
 
   const handleColorChange = (color: string) => {
     audioEngine.playHatchRoll();
@@ -447,10 +447,12 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleEquipCosmetic = (cosmeticId: string) => {
+  const handleEquipCosmetic = async (cosmeticId: string) => {
     audioEngine.playCorrect();
     const nextEquipId = gameState.equippedCosmeticId === cosmeticId ? null : cosmeticId;
-    const updated = mockDb.equipCosmetic(playerUser.id, nextEquipId);
+    const updated = await backendService.updateGameState(playerUser.id, {
+      equippedCosmeticId: nextEquipId
+    });
     if (updated) {
       onStateUpdate(updated);
     }
