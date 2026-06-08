@@ -230,7 +230,7 @@ export const PET_TYPES: PetType[] = [
     buffValue: 2.0,
     cost: 35,
     color: '#f97316', // Orange
-    emoji: '🦅',
+    emoji: '🐣',
     extraTime: 1.5,
     gemMultiplier: 1.15,
     buffDescription: '+1.5s Resposta e Gemas +15%'
