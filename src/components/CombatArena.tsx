@@ -1134,8 +1134,39 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
+                  position: 'relative',
                 }}
               >
+                {/* Floating active pet in combat */}
+                {(() => {
+                  if (gameState.equippedPetId) {
+                    const pets = mockDb.getPets(userId);
+                    const pet = pets.find(p => p.id === gameState.equippedPetId);
+                    if (pet) {
+                      const pt = PET_TYPES.find(x => x.id === pet.petTypeId);
+                      if (pt) {
+                        return (
+                          <div
+                            className="animate-float"
+                            style={{
+                              position: 'absolute',
+                              top: '-15px',
+                              left: '-15px',
+                              fontSize: '1.6rem',
+                              filter: `drop-shadow(0 0 6px ${pt.color || '#fff'})`,
+                              zIndex: 10,
+                            }}
+                            title={`Pet ${pet.nickname} flutuando no combate!`}
+                          >
+                            {pt.emoji}
+                          </div>
+                        );
+                      }
+                    }
+                  }
+                  return null;
+                })()}
+
                 <CyberSprite
                   type="player"
                   equippedCosmeticId={gameState.equippedCosmeticId}
@@ -1163,14 +1194,36 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                         const elementColor = pElem === 'fire' ? 'var(--neon-pink)' : pElem === 'ice' ? 'var(--neon-cyan)' : pElem === 'electric' ? 'var(--neon-yellow)' : 'var(--neon-purple)';
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>
                               Ajudante: {emoji} {pet.nickname}
                             </span>
-                            {elementLabel && (
-                              <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', background: elementColor + '20', color: elementColor, border: `1px solid ${elementColor}40`, padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                                {elementLabel}
-                              </span>
-                            )}
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                              {elementLabel && (
+                                <span style={{ fontSize: '0.65rem', background: elementColor + '20', color: elementColor, border: `1px solid ${elementColor}40`, padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  {elementLabel}
+                                </span>
+                              )}
+                              {extraTime > 0 && (
+                                <span style={{ fontSize: '0.65rem', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  ⏱️ +{extraTime}s
+                                </span>
+                              )}
+                              {petXpMult > 1 && (
+                                <span style={{ fontSize: '0.65rem', background: 'rgba(168,85,247,0.15)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.3)', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  🔮 +{Math.round((petXpMult - 1) * 100)}% XP
+                                </span>
+                              )}
+                              {petGemMult > 1 && (
+                                <span style={{ fontSize: '0.65rem', background: 'rgba(234,179,8,0.15)', color: '#f59e0b', border: '1px solid rgba(234,179,8,0.3)', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  💎 +{Math.round((petGemMult - 1) * 100)}% Gemas
+                                </span>
+                              )}
+                              {gameState.fedBonusUntil && new Date(gameState.fedBonusUntil) > new Date() && (
+                                <span style={{ fontSize: '0.65rem', background: 'rgba(236,72,153,0.15)', color: '#f472b6', border: '1px solid rgba(236,72,153,0.3)', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }} title="Alimentado: Super Bônus Ativo!">
+                                  🍖 Alimentado (+50%)
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       }

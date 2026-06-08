@@ -916,30 +916,37 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 const isLocked = levelLocked || rebirthLocked;
                 
                 const isSelected = selectedColor === opt.hex;
+                const requirementLabel = opt.minRebirth 
+                  ? `Reb. ${opt.minRebirth}` 
+                  : `Lvl ${opt.minLevel}`;
 
                 return (
-                  <button
-                    key={opt.hex}
-                    disabled={isLocked}
-                    onClick={() => handleColorChange(opt.hex)}
-                    style={{
-                      width: '45px',
-                      height: '45px',
-                      borderRadius: '50%',
-                      backgroundColor: opt.hex,
-                      border: isSelected ? '4px solid #fff' : '2px solid rgba(0,0,0,0.4)',
-                      boxShadow: isSelected ? `0 0 14px ${opt.hex}` : 'none',
-                      cursor: isLocked ? 'not-allowed' : 'pointer',
-                      opacity: isLocked ? 0.2 : 1,
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    title={opt.name + (isLocked ? ' (Bloqueado)' : '')}
-                  >
-                    {isLocked && <span style={{ fontSize: '0.8rem' }}>🔒</span>}
-                  </button>
+                  <div key={opt.hex} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      disabled={isLocked}
+                      onClick={() => handleColorChange(opt.hex)}
+                      style={{
+                        width: '45px',
+                        height: '45px',
+                        borderRadius: '50%',
+                        backgroundColor: opt.hex,
+                        border: isSelected ? '4px solid #fff' : '2px solid rgba(0,0,0,0.4)',
+                        boxShadow: isSelected ? `0 0 14px ${opt.hex}` : 'none',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        opacity: isLocked ? 0.25 : 1,
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title={opt.name + (isLocked ? ' (Bloqueado)' : '')}
+                    >
+                      {isLocked && <span style={{ fontSize: '0.8rem' }}>🔒</span>}
+                    </button>
+                    <span style={{ fontSize: '0.65rem', color: isLocked ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.7)', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                      {requirementLabel}
+                    </span>
+                  </div>
                 );
               })}
             </div>
@@ -984,7 +991,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 borderColor: activeHubTab === 'rpg' ? 'var(--neon-purple)' : 'rgba(255,255,255,0.1)',
               }}
             >
-              🔮 Classes/Talentos
+              🔮 Classes/Talentos {(gameState.auraLevel < 10 && gameState.rebirths === 0) ? '🔒' : ''}
             </button>
             <button
               className="cyber-btn"
@@ -997,7 +1004,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 borderColor: activeHubTab === 'clans' ? 'var(--neon-pink)' : 'rgba(255,255,255,0.1)',
               }}
             >
-              🛡️ Clãs
+              🛡️ Clãs {(gameState.auraLevel < 15 && gameState.rebirths === 0) ? '🔒' : ''}
             </button>
             <button
               className="cyber-btn"
@@ -1010,7 +1017,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 borderColor: activeHubTab === 'gincana' ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
               }}
             >
-              🏫 Gincanas
+              🏫 Gincanas {(gameState.auraLevel < 5 && gameState.rebirths === 0) ? '🔒' : ''}
             </button>
             <button
               className="cyber-btn"
@@ -1353,7 +1360,25 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
           {/* Tab: RPG Classes & Talent Tree */}
           {activeHubTab === 'rpg' && (
-            <div className="cyber-card" style={{ borderColor: 'var(--neon-purple)' }}>
+            (() => {
+              const isRpgLocked = gameState.auraLevel < 10 && gameState.rebirths === 0;
+              if (isRpgLocked) {
+                return (
+                  <div className="cyber-card" style={{ borderColor: 'var(--neon-purple)', textAlign: 'center', padding: '40px 20px', background: 'rgba(168, 85, 247, 0.03)' }}>
+                    <h3 className="text-glow-purple" style={{ fontSize: '1.4rem', color: 'var(--neon-purple)', marginBottom: '14px' }}>
+                      🔒 Classes e Talentos RPG (Bloqueado)
+                    </h3>
+                    <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', marginBottom: '20px', lineHeight: '1.5rem' }}>
+                      Esta funcionalidade secreta requer **Nível de Aura 10** ou pelo menos **1 Rebirth** para ser despertada.
+                    </p>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', background: 'rgba(15,23,42,0.4)', padding: '12px 24px', borderRadius: '8px', display: 'inline-block', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      Sua Aura Atual: <strong style={{ color: 'var(--neon-purple)' }}>Nível {gameState.auraLevel}</strong> • Rebirths: <strong style={{ color: 'var(--neon-pink)' }}>{gameState.rebirths}</strong>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="cyber-card" style={{ borderColor: 'var(--neon-purple)' }}>
               <h3 className="text-glow-purple" style={{ fontSize: '1.4rem', marginBottom: '10px', color: 'var(--neon-purple)' }}>
                 🔮 Sistema de Classes e Talentos RPG
               </h3>
@@ -1542,11 +1567,31 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 </div>
               )}
             </div>
-          )}
+            );
+          })()
+        )}
 
           {/* Tab: Clans Panel */}
           {activeHubTab === 'clans' && (
-            <div className="cyber-card" style={{ borderColor: 'var(--neon-pink)' }}>
+            (() => {
+              const isClansLocked = gameState.auraLevel < 15 && gameState.rebirths === 0;
+              if (isClansLocked) {
+                return (
+                  <div className="cyber-card" style={{ borderColor: 'var(--neon-pink)', textAlign: 'center', padding: '40px 20px', background: 'rgba(244, 63, 94, 0.03)' }}>
+                    <h3 className="text-glow-pink" style={{ fontSize: '1.4rem', color: 'var(--neon-pink)', marginBottom: '14px' }}>
+                      🔒 Alianças e Clãs (Bloqueado)
+                    </h3>
+                    <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', marginBottom: '20px', lineHeight: '1.5rem' }}>
+                      Esta funcionalidade social requer **Nível de Aura 15** ou pelo menos **1 Rebirth** para ser despertada.
+                    </p>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', background: 'rgba(15,23,42,0.4)', padding: '12px 24px', borderRadius: '8px', display: 'inline-block', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      Sua Aura Atual: <strong style={{ color: 'var(--neon-cyan)' }}>Nível {gameState.auraLevel}</strong> • Rebirths: <strong style={{ color: 'var(--neon-pink)' }}>{gameState.rebirths}</strong>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="cyber-card" style={{ borderColor: 'var(--neon-pink)' }}>
               <h3 className="text-glow-pink" style={{ fontSize: '1.4rem', marginBottom: '10px', color: 'var(--neon-pink)' }}>
                 🛡️ Alianças e Clãs Estudantis
               </h3>
@@ -1976,11 +2021,31 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
               </div>
             </div>
-          )}
+            );
+          })()
+        )}
 
-          {/* Tab: Gincanas Panel */}
+          {/* Tab: Gincanas */}
           {activeHubTab === 'gincana' && (
-            <div className="cyber-card" style={{ borderColor: 'var(--neon-yellow)' }}>
+            (() => {
+              const isGincanaLocked = gameState.auraLevel < 5 && gameState.rebirths === 0;
+              if (isGincanaLocked) {
+                return (
+                  <div className="cyber-card" style={{ borderColor: 'var(--neon-yellow)', textAlign: 'center', padding: '40px 20px', background: 'rgba(234, 179, 8, 0.03)' }}>
+                    <h3 className="text-glow-yellow" style={{ fontSize: '1.4rem', color: 'var(--neon-yellow)', marginBottom: '14px' }}>
+                      🔒 Gincanas Escolares (Bloqueado)
+                    </h3>
+                    <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', marginBottom: '20px', lineHeight: '1.5rem' }}>
+                      Esta funcionalidade cooperativa requer **Nível de Aura 5** ou pelo menos **1 Rebirth** para ser despertada.
+                    </p>
+                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', background: 'rgba(15,23,42,0.4)', padding: '12px 24px', borderRadius: '8px', display: 'inline-block', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      Sua Aura Atual: <strong style={{ color: 'var(--neon-yellow)' }}>Nível {gameState.auraLevel}</strong> • Rebirths: <strong style={{ color: 'var(--neon-pink)' }}>{gameState.rebirths}</strong>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="cyber-card" style={{ borderColor: 'var(--neon-yellow)' }}>
               <h3 className="text-glow-yellow" style={{ fontSize: '1.4rem', marginBottom: '10px', color: 'var(--neon-yellow)' }}>
                 🏫 Painel de Gincanas da Escola
               </h3>
@@ -2040,7 +2105,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 </ul>
               </div>
             </div>
-          )}
+            );
+          })()
+        )}
 
           {/* Tab 2: Cosmetics Avatar Shop */}
           {activeHubTab === 'shop' && (() => {
