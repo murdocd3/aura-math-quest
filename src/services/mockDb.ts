@@ -80,6 +80,9 @@ export interface Clan {
   xp: number;
   leaderId: string;
   joinRequests: string[];
+  bossHp?: number;
+  bossMaxHp?: number;
+  bossLevel?: number;
 }
 
 export interface TradeListing {
@@ -109,6 +112,10 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
   { id: 'neon_hat', name: 'Chapéu de Mago Neon', emoji: '🧙‍♂️', cost: 18, description: 'Aumenta sua presença mágica.', color: '#a855f7' },
   { id: 'glitch_crown', name: 'Coroa Glitch', emoji: '👑', cost: 30, description: 'Reservada para os maiores mestres da aura.', color: '#f97316' },
   { id: 'retro_shades', name: 'Óculos Cyberpunk', emoji: '🕶️', cost: 15, description: 'Estilo pixelado retro para focar nas equações.', color: '#ec4899' },
+  { id: 'title_math_master', name: 'Título: [📐 Mestre do Cálculo]', emoji: '🏷️', cost: 20, description: 'Exibe o título ao lado do seu nome.', color: '#00ffcc' },
+  { id: 'title_math_lightning', name: 'Título: [⚡ Relâmpago Matemático]', emoji: '🏷️', cost: 30, description: 'Exibe o título ao lado do seu nome.', color: '#a855f7' },
+  { id: 'title_aura_alchemist', name: 'Título: [🔮 Alquimista de Aura]', emoji: '🏷️', cost: 50, description: 'Exibe o título ao lado do seu nome.', color: '#ec4899' },
+  { id: 'title_legendary_legend', name: 'Título: [👑 Lenda do Universo]', emoji: '🏷️', cost: 100, description: 'Exibe o título ao lado do seu nome.', color: '#f97316' },
 ];
 
 export interface Pet {
@@ -1197,10 +1204,14 @@ export const mockDb = {
           rebirths: 0,
           gems: 0,
           equippedPetId: null,
+          equippedCosmeticId: null,
         };
 
         const equippedPet = state.equippedPetId ? pets.find(p => p.id === state.equippedPetId) : null;
         const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.petTypeId) : null;
+
+        const cosmetic = state.equippedCosmeticId ? COSMETIC_ITEMS.find(c => c.id === state.equippedCosmeticId) : null;
+        const equippedTitle = cosmetic && cosmetic.id.startsWith('title_') ? cosmetic.name.replace('Título: ', '') : undefined;
 
         return {
           username: u.username,
@@ -1208,6 +1219,7 @@ export const mockDb = {
           rebirths: state.rebirths,
           gems: state.gems,
           equippedPetEmoji: petType?.emoji,
+          equippedTitle
         };
       })
       .sort((a, b) => {
@@ -1302,14 +1314,23 @@ export const mockDb = {
       scaledValue = 1 + (increment * nextLevel);
     }
 
-    // Add stars to nickname
+    // Add stars and element suffix to nickname
     const stars = '★'.repeat(nextLevel - 1);
-    const baseName = pet1.nickname.split(' ★')[0];
+    let baseName = pet1.nickname.split(' ★')[0];
+    
+    // Clean up previous elemental tags if any
+    baseName = baseName.replace(/ (Flamejante 🔥|Voltaico ⚡|Glacial ❄️|Cósmico 🌌)/g, '');
+
+    let elementSuffix = '';
+    if (nextLevel === 3) elementSuffix = ' Flamejante 🔥';
+    else if (nextLevel === 4) elementSuffix = ' Voltaico ⚡';
+    else if (nextLevel === 5) elementSuffix = ' Glacial ❄️';
+    else if (nextLevel >= 6) elementSuffix = ' Cósmico 🌌';
 
     updatedPets[p1NewIndex] = {
       ...pet1,
       level: nextLevel,
-      nickname: `${baseName} ${stars}`,
+      nickname: `${baseName}${elementSuffix} ${stars}`,
       buffValue: Math.round(scaledValue * 100) / 100, // round nicely
     };
 
@@ -1433,7 +1454,10 @@ export const mockDb = {
       level: 1,
       xp: 0,
       leaderId: userId,
-      joinRequests: []
+      joinRequests: [],
+      bossHp: 5000,
+      bossMaxHp: 5000,
+      bossLevel: 1
     };
     
     const currentClans = this.getClans();
@@ -1462,6 +1486,60 @@ export const mockDb = {
       }
       setStorageItem(STORAGE_KEYS.CLANS, clans);
     }
+  },
+
+  damageClanBoss(_userId: string, clanId: string, amount: number): { bossHp: number; bossMaxHp: number; bossLevel: number; defeated: boolean; rewardGems: number } | null {
+    const clans = this.getClans();
+    const clanIndex = clans.findIndex(c => c.id === clanId);
+    if (clanIndex === -1) return null;
+
+    let clan = clans[clanIndex];
+    if (clan.bossHp === undefined) clan.bossHp = 5000;
+    if (clan.bossMaxHp === undefined) clan.bossMaxHp = 5000;
+    if (clan.bossLevel === undefined) clan.bossLevel = 1;
+
+    clan.bossHp = Math.max(0, clan.bossHp - amount);
+    let defeated = false;
+    let rewardGems = 0;
+
+    if (clan.bossHp <= 0) {
+      defeated = true;
+      clan.bossLevel += 1;
+      clan.bossMaxHp = clan.bossLevel * 5000;
+      clan.bossHp = clan.bossMaxHp;
+      rewardGems = clan.bossLevel * 10;
+      clan.xp += 100 * clan.bossLevel;
+
+      let nextLevelXp = clan.level * 500;
+      while (clan.xp >= nextLevelXp && clan.level < 10) {
+        clan.xp -= nextLevelXp;
+        clan.level += 1;
+        nextLevelXp = clan.level * 500;
+      }
+      if (clan.level >= 10) {
+        clan.level = 10;
+        clan.xp = Math.min(clan.xp, nextLevelXp);
+      }
+
+      // Add gems reward to all members of the clan
+      const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
+      clan.members.forEach(mId => {
+        const mStateIndex = states.findIndex(gs => gs.userId === mId);
+        if (mStateIndex !== -1) {
+          states[mStateIndex].gems += rewardGems;
+        }
+      });
+      localStorage.setItem('amq_gamestates', JSON.stringify(states));
+    }
+
+    setStorageItem(STORAGE_KEYS.CLANS, clans);
+    return {
+      bossHp: clan.bossHp,
+      bossMaxHp: clan.bossMaxHp,
+      bossLevel: clan.bossLevel,
+      defeated,
+      rewardGems
+    };
   },
 
   applyToClan(userId: string, clanId: string): void {

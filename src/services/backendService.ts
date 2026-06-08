@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { mockDb } from './mockDb';
+import { mockDb, COSMETIC_ITEMS } from './mockDb';
 import type { User, GameState, Pet, MathStatistic } from './mockDb';
 
 /**
@@ -644,14 +644,14 @@ export const backendService = {
   },
 
   // 7. Real-Time Leaderboard View
-  async getLeaderboard(): Promise<{ username: string; level: number; rebirths: number; gems: number; equippedPetEmoji?: string }[]> {
+  async getLeaderboard(): Promise<{ username: string; level: number; rebirths: number; gems: number; equippedPetEmoji?: string; equippedTitle?: string }[]> {
     if (isSupabaseEnabled && supabase) {
       try {
         console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
         // Fetch players, game_states, and pets in parallel
         const [usersRes, statesRes, petsRes] = await Promise.all([
           supabase.from('users').select('id, username').eq('role', 'player'),
-          supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id'),
+          supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id'),
           supabase.from('pets').select('id, pet_type_id')
         ]);
 
@@ -680,17 +680,23 @@ export const backendService = {
               aura_level: 1,
               rebirths: 0,
               gems: 0,
-              equipped_pet_id: null
+              equipped_pet_id: null,
+              equipped_cosmetic_id: null
             };
             const equippedPet = state.equipped_pet_id ? dbPets.find(p => p.id === state.equipped_pet_id) : null;
             const petEmoji = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.pet_type_id)?.emoji : undefined;
+
+            const cosmeticId = state.equipped_cosmetic_id;
+            const cosmetic = cosmeticId ? COSMETIC_ITEMS.find(c => c.id === cosmeticId) : null;
+            const equippedTitle = cosmetic && cosmetic.id.startsWith('title_') ? cosmetic.name.replace('Título: ', '') : undefined;
 
             return {
               username: u.username,
               level: state.aura_level ?? 1,
               rebirths: state.rebirths ?? 0,
               gems: state.gems ?? 0,
-              equippedPetEmoji: petEmoji
+              equippedPetEmoji: petEmoji,
+              equippedTitle
             };
           })
           .sort((a, b) => {
@@ -745,7 +751,10 @@ export const backendService = {
             level: clan.level ?? 1,
             xp: clan.xp ?? 0,
             leaderId: clan.leader_id,
-            joinRequests: clan.join_requests || []
+            joinRequests: clan.join_requests || [],
+            bossHp: clan.boss_hp ?? 5000,
+            bossMaxHp: clan.boss_max_hp ?? 5000,
+            bossLevel: clan.boss_level ?? 1
           };
         }).sort((a, b) => {
           if (b.totalRebirths !== a.totalRebirths) {
@@ -842,7 +851,10 @@ export const backendService = {
           level: 1,
           xp: 0,
           leader_id: userId,
-          join_requests: []
+          join_requests: [],
+          boss_hp: 5000,
+          boss_max_hp: 5000,
+          boss_level: 1
         });
 
         if (insertErr) throw insertErr;
@@ -855,6 +867,77 @@ export const backendService = {
       }
     }
     return mockDb.createClan(userId, name, tag, motto, badgeEmoji);
+  },
+
+  async damageClanBoss(userId: string, clanId: string, amount: number): Promise<{ bossHp: number; bossMaxHp: number; bossLevel: number; defeated: boolean; rewardGems: number } | null> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        console.log(`[BackendService] Damaging clan boss of ${clanId} by ${amount}...`);
+        const { data, error } = await supabase.from('clans').select('boss_hp, boss_max_hp, boss_level, members, level, xp').eq('id', clanId);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const row = data[0];
+          let bossHp = row.boss_hp ?? 5000;
+          let bossMaxHp = row.boss_max_hp ?? 5000;
+          let bossLevel = row.boss_level ?? 1;
+          let level = row.level ?? 1;
+          let xp = row.xp ?? 0;
+          const membersList = row.members || [];
+
+          bossHp = Math.max(0, bossHp - amount);
+          let defeated = false;
+          let rewardGems = 0;
+
+          if (bossHp <= 0) {
+            defeated = true;
+            bossLevel += 1;
+            bossMaxHp = bossLevel * 5000;
+            bossHp = bossMaxHp;
+            rewardGems = bossLevel * 10;
+            xp += 100 * bossLevel;
+
+            let nextLevelXp = level * 500;
+            while (xp >= nextLevelXp && level < 10) {
+              xp -= nextLevelXp;
+              level += 1;
+              nextLevelXp = level * 500;
+            }
+            if (level >= 10) {
+              level = 10;
+              xp = Math.min(xp, nextLevelXp);
+            }
+
+            // Reward all members in Supabase
+            const { data: states } = await supabase.from('game_states').select('user_id, gems').in('user_id', membersList);
+            if (states) {
+              for (const s of states) {
+                const nextGems = (s.gems ?? 0) + rewardGems;
+                await supabase.from('game_states').update({ gems: nextGems }).eq('user_id', s.user_id);
+              }
+            }
+          }
+
+          // Save clan boss state
+          const { error: updateErr } = await supabase.from('clans').update({
+            boss_hp: bossHp,
+            boss_max_hp: bossMaxHp,
+            boss_level: bossLevel,
+            level,
+            xp
+          }).eq('id', clanId);
+
+          if (updateErr) throw updateErr;
+
+          // Sync with local memory
+          mockDb.damageClanBoss(userId, clanId, amount);
+
+          return { bossHp, bossMaxHp, bossLevel, defeated, rewardGems };
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in damageClanBoss:', err);
+      }
+    }
+    return mockDb.damageClanBoss(userId, clanId, amount);
   },
 
   async applyToClan(userId: string, clanId: string): Promise<void> {

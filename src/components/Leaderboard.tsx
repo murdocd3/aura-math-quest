@@ -6,6 +6,7 @@ interface LeaderboardEntry {
   rebirths: number;
   gems: number;
   equippedPetEmoji?: string;
+  equippedTitle?: string;
 }
 
 interface LeaderboardProps {
@@ -89,7 +90,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ entries, currentUserna
                 </span>
                 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     <span
                       style={{
                         fontWeight: 800,
@@ -100,6 +101,11 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ entries, currentUserna
                     >
                       {entry.username}
                     </span>
+                    {entry.equippedTitle && (
+                      <span style={{ fontSize: '0.7rem', color: '#00ffcc', fontWeight: 800, textShadow: '0 0 5px rgba(0, 255, 204, 0.5)' }}>
+                        {entry.equippedTitle}
+                      </span>
+                    )}
                     {entry.rebirths > 0 && (
                       <span style={{ fontSize: '0.8rem', color: 'var(--neon-yellow)', filter: 'drop-shadow(0 0 4px var(--neon-yellow))' }}>
                         {getRebirthStars(entry.rebirths)}

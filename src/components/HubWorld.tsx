@@ -647,8 +647,19 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             {/* Profile Statistics details */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <h2 style={{ fontSize: '1.6rem', color: '#fff', textTransform: 'capitalize' }}>
+                <h2 style={{ fontSize: '1.6rem', color: '#fff', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {playerUser.username}
+                  {(() => {
+                    const titleItem = COSMETIC_ITEMS.find(c => c.id === gameState.equippedCosmeticId && c.id.startsWith('title_'));
+                    if (titleItem) {
+                      return (
+                        <span style={{ fontSize: '0.85rem', color: titleItem.color, fontWeight: 900, textShadow: `0 0 6px ${titleItem.color}80`, letterSpacing: '0.5px' }}>
+                          {titleItem.name.replace('Título: ', '')}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                 </h2>
                 {gameState.rebirths > 0 && (
                   <span style={{ fontSize: '1rem', color: 'var(--neon-yellow)', filter: 'drop-shadow(0 0 4px var(--neon-yellow))' }}>
@@ -1534,15 +1545,55 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                                )}
                              </div>
                            )}
+                           {/* Cooperative Boss Card */}
+                           <div style={{ marginBottom: '16px', background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '12px', borderRadius: '8px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                               <h5 style={{ fontSize: '0.85rem', color: 'var(--neon-purple)', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                 ⚔️ Chefe do Clã Cooperativo:
+                               </h5>
+                               <span style={{ fontSize: '0.75rem', color: '#fff', backgroundColor: 'var(--neon-purple)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                 Nvl {myClan.bossLevel || 1}
+                               </span>
+                             </div>
 
-                          <button
-                            className="cyber-btn cyber-btn-pink"
-                            onClick={handleLeaveClan}
-                            style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
-                          >
-                            🚪 Sair do Clã
-                          </button>
-                        </div>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                               <span style={{ fontSize: '2rem' }}>
+                                 {(myClan.bossLevel || 1) % 3 === 1 ? '🤖' : (myClan.bossLevel || 1) % 3 === 2 ? '🐉' : '👹'}
+                               </span>
+                               <div>
+                                 <div style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 'bold' }}>
+                                   {(myClan.bossLevel || 1) % 3 === 1 ? 'Matemoticão de Ferro' : (myClan.bossLevel || 1) % 3 === 2 ? 'Dragão de Frações' : 'Monstro Algébrico'}
+                                 </div>
+                                 <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+                                   HP: {myClan.bossHp ?? 5000} / {myClan.bossMaxHp ?? 5000}
+                                 </div>
+                               </div>
+                             </div>
+
+                             {/* Health Bar */}
+                             <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '4px', height: '10px', width: '100%', overflow: 'hidden', marginBottom: '6px' }}>
+                               <div
+                                 style={{
+                                   height: '100%',
+                                   width: `${Math.max(0, Math.min(100, (((myClan.bossHp ?? 5000) / (myClan.bossMaxHp ?? 5000)) * 100)))}%`,
+                                   background: 'linear-gradient(90deg, #ec4899, #a855f7)',
+                                   transition: 'width 0.3s ease'
+                                 }}
+                               />
+                             </div>
+                             <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontStyle: 'italic' }}>
+                               *Resolva contas na Arena de Combate para causar dano ao chefe cooperativo!
+                             </p>
+                           </div>
+
+                           <button
+                             className="cyber-btn cyber-btn-pink"
+                             onClick={handleLeaveClan}
+                             style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
+                           >
+                             🚪 Sair do Clã
+                           </button>
+                         </div>
                       );
                     } else {
                       return (

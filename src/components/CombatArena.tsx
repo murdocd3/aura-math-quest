@@ -739,6 +739,16 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       }
 
       const damageDealt = isCritical ? 2 : 1;
+      
+      if (gameState.clanId) {
+        backendService.damageClanBoss(userId, gameState.clanId, damageDealt).then(res => {
+          if (res && res.defeated) {
+            audioEngine.playLevelUp();
+            alert(`🎉 Incrível! O Chefe do Clã foi derrotado!\nTodos os membros ganharam +${res.rewardGems} Gemas!\nO Chefe renasceu no Nível ${res.bossLevel}!`);
+          }
+        }).catch(err => console.error('Error damaging clan boss:', err));
+      }
+
       if (monster.hp - damageDealt > 0) {
         nextQuestion();
       }
