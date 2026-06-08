@@ -1351,17 +1351,42 @@ export const mockDb = {
     const index = states.findIndex(gs => gs.userId === userId);
     if (index === -1) return null;
 
-    states[index] = {
+    let updatedState = {
       ...states[index],
       ...updates,
       updatedAt: new Date().toISOString(),
     };
 
+    // Auto level-up logic if auraXp changes
+    if (updates.auraXp !== undefined) {
+      let level = updatedState.auraLevel ?? 1;
+      let xp = updatedState.auraXp ?? 0;
+      const getXpNeeded = (l: number) => Math.round(100 * Math.pow(1.15, l - 1));
+      let nextLevelXp = getXpNeeded(level);
+      let leveledUp = false;
+
+      while (xp >= nextLevelXp && level < 100) {
+        xp -= nextLevelXp;
+        level += 1;
+        nextLevelXp = getXpNeeded(level);
+        leveledUp = true;
+      }
+
+      updatedState.auraLevel = level;
+      updatedState.auraXp = xp;
+    }
+
+    states[index] = updatedState;
     setStorageItem(STORAGE_KEYS.GAME_STATES, states);
 
     // Sync to Supabase in background
     if (isSupabaseEnabled && supabase) {
-      const dbUpdates = mapGameStateToDb(updates);
+      const finalUpdates: Partial<GameState> = { ...updates };
+      if (updates.auraXp !== undefined) {
+        finalUpdates.auraLevel = updatedState.auraLevel;
+        finalUpdates.auraXp = updatedState.auraXp;
+      }
+      const dbUpdates = mapGameStateToDb(finalUpdates);
       supabase.from('game_states')
         .update(dbUpdates)
         .eq('user_id', userId)
