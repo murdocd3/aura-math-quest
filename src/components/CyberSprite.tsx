@@ -433,6 +433,74 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
               <path d="M -15,-9 L -5,-9 M -10,-14 L -10,-4" stroke="#00ffcc" strokeWidth="0.8" />
             </g>
           )}
+
+          {/* Item: Visor Holográfico (🥽) */}
+          {equippedCosmeticId === 'cyber_visor' && (
+            <g transform="translate(40, 42)">
+              <rect x="0" y="0" width="40" height="9" fill="rgba(6, 182, 212, 0.75)" rx="2" stroke="#fff" strokeWidth="1" className="glow-path" />
+              <line x1="4" y1="4.5" x2="36" y2="4.5" stroke="#fff" strokeWidth="1.5" strokeDasharray="3 3" />
+            </g>
+          )}
+
+          {/* Item: Sabre Voltaico (⚔️) */}
+          {equippedCosmeticId === 'laser_blade' && (
+            <g className="weapon-anim-right" transform="translate(90, 85)">
+              <line x1="0" y1="10" x2="15" y2="-25" stroke="#eab308" strokeWidth="4" strokeLinecap="round" className="glow-path" />
+              <line x1="0" y1="10" x2="15" y2="-25" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+              <rect x="-4" y="6" width="8" height="3" fill="#334155" />
+            </g>
+          )}
+
+          {/* Item: Asas de Fênix Digital (🪶) */}
+          {equippedCosmeticId === 'cosmic_wings' && (
+            <g className="glow-path" opacity="0.9">
+              <g className="wing-left">
+                <path d="M 40,65 L 5,30 Q 15,60 25,75 Z" fill="rgba(168, 85, 247, 0.4)" stroke="#a855f7" strokeWidth="1.5" />
+              </g>
+              <g className="wing-right">
+                <path d="M 80,65 L 115,30 Q 105,60 95,75 Z" fill="rgba(168, 85, 247, 0.4)" stroke="#a855f7" strokeWidth="1.5" />
+              </g>
+            </g>
+          )}
+
+          {/* Item: Escudo Voxel (🛡️) */}
+          {equippedCosmeticId === 'pixel_shield' && (
+            <g className="weapon-anim" transform="translate(25, 92)">
+              <polygon points="0,-10 10,-5 10,8 0,13 -10,8 -10,-5" fill="rgba(34, 397, 94, 0.4)" stroke="#22c55e" strokeWidth="2" className="glow-path" />
+              <circle cx="0" cy="0" r="3" fill="#fff" />
+            </g>
+          )}
+
+          {/* Item: Capa da Nebulosa (🧥) */}
+          {equippedCosmeticId === 'nebula_cloak' && (
+            <path d="M 42,75 L 20,105 L 100,105 L 78,75 Z" fill="rgba(236, 72, 153, 0.3)" stroke="#ec4899" strokeWidth="1.5" className="glow-path" />
+          )}
+
+          {/* Item: Orbe Projetora (🔮) */}
+          {equippedCosmeticId === 'hologram_orb' && (
+            <g className="weapon-anim-right" transform="translate(92, 70)">
+              <circle cx="0" cy="0" r="6" fill="rgba(0, 255, 204, 0.6)" stroke="#00ffcc" strokeWidth="1.5" className="glow-path" />
+              <circle cx="0" cy="0" r="2" fill="#fff" />
+              <line x1="0" y1="6" x2="0" y2="15" stroke="rgba(0, 255, 204, 0.3)" strokeWidth="1" strokeDasharray="2 2" />
+            </g>
+          )}
+
+          {/* Item: Mochila de Fórmulas (🎒) */}
+          {equippedCosmeticId === 'math_backpack' && (
+            <g transform="translate(48, 75)">
+              <rect x="0" y="0" width="24" height="25" rx="4" fill="#64748b" stroke="#a1a1aa" strokeWidth="1.5" />
+              <rect x="4" y="6" width="16" height="12" rx="2" fill="#475569" />
+              <text x="12" y="15" textAnchor="middle" fontSize="8px" fill="#fff" fontWeight="bold">∑</text>
+            </g>
+          )}
+
+          {/* Item: Anel da Aurora (💍) */}
+          {equippedCosmeticId === 'aurora_ring' && (
+            <g className="weapon-anim" transform="translate(34, 92)">
+              <circle cx="0" cy="0" r="3" fill="none" stroke="#f97316" strokeWidth="1" />
+              <circle cx="0" cy="-3" r="2.5" fill="#fff" className="glow-path" />
+            </g>
+          )}
         </g>
       </svg>
     );

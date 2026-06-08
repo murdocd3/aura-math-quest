@@ -436,15 +436,31 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
 
 
-  const handleBuyCosmetic = (cosmeticId: string) => {
-    const updated = mockDb.buyCosmetic(playerUser.id, cosmeticId);
+  const handleBuyCosmetic = async (cosmeticId: string) => {
+    const cosmetic = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
+    if (!cosmetic) return;
+
+    if (gameState.gems < cosmetic.cost) {
+      audioEngine.playError();
+      alert('Gemas insuficientes para comprar este cosmético!');
+      return;
+    }
+
+    const purchased = gameState.purchasedCosmetics || [];
+    if (purchased.includes(cosmeticId)) return;
+
+    const updated = await backendService.updateGameState(playerUser.id, {
+      gems: gameState.gems - cosmetic.cost,
+      purchasedCosmetics: [...purchased, cosmeticId]
+    });
+
     if (updated) {
       audioEngine.playHatchSuccess();
       onStateUpdate(updated);
       refreshLeaderboard();
     } else {
       audioEngine.playError();
-      alert('Gemas insuficientes para comprar este cosmético!');
+      alert('Erro ao processar a compra do cosmético!');
     }
   };
 
