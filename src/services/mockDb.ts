@@ -78,6 +78,8 @@ export interface Clan {
   totalRebirths: number;
   level: number;
   xp: number;
+  leaderId: string;
+  joinRequests: string[];
 }
 
 export interface TradeListing {
@@ -1397,6 +1399,8 @@ export const mockDb = {
       clans[clanIndex].members = clans[clanIndex].members.filter(id => id !== userId);
       if (clans[clanIndex].members.length === 0) {
         clans.splice(clanIndex, 1);
+      } else if (clans[clanIndex].leaderId === userId) {
+        clans[clanIndex].leaderId = clans[clanIndex].members[0];
       }
       setStorageItem(STORAGE_KEYS.CLANS, clans);
     }
@@ -1427,7 +1431,9 @@ export const mockDb = {
       totalAuraLevel: state.auraLevel,
       totalRebirths: state.rebirths,
       level: 1,
-      xp: 0
+      xp: 0,
+      leaderId: userId,
+      joinRequests: []
     };
     
     const currentClans = this.getClans();
@@ -1454,6 +1460,58 @@ export const mockDb = {
         clan.level = 10;
         clan.xp = Math.min(clan.xp, nextLevelXp);
       }
+      setStorageItem(STORAGE_KEYS.CLANS, clans);
+    }
+  },
+
+  applyToClan(userId: string, clanId: string): void {
+    const clans = this.getClans();
+    const clan = clans.find(c => c.id === clanId);
+    if (clan && !clan.members.includes(userId) && (!clan.joinRequests || !clan.joinRequests.includes(userId))) {
+      clan.joinRequests = clan.joinRequests || [];
+      clan.joinRequests.push(userId);
+      setStorageItem(STORAGE_KEYS.CLANS, clans);
+    }
+  },
+
+  acceptApplication(leaderId: string, clanId: string, candidateId: string): void {
+    const clans = this.getClans();
+    const clan = clans.find(c => c.id === clanId);
+    if (clan && clan.leaderId === leaderId) {
+      clan.joinRequests = (clan.joinRequests || []).filter(id => id !== candidateId);
+      if (!clan.members.includes(candidateId)) {
+        clan.members.push(candidateId);
+      }
+      setStorageItem(STORAGE_KEYS.CLANS, clans);
+      this.updateGameState(candidateId, { clanId });
+    }
+  },
+
+  rejectApplication(leaderId: string, clanId: string, candidateId: string): void {
+    const clans = this.getClans();
+    const clan = clans.find(c => c.id === clanId);
+    if (clan && clan.leaderId === leaderId) {
+      clan.joinRequests = (clan.joinRequests || []).filter(id => id !== candidateId);
+      setStorageItem(STORAGE_KEYS.CLANS, clans);
+    }
+  },
+
+  kickMember(leaderId: string, clanId: string, targetId: string): void {
+    if (leaderId === targetId) return;
+    const clans = this.getClans();
+    const clan = clans.find(c => c.id === clanId);
+    if (clan && clan.leaderId === leaderId) {
+      clan.members = clan.members.filter(id => id !== targetId);
+      setStorageItem(STORAGE_KEYS.CLANS, clans);
+      this.updateGameState(targetId, { clanId: null });
+    }
+  },
+
+  transferLeadership(leaderId: string, clanId: string, targetId: string): void {
+    const clans = this.getClans();
+    const clan = clans.find(c => c.id === clanId);
+    if (clan && clan.leaderId === leaderId && clan.members.includes(targetId)) {
+      clan.leaderId = targetId;
       setStorageItem(STORAGE_KEYS.CLANS, clans);
     }
   },

@@ -51,7 +51,9 @@ import type { User, GameState, Pet, MathStatistic } from './mockDb';
  *   badge_emoji TEXT,
  *   members TEXT[] DEFAULT '{}',
  *   level INT DEFAULT 1,
- *   xp INT DEFAULT 0
+ *   xp INT DEFAULT 0,
+ *   leader_id TEXT,
+ *   join_requests TEXT[] DEFAULT '{}'
  * );
  * 
  * -- 3. Table: pets
@@ -741,7 +743,9 @@ export const backendService = {
             totalAuraLevel,
             totalRebirths,
             level: clan.level ?? 1,
-            xp: clan.xp ?? 0
+            xp: clan.xp ?? 0,
+            leaderId: clan.leader_id,
+            joinRequests: clan.join_requests || []
           };
         }).sort((a, b) => {
           if (b.totalRebirths !== a.totalRebirths) {
@@ -802,7 +806,11 @@ export const backendService = {
               // Delete clan if empty
               await supabase.from('clans').delete().eq('id', state.clanId);
             } else {
-              await supabase.from('clans').update({ members: membersList }).eq('id', state.clanId);
+              let updatePayload: any = { members: membersList };
+              if (clan.leader_id === userId) {
+                updatePayload.leader_id = membersList[0];
+              }
+              await supabase.from('clans').update(updatePayload).eq('id', state.clanId);
             }
           }
         }
@@ -832,7 +840,9 @@ export const backendService = {
           badge_emoji: badgeEmoji,
           members: [userId],
           level: 1,
-          xp: 0
+          xp: 0,
+          leader_id: userId,
+          join_requests: []
         });
 
         if (insertErr) throw insertErr;
@@ -844,6 +854,92 @@ export const backendService = {
       }
     }
     return mockDb.createClan(userId, name, tag, motto, badgeEmoji);
+  },
+
+  async applyToClan(userId: string, clanId: string): Promise<void> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('join_requests, members').eq('id', clanId);
+        if (data && data.length > 0) {
+          const clan = data[0];
+          if (!(clan.members || []).includes(userId) && !(clan.join_requests || []).includes(userId)) {
+            const newReqs = [...(clan.join_requests || []), userId];
+            await supabase.from('clans').update({ join_requests: newReqs }).eq('id', clanId);
+          }
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in applyToClan:', err);
+      }
+    }
+    mockDb.applyToClan(userId, clanId);
+  },
+
+  async acceptApplication(leaderId: string, clanId: string, candidateId: string): Promise<void> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('leader_id, join_requests, members').eq('id', clanId);
+        if (data && data.length > 0) {
+          const clan = data[0];
+          if (clan.leader_id === leaderId) {
+            const newReqs = (clan.join_requests || []).filter((id: string) => id !== candidateId);
+            const newMembers = [...(clan.members || [])];
+            if (!newMembers.includes(candidateId)) newMembers.push(candidateId);
+            
+            await supabase.from('clans').update({ join_requests: newReqs, members: newMembers }).eq('id', clanId);
+            await this.updateGameState(candidateId, { clanId });
+          }
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in acceptApplication:', err);
+      }
+    }
+    mockDb.acceptApplication(leaderId, clanId, candidateId);
+  },
+
+  async rejectApplication(leaderId: string, clanId: string, candidateId: string): Promise<void> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('leader_id, join_requests').eq('id', clanId);
+        if (data && data.length > 0 && data[0].leader_id === leaderId) {
+          const newReqs = (data[0].join_requests || []).filter((id: string) => id !== candidateId);
+          await supabase.from('clans').update({ join_requests: newReqs }).eq('id', clanId);
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in rejectApplication:', err);
+      }
+    }
+    mockDb.rejectApplication(leaderId, clanId, candidateId);
+  },
+
+  async kickMember(leaderId: string, clanId: string, targetId: string): Promise<void> {
+    if (leaderId === targetId) return;
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('leader_id, members').eq('id', clanId);
+        if (data && data.length > 0 && data[0].leader_id === leaderId) {
+          const newMembers = (data[0].members || []).filter((id: string) => id !== targetId);
+          await supabase.from('clans').update({ members: newMembers }).eq('id', clanId);
+          await this.updateGameState(targetId, { clanId: null });
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in kickMember:', err);
+      }
+    }
+    mockDb.kickMember(leaderId, clanId, targetId);
+  },
+
+  async transferLeadership(leaderId: string, clanId: string, targetId: string): Promise<void> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { data } = await supabase.from('clans').select('leader_id, members').eq('id', clanId);
+        if (data && data.length > 0 && data[0].leader_id === leaderId && (data[0].members || []).includes(targetId)) {
+          await supabase.from('clans').update({ leader_id: targetId }).eq('id', clanId);
+        }
+      } catch (err) {
+        console.error('[BackendService] Supabase error in transferLeadership:', err);
+      }
+    }
+    mockDb.transferLeadership(leaderId, clanId, targetId);
   },
 
   async addClanXp(clanId: string, amount: number): Promise<void> {

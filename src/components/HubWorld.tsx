@@ -221,18 +221,41 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleJoinClan = async (clanId: string, clanName: string) => {
-    audioEngine.playCorrect();
-    const updated = await backendService.joinClan(playerUser.id, clanId);
-    if (updated) {
-      onStateUpdate(updated);
+  const handleApplyToClan = async (clanId: string, clanName: string) => {
+    if (window.confirm(`Deseja se candidatar para entrar no clã ${clanName}?`)) {
+      audioEngine.playCorrect();
+      await backendService.applyToClan(playerUser.id, clanId);
       await loadClans();
-      setClanSuccess(`Você se juntou ao clã ${clanName}!`);
+      setClanSuccess(`Candidatura enviada para ${clanName}!`);
       setTimeout(() => setClanSuccess(null), 4000);
-    } else {
+    }
+  };
+
+  const handleAcceptApplication = async (clanId: string, candidateId: string) => {
+    audioEngine.playCorrect();
+    await backendService.acceptApplication(playerUser.id, clanId, candidateId);
+    await loadClans();
+  };
+
+  const handleRejectApplication = async (clanId: string, candidateId: string) => {
+    audioEngine.playError();
+    await backendService.rejectApplication(playerUser.id, clanId, candidateId);
+    await loadClans();
+  };
+
+  const handleKickMember = async (clanId: string, targetId: string) => {
+    if (window.confirm('Tem certeza que deseja expulsar este membro?')) {
       audioEngine.playError();
-      setClanError('Erro ao entrar no clã.');
-      setTimeout(() => setClanError(null), 4000);
+      await backendService.kickMember(playerUser.id, clanId, targetId);
+      await loadClans();
+    }
+  };
+
+  const handleTransferLeadership = async (clanId: string, targetId: string) => {
+    if (window.confirm('Tem certeza que deseja passar a liderança para este membro? Você voltará a ser um membro comum.')) {
+      audioEngine.playCorrect();
+      await backendService.transferLeadership(playerUser.id, clanId, targetId);
+      await loadClans();
     }
   };
 
@@ -1452,19 +1475,52 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                               {clanMembers.map(member => {
                                 const mState = mockDb.getGameState(member.id);
+                                const isLeader = myClan.leaderId === member.id;
                                 return (
-                                  <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '6px 8px', borderRadius: '4px', background: 'rgba(15, 23, 42, 0.4)' }}>
-                                    <span style={{ color: member.id === playerUser.id ? 'var(--neon-pink)' : '#fff', fontWeight: member.id === playerUser.id ? 800 : 500 }}>
-                                      {member.username} {member.id === playerUser.id ? '(Você)' : ''}
-                                    </span>
-                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>
-                                      Nvl Aura {mState?.auraLevel || 1} • ⭐ {mState?.rebirths || 0}
-                                    </span>
+                                  <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '6px 8px', borderRadius: '4px', background: 'rgba(15, 23, 42, 0.4)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      {isLeader && <span title="Líder do Clã">👑</span>}
+                                      <span style={{ color: member.id === playerUser.id ? 'var(--neon-pink)' : '#fff', fontWeight: member.id === playerUser.id ? 800 : 500 }}>
+                                        {member.username} {member.id === playerUser.id ? '(Você)' : ''}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                        Nvl Aura {mState?.auraLevel || 1} • ⭐ {mState?.rebirths || 0}
+                                      </span>
+                                      {myClan.leaderId === playerUser.id && member.id !== playerUser.id && (
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                          <button onClick={() => handleTransferLeadership(myClan.id, member.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }} title="Promover a Líder">👑</button>
+                                          <button onClick={() => handleKickMember(myClan.id, member.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }} title="Expulsar">👢</button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
                           </div>
+
+                          {myClan.leaderId === playerUser.id && (myClan.joinRequests?.length || 0) > 0 && (
+                            <div style={{ marginBottom: '16px', background: 'rgba(234, 179, 8, 0.05)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '12px', borderRadius: '8px' }}>
+                              <h5 style={{ fontSize: '0.85rem', color: 'var(--neon-yellow)', marginBottom: '8px' }}>👑 Candidaturas Pendentes:</h5>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                {myClan.joinRequests.map((reqId: string) => {
+                                  const user = mockDb.getUsers().find(u => u.id === reqId);
+                                  if (!user) return null;
+                                  return (
+                                    <div key={reqId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '4px' }}>
+                                      <span style={{ fontSize: '0.8rem', color: '#fff' }}>{user.username}</span>
+                                      <div style={{ display: 'flex', gap: '6px' }}>
+                                        <button onClick={() => handleAcceptApplication(myClan.id, reqId)} style={{ background: 'var(--neon-cyan)', color: '#000', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Aceitar</button>
+                                        <button onClick={() => handleRejectApplication(myClan.id, reqId)} style={{ background: 'var(--neon-pink)', color: '#fff', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Recusar</button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
 
                           <button
                             className="cyber-btn cyber-btn-pink"
@@ -1574,10 +1630,11 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                             {(!gameState.clanId || !clansList.some(c => c.id === gameState.clanId)) && !isMyClan && (
                               <button
                                 className="cyber-btn"
-                                onClick={() => handleJoinClan(clan.id, clan.name)}
-                                style={{ padding: '4px 8px', fontSize: '0.7rem', height: '24px' }}
+                                onClick={() => handleApplyToClan(clan.id, clan.name)}
+                                disabled={(clan.joinRequests || []).includes(playerUser.id)}
+                                style={{ padding: '4px 8px', fontSize: '0.7rem', height: '24px', opacity: (clan.joinRequests || []).includes(playerUser.id) ? 0.5 : 1 }}
                               >
-                                Juntar-se 🤝
+                                {(clan.joinRequests || []).includes(playerUser.id) ? 'Pendente ⏳' : 'Candidatar-se 📝'}
                               </button>
                             )}
                           </div>
