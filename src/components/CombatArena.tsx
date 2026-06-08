@@ -234,6 +234,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
   // Input states
   const [textAnswer, setTextAnswer] = useState('');
+  const [screenReaderAnnouncement, setScreenReaderAnnouncement] = useState('');
   
   // Timer states
   const [timeLeft, setTimeLeft] = useState(timeLimit);
@@ -721,6 +722,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     mockDb.recordMathAnswer(userId, currentQuestion.key, isCorrect, timeTakenMs);
 
     if (isCorrect) {
+      setScreenReaderAnnouncement(`Correto! Resposta ${submittedValue} é a resposta para a conta. Você atacou o monstro!`);
       setCurrentStreak(prev => {
         const next = prev + 1;
         setMaxStreak(curr => Math.max(curr, next));
@@ -798,6 +800,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         nextQuestion();
       }
     } else {
+      setScreenReaderAnnouncement(`Incorreto! A resposta correta era ${currentQuestion.answer}. Você levou um de dano.`);
       setCurrentStreak(0);
       vfxCanvasRef.current?.fireProjectile('monster', () => {
         vfxCanvasRef.current?.triggerExplosion('player', 'error');
@@ -943,6 +946,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       } else if (/^[0-9]$/.test(e.key)) {
         if (textAnswer.length < 4) {
           setTextAnswer(prev => prev + e.key);
+        }
+      } else if (['q', 'w', 'e', 'r'].includes(e.key.toLowerCase())) {
+        const idx = ['q', 'w', 'e', 'r'].indexOf(e.key.toLowerCase());
+        if (currentQuestion && currentQuestion.choices && currentQuestion.choices[idx] !== undefined) {
+          handleAnswerSubmit(currentQuestion.choices[idx]);
         }
       }
     };
@@ -1974,6 +1982,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
           </div>
         </div>
       )}
+
+      {/* Accessibility screen reader announcements */}
+      <div aria-live="assertive" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', border: 0 }}>
+        {screenReaderAnnouncement}
+      </div>
 
     </div>
   );

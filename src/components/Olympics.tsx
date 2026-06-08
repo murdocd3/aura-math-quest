@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { audioEngine } from './AudioEngine';
 import type { GameState } from '../services/mockDb';
 
@@ -163,6 +163,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [isReTrainingMode, setIsReTrainingMode] = useState<boolean>(false);
   const [reTrainingIndex, setReTrainingIndex] = useState<number>(0);
+  const [screenReaderAnnouncement, setScreenReaderAnnouncement] = useState<string>('');
   
   // Dynamic Score Tracking state (0-100 scale for each of the 10 skills)
   const [scores, setScores] = useState<Record<string, number>>(() => {
@@ -219,12 +220,14 @@ export const Olympics: React.FC<OlympicsProps> = ({
     if (correct) {
       audioEngine.playHatchSuccess();
       setStreakCount(prev => prev + 1);
+      setScreenReaderAnnouncement(`Correto! Você acertou a resposta da questão olímpica.`);
       if (isReTrainingMode) {
         removeWrongQuestion(gameState.userId, activeQuestion.question);
       }
     } else {
       audioEngine.playError();
       setStreakCount(0);
+      setScreenReaderAnnouncement(`Incorreto. A resposta certa era ${activeQuestion.answer}.`);
       if (!isReTrainingMode) {
         saveWrongQuestion(gameState.userId, activeQuestion);
       }
@@ -302,10 +305,34 @@ export const Olympics: React.FC<OlympicsProps> = ({
     setSelectedOption(null);
     setAnswerSubmitted(false);
     setQuestionStartTime(Date.now());
+    setScreenReaderAnnouncement('');
   };
 
+  // Keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['1', '2', '3', '4'].includes(e.key)) {
+        if (!answerSubmitted) {
+          const idx = parseInt(e.key) - 1;
+          if (activeQuestion.options[idx]) {
+            handleOptionSelect(activeQuestion.options[idx]);
+          }
+        }
+      } else if (e.key === 'Enter') {
+        if (selectedOption && !answerSubmitted) {
+          handleSubmit();
+        } else if (answerSubmitted) {
+          handleNext();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedOption, answerSubmitted, activeQuestion, isCorrect]);
+
   // Generate SVG Radar Chart Points
-  const renderRadarChart = () => {
+  const radarChart = useMemo(() => {
     const size = 300;
     const center = size / 2;
     const radius = 100;
@@ -323,7 +350,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
     const polygonPath = points.map(p => `${p.x},${p.y}`).join(' ');
 
     return (
-      <svg width="100%" height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
+      <svg width="100%" height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }} aria-label="Gráfico radar de competências de matemática">
         {/* Draw background concentric rings */}
         {[20, 40, 60, 80, 100].map((val, idx) => {
           const r = (val / 100) * radius;
@@ -392,7 +419,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
         })}
       </svg>
     );
-  };
+  }, [scores]);
 
   // Identify Strengths and Weaknesses
   const sortedScores = Object.entries(scores).sort((a, b) => b[1] - a[1]);
@@ -415,7 +442,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
     <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', minHeight: '95vh', color: '#fff' }}>
       
       {/* Header Panel */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px' }}>
         <div>
           <h1 className="text-glow-yellow" style={{ fontSize: '1.8rem', color: 'var(--neon-yellow)', margin: 0 }}>
             🏆 As Olimpíadas dos Deuses (Módulo Avançado)
@@ -424,13 +451,13 @@ export const Olympics: React.FC<OlympicsProps> = ({
             Simulador Oficial de Habilidades Matemáticas & Diagnóstico OBMEP
           </p>
         </div>
-        <button className="cyber-btn cyber-btn-pink" onClick={onBack} style={{ padding: '8px 16px' }}>
+        <button className="cyber-btn cyber-btn-pink" onClick={onBack} style={{ padding: '8px 16px' }} aria-label="Voltar para o hub do jogo">
           Voltar ao Hub
         </button>
-      </div>
+      </header>
 
       {/* Mode Selection Toggle for Re-Treino */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+      <nav aria-label="Modo de Jogo das Olimpíadas" style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
         <button
           className="cyber-btn"
           onClick={() => {
@@ -438,6 +465,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
             setSelectedOption(null);
             setAnswerSubmitted(false);
           }}
+          aria-pressed={!isReTrainingMode}
           style={{
             padding: '8px 16px',
             borderColor: !isReTrainingMode ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
@@ -462,6 +490,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
             setSelectedOption(null);
             setAnswerSubmitted(false);
           }}
+          aria-pressed={isReTrainingMode}
           style={{
             padding: '8px 16px',
             borderColor: isReTrainingMode ? 'var(--neon-purple)' : 'rgba(255,255,255,0.1)',
@@ -474,12 +503,12 @@ export const Olympics: React.FC<OlympicsProps> = ({
         >
           📖 Caderno de Re-Treino ({getWrongQuestions(gameState.userId).length})
         </button>
-      </div>
+      </nav>
 
-      <div className="main-layout-grid">
+      <main className="main-layout-grid">
         
         {/* Left Column: Active Question */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <section aria-label="Questão de Teste" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           <div className="cyber-card" style={{ borderColor: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', minHeight: '430px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: isReTrainingMode ? '0 0 15px rgba(168, 85, 247, 0.15)' : 'none' }}>
             
@@ -501,11 +530,11 @@ export const Olympics: React.FC<OlympicsProps> = ({
                 </span>
               </div>
 
-              <h3 style={{ fontSize: '1.15rem', lineHeight: '1.6rem', color: '#fff', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '1.15rem', lineHeight: '1.6rem', color: '#fff', marginBottom: '20px' }}>
                 {activeQuestion.question}
-              </h3>
+              </h2>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} role="group" aria-label="Opções de Resposta">
                 {activeQuestion.options.map((option, idx) => {
                   const isSelected = selectedOption === option;
                   let optionColor = 'rgba(255, 255, 255, 0.05)';
@@ -530,6 +559,8 @@ export const Olympics: React.FC<OlympicsProps> = ({
                       key={idx}
                       disabled={answerSubmitted}
                       onClick={() => handleOptionSelect(option)}
+                      aria-label={`Opção ${idx + 1}: ${option}`}
+                      aria-pressed={isSelected}
                       style={{
                         width: '100%',
                         textAlign: 'left',
@@ -543,6 +574,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
                         transition: 'all 0.2s',
                       }}
                     >
+                      <span style={{ marginRight: '8px', opacity: 0.5 }}>[{idx + 1}]</span>
                       {option}
                     </button>
                   );
@@ -614,10 +646,10 @@ export const Olympics: React.FC<OlympicsProps> = ({
             )}
           </div>
 
-        </div>
+        </section>
 
         {/* Right Column: Radar Chart & RPG Specializations list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <section aria-label="Diagnóstico de Habilidades" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Radar Chart Display */}
           <div className="cyber-card" style={{ borderColor: 'var(--neon-cyan)', textAlign: 'center' }}>
@@ -625,7 +657,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
               🕸️ Gráfico de Aranha de Competências
             </h3>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              {renderRadarChart()}
+              {radarChart}
             </div>
             
             {/* diagnostic pointers */}
@@ -686,8 +718,22 @@ export const Olympics: React.FC<OlympicsProps> = ({
             </div>
           </div>
 
-        </div>
+        </section>
 
+      </main>
+
+      {/* Screen Reader live announcer container */}
+      <div style={{
+        position: 'absolute',
+        width: '1px',
+        height: '1px',
+        padding: '0',
+        margin: '-1px',
+        overflow: 'hidden',
+        clip: 'rect(0, 0, 0, 0)',
+        border: '0'
+      }} aria-live="assertive">
+        {screenReaderAnnouncement}
       </div>
 
     </div>

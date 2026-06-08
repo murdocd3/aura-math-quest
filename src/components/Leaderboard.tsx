@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, memo } from 'react';
 import { CyberSprite } from './CyberSprite';
 import { COSMETIC_ITEMS } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
@@ -28,7 +28,7 @@ interface LeaderboardProps {
   currentUsername: string;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ entries, currentUsername }) => {
+export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername }) => {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   const getRankBadge = (index: number) => {
@@ -338,4 +338,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ entries, currentUserna
       </div>
     </div>
   );
-};
+});
+
+Leaderboard.displayName = 'Leaderboard';
