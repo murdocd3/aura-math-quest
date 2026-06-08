@@ -33,16 +33,61 @@ class AudioEngine {
     return this.isMuted;
   }
 
-  public startSoundtrack() {
+  private currentTheme: 'hub' | 'combat' | 'pet_shop' = 'hub';
+
+  public startSoundtrack(theme: 'hub' | 'combat' | 'pet_shop' = 'hub') {
     if (this.isMuted) return;
-    if (this.soundtrackInterval) return;
+    
+    // If we are already playing this exact theme, do nothing
+    if (this.soundtrackInterval && this.currentTheme === theme) return;
+    
+    // Stop any currently running soundtrack first
+    this.stopSoundtrack();
+    
+    this.currentTheme = theme;
     
     try {
       this.initContext();
       this.soundtrackStep = 0;
       
-      const bassProgression = [130.81, 130.81, 155.56, 155.56, 196.00, 196.00, 174.61, 174.61]; // C3, C3, Eb3, Eb3, G3, G3, F3, F3
-      const melodyProgression = [261.63, 0, 392.00, 0, 466.16, 0, 392.00, 349.23]; // C4, _, G4, _, Bb4, _, G4, F4
+      let bassProgression: number[] = [];
+      let melodyProgression: number[] = [];
+      let tempo = 800; // ms per step
+      let bassWave: OscillatorType = 'triangle';
+      let melodyWave: OscillatorType = 'sine';
+      let bassVolume = 0.03;
+      let melodyVolume = 0.015;
+
+      if (theme === 'combat') {
+        // High energy, tense combat theme: faster tempo, sawtooth bass, minor scale progression
+        // Progression in A minor (A2, C3, D3, F3)
+        bassProgression = [110.00, 110.00, 130.81, 130.81, 146.83, 146.83, 174.61, 164.81]; // A2, A2, C3, C3, D3, D3, F3, E3
+        melodyProgression = [220.00, 261.63, 293.66, 329.63, 392.00, 329.63, 293.66, 261.63]; // A3, C4, D4, E4, G4, E4, D4, C4
+        tempo = 320; // Fast and adrenaline-filled!
+        bassWave = 'sawtooth';
+        melodyWave = 'triangle';
+        bassVolume = 0.02;
+        melodyVolume = 0.012;
+      } else if (theme === 'pet_shop') {
+        // Playful, cute, bubbly pet shop theme: warm sine waves, major/pentatonic happy progression
+        // Progression in F major (F3, A3, Bb3, C4)
+        bassProgression = [174.61, 0, 220.00, 0, 233.08, 0, 261.63, 0]; // F3, _, A3, _, Bb3, _, C4, _
+        melodyProgression = [349.23, 440.00, 523.25, 587.33, 523.25, 440.00, 349.23, 0]; // F4, A4, C5, D5, C5, A4, F4, _
+        tempo = 480; // Moderate, bouncy tempo
+        bassWave = 'sine';
+        melodyWave = 'sine';
+        bassVolume = 0.05;
+        melodyVolume = 0.025;
+      } else {
+        // Standard hub theme: calm, mysterious, exploratory
+        bassProgression = [130.81, 130.81, 155.56, 155.56, 196.00, 196.00, 174.61, 174.61]; // C3, C3, Eb3, Eb3, G3, G3, F3, F3
+        melodyProgression = [261.63, 0, 392.00, 0, 466.16, 0, 392.00, 349.23]; // C4, _, G4, _, Bb4, _, G4, F4
+        tempo = 800; // Slow, relaxed pace
+        bassWave = 'triangle';
+        melodyWave = 'sine';
+        bassVolume = 0.035;
+        melodyVolume = 0.015;
+      }
       
       this.soundtrackInterval = setInterval(() => {
         if (this.isMuted) return;
@@ -52,17 +97,18 @@ class AudioEngine {
         const melodyFreq = melodyProgression[idx];
         
         // Play bass note
-        this.playTone([bassFreq], [0.75], 'triangle', [0.03, 0]);
+        if (bassFreq > 0) {
+          this.playTone([bassFreq], [tempo / 1000], bassWave, [bassVolume, 0]);
+        }
         
         // Play melody note if any
         if (melodyFreq > 0) {
-          this.playTone([melodyFreq], [0.35], 'sine', [0.015, 0]);
+          this.playTone([melodyFreq], [tempo / 2000], melodyWave, [melodyVolume, 0]);
         }
         
         this.soundtrackStep++;
-      }, 800);
+      }, tempo);
       
-      // No-op for soundtrack state
     } catch (e) {
       console.warn('Soundtrack failed to start:', e);
     }
@@ -73,7 +119,6 @@ class AudioEngine {
       clearInterval(this.soundtrackInterval);
       this.soundtrackInterval = null;
     }
-      // No-op for soundtrack state
   }
 
   private playTone(

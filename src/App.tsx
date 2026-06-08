@@ -26,9 +26,23 @@ function App() {
     seedDatabase();
   }, []);
 
+  // Sync screen changes to correct dynamic AudioEngine soundtrack theme
+  useEffect(() => {
+    if (user && screen !== 'login' && screen !== 'admin') {
+      if (screen === 'combat' || screen === 'runner') {
+        audioEngine.startSoundtrack('combat');
+      } else if (screen === 'pet_shop') {
+        audioEngine.startSoundtrack('pet_shop');
+      } else {
+        audioEngine.startSoundtrack('hub');
+      }
+    } else {
+      audioEngine.stopSoundtrack();
+    }
+  }, [screen, user]);
+
   const handleLoginSuccess = async (loggedInUser: User) => {
     setUser(loggedInUser);
-    audioEngine.startSoundtrack(); // Inicia trilha sonora com a interação
     
     // Sync data from Supabase to LocalStorage if connected
     if (backendService.isCloudConnected()) {
