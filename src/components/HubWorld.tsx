@@ -1357,9 +1357,30 @@ export const HubWorld: React.FC<HubWorldProps> = ({
               <h3 className="text-glow-purple" style={{ fontSize: '1.4rem', marginBottom: '10px', color: 'var(--neon-purple)' }}>
                 🔮 Sistema de Classes e Talentos RPG
               </h3>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
                 Escolha a sua classe heroica para ganhar vantagens especiais em combate! Consiga <strong>Pontos de Rebirth (1 por Rebirth)</strong> para comprar talentos passivos e potencializar seus poderes de matemática.
               </p>
+
+              {/* Explanatory Banner */}
+              <div style={{
+                background: 'rgba(168, 85, 247, 0.08)',
+                border: '1px dashed rgba(168, 85, 247, 0.3)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                fontSize: '0.85rem',
+                lineHeight: '1.45rem',
+                textAlign: 'left'
+              }}>
+                <strong style={{ color: '#c084fc', display: 'block', fontSize: '0.9rem', marginBottom: '6px', textShadow: '0 0 6px rgba(168,85,247,0.4)' }}>
+                  🔮 Como Funcionam as Classes e Rebirth?
+                </strong>
+                1. <strong>Escolha de Classe:</strong> Ao escolher uma classe (Guerreiro, Chronomancer ou Alquimista), você ativa uma habilidade passiva permanente que ajuda significativamente nas batalhas na Arena.
+                <br />
+                2. <strong>Rebirth (Renascimento):</strong> Ao realizar um Rebirth na tela de Perfil, seu nível de Aura volta para o 1, mas você ganha <strong>★ Estrelas de Rebirth</strong> e <strong>Pontos de Talento</strong>!
+                <br />
+                3. <strong>Árvore de Talentos:</strong> Gaste seus Pontos de Talento abaixo para desbloquear habilidades adicionais que aumentam multiplicadores de XP e o poder de seus acertos críticos.
+              </div>
 
               {rpgSuccess && (
                 <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', marginBottom: '16px' }}>
@@ -1529,9 +1550,30 @@ export const HubWorld: React.FC<HubWorldProps> = ({
               <h3 className="text-glow-pink" style={{ fontSize: '1.4rem', marginBottom: '10px', color: 'var(--neon-pink)' }}>
                 🛡️ Alianças e Clãs Estudantis
               </h3>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
                 Una forças com seus colegas de classe! Crie ou entre em um clã de matemática para acumular pontos coletivos e dominar os rankings escolares da gincana!
               </p>
+
+              {/* Explanatory Banner */}
+              <div style={{
+                background: 'rgba(244, 63, 94, 0.08)',
+                border: '1px dashed rgba(244, 63, 94, 0.3)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                fontSize: '0.85rem',
+                lineHeight: '1.45rem',
+                textAlign: 'left'
+              }}>
+                <strong style={{ color: '#f43f5e', display: 'block', fontSize: '0.9rem', marginBottom: '6px', textShadow: '0 0 6px rgba(244,63,94,0.4)' }}>
+                  🛡️ Como a Cooperação em Clãs ajuda a Evoluir?
+                </strong>
+                1. <strong>Participação:</strong> Crie seu próprio clã por 50 gemas ou candidate-se a um clã existente para começar a colaborar.
+                <br />
+                2. <strong>Bônus de Clã:</strong> Cada nível alcançado pelo clã concede um <strong>Multiplicador de XP e Gemas (+2% por nível)</strong> permanente a todos os seus membros!
+                <br />
+                3. <strong>Evolução Coletiva:</strong> Acumule pontos jogando e vencendo desafios na Arena para evoluir o nível do clã e conquistar os rankings gerais.
+              </div>
 
               {clanSuccess && (
                 <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', marginBottom: '16px' }}>

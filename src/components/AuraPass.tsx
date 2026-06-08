@@ -339,9 +339,30 @@ export const AuraPass: React.FC<AuraPassProps> = ({
   return (
     <div className="cyber-card" style={{ borderColor: '#a855f7', boxShadow: '0 0 15px rgba(168,85,247,0.1)' }}>
       <h3 style={{ fontSize: '1.4rem', marginBottom: '8px', color: '#fff', textAlign: 'center' }}>🌌 Passe de Aura Sazonal (Temporada 1)</h3>
-      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '24px' }}>
+      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '20px' }}>
         Acumule XP de Passe resolvendo desafios matemáticos e resgate recompensas lendárias.
       </p>
+
+      {/* Explanatory Banner */}
+      <div style={{
+        background: 'rgba(168, 85, 247, 0.08)',
+        border: '1px dashed rgba(168, 85, 247, 0.3)',
+        padding: '12px 16px',
+        borderRadius: '8px',
+        marginBottom: '20px',
+        fontSize: '0.85rem',
+        lineHeight: '1.45rem',
+        textAlign: 'left'
+      }}>
+        <strong style={{ color: '#c084fc', display: 'block', fontSize: '0.9rem', marginBottom: '6px', textShadow: '0 0 6px rgba(168,85,247,0.4)' }}>
+          🌌 Como Funciona o Passe de Aura?
+        </strong>
+        1. <strong>Ganhar XP de Passe:</strong> Conclua as Missões de Passe abaixo para subir de nível e acumular XP.
+        <br />
+        2. <strong>Fila de Recompensas:</strong> Conforme acumula XP, você alcança novos tiers. A linha superior é <strong>Grátis</strong> para todos; a linha inferior é <strong>Elite/Premium</strong> (desbloqueada com o Passe Elite).
+        <br />
+        3. <strong>Passe Elite:</strong> Custa 50 gemas de matemática e libera prêmios premium adicionais, como cosméticos lendários e gemas extras!
+      </div>
 
       {/* Progress & Elite purchase */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px', background: 'rgba(15,23,42,0.6)', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
