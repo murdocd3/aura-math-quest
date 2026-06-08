@@ -609,13 +609,14 @@ export const backendService = {
           // Level up logic calculation
           let level = state.auraLevel;
           let xp = state.auraXp + xpReward;
-          let nextLevelXp = level * 100;
+          const getXpNeeded = (l: number) => Math.round(100 * Math.pow(1.15, l - 1));
+          let nextLevelXp = getXpNeeded(level);
           let leveledUp = false;
 
           while (xp >= nextLevelXp) {
             xp -= nextLevelXp;
             level += 1;
-            nextLevelXp = level * 100;
+            nextLevelXp = getXpNeeded(level);
             leveledUp = true;
           }
 
@@ -933,8 +934,9 @@ export const backendService = {
 
           return { bossHp, bossMaxHp, bossLevel, defeated, rewardGems };
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in damageClanBoss:', err);
+        alert('Erro no Banco de Dados (Supabase - Chefão de Clã):\n' + (err.message || JSON.stringify(err)) + '\n\nO progresso do clã foi salvo apenas offline.');
       }
     }
     return mockDb.damageClanBoss(userId, clanId, amount);
@@ -951,8 +953,9 @@ export const backendService = {
             await supabase.from('clans').update({ join_requests: newReqs }).eq('id', clanId);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in applyToClan:', err);
+        alert('Erro no Banco de Dados (Supabase - Candidatar-se ao Clã):\n' + (err.message || JSON.stringify(err)));
       }
     }
     mockDb.applyToClan(userId, clanId);
@@ -973,8 +976,9 @@ export const backendService = {
             await this.updateGameState(candidateId, { clanId });
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in acceptApplication:', err);
+        alert('Erro no Banco de Dados (Supabase - Aceitar Membro):\n' + (err.message || JSON.stringify(err)));
       }
     }
     mockDb.acceptApplication(leaderId, clanId, candidateId);
@@ -988,8 +992,9 @@ export const backendService = {
           const newReqs = (data[0].join_requests || []).filter((id: string) => id !== candidateId);
           await supabase.from('clans').update({ join_requests: newReqs }).eq('id', clanId);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in rejectApplication:', err);
+        alert('Erro no Banco de Dados (Supabase - Recusar Membro):\n' + (err.message || JSON.stringify(err)));
       }
     }
     mockDb.rejectApplication(leaderId, clanId, candidateId);
@@ -1005,8 +1010,9 @@ export const backendService = {
           await supabase.from('clans').update({ members: newMembers }).eq('id', clanId);
           await this.updateGameState(targetId, { clanId: null });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in kickMember:', err);
+        alert('Erro no Banco de Dados (Supabase - Expulsar Membro):\n' + (err.message || JSON.stringify(err)));
       }
     }
     mockDb.kickMember(leaderId, clanId, targetId);
@@ -1019,8 +1025,9 @@ export const backendService = {
         if (data && data.length > 0 && data[0].leader_id === leaderId && (data[0].members || []).includes(targetId)) {
           await supabase.from('clans').update({ leader_id: targetId }).eq('id', clanId);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in transferLeadership:', err);
+        alert('Erro no Banco de Dados (Supabase - Promover Líder):\n' + (err.message || JSON.stringify(err)));
       }
     }
     mockDb.transferLeadership(leaderId, clanId, targetId);
@@ -1045,8 +1052,9 @@ export const backendService = {
           }
           await supabase.from('clans').update({ level, xp }).eq('id', clanId);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendService] Supabase error in addClanXp:', err);
+        alert('Erro no Banco de Dados (Supabase - Sincronizar XP do Clã):\n' + (err.message || JSON.stringify(err)));
       }
     }
     mockDb.addClanXp(clanId, amount);

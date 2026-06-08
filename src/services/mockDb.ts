@@ -1831,13 +1831,14 @@ export const mockDb = {
     if (updated) {
       let level = updated.auraLevel;
       let xp = updated.auraXp;
-      let nextLevelXp = level * 100;
+      const getXpNeeded = (l: number) => Math.round(100 * Math.pow(1.15, l - 1));
+      let nextLevelXp = getXpNeeded(level);
       let leveledUp = false;
 
       while (xp >= nextLevelXp) {
         xp -= nextLevelXp;
         level += 1;
-        nextLevelXp = level * 100;
+        nextLevelXp = getXpNeeded(level);
         leveledUp = true;
       }
 
