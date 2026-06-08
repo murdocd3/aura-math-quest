@@ -633,13 +633,13 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       )}
 
       {/* Main Content Layout: Profile & Map Select (Left) vs Leaderboard (Right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
+      <div className="main-layout-grid">
         
         {/* Left Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Player Profile & Avatar Showcase */}
-          <div className="cyber-card" style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '24px', position: 'relative' }}>
+          <div className="cyber-card profile-card-grid">
             
             {/* Avatar Canvas */}
             <div
@@ -1460,7 +1460,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   </div>
 
                   <h4 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '12px' }}>🌳 Árvore de Talentos da Classe:</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="grid-cols-2">
                     {SKILL_TREE.filter(s => s.classId === gameState.classId).map(skill => {
                       const isUnlocked = (gameState.unlockedSkills || []).includes(skill.id);
                       const spent = (gameState.unlockedSkills || []).reduce((acc, sid) => {
@@ -2069,7 +2069,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                       <h4 style={{ fontSize: '1.05rem', color: 'var(--neon-cyan)', marginBottom: '12px', borderBottom: '1px solid rgba(0, 255, 204, 0.2)', paddingBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                         {categoryNames[cat] || cat}
                       </h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="grid-cols-2">
                         {itemsInCat.map(item => {
                           const purchased = gameState.purchasedCosmetics || [];
                           const isOwned = purchased.includes(item.id);

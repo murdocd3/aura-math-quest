@@ -476,7 +476,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '24px' }}>
+      <div className="main-layout-grid">
         
         {/* Left Column: Active Question */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

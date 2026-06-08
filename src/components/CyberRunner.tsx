@@ -676,13 +676,13 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         </div>
 
         {/* 2D Canvas View */}
-        <div style={{ position: 'relative', width: '800px', height: '200px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '800px', height: 'auto', aspectRatio: '4/1', margin: '0 auto', overflow: 'hidden', borderRadius: '8px' }}>
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
             onClick={handleCanvasClick}
-            style={{ display: 'block', cursor: 'pointer' }}
+            style={{ display: 'block', width: '100%', height: '100%', cursor: 'pointer' }}
           />
 
           {/* GameOver overlay */}

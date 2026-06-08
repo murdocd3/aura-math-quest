@@ -1115,7 +1115,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
           <div className={screenShake ? 'animate-shake' : ''} style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Top Panel: HP Bars */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div className="grid-cols-2">
               
               {/* Player Shields as RAM memory slots */}
               <div
@@ -1597,7 +1597,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
               </div>
 
             {/* Answer Control Modes: Multiple Choice (L) vs Numerical Keyboard (R) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', width: '100%' }}>
+             <div className="main-layout-grid" style={{ width: '100%' }}>
               
               {/* Multiple Choice Card */}
               <div>

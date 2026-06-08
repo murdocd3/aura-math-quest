@@ -784,7 +784,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div className="grid-cols-2">
             {/* Left Card: Training challenges */}
             <div className="cyber-card" style={{ borderColor: '#ea580c', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
@@ -909,7 +909,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div className="grid-cols-2">
             {/* Left Card: Send Pet on Expedition */}
             <div className="cyber-card" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
@@ -1049,7 +1049,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div className="grid-cols-2">
         
         {/* Left Side: Eggs */}
         {activeTab === 'hatch' && (
