@@ -80,6 +80,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const [xpGained, setXpGained] = useState<number>(0);
   const [gemsGained, setGemsGained] = useState<number>(0);
   const [questionsSolved, setQuestionsSolved] = useState<number>(0);
+  const [hudQuestion, setHudQuestion] = useState<RunnerQuestion | null>(null);
 
   // Active power-up states for the UI HUD
   const [hudMagnetActive, setHudMagnetActive] = useState<boolean>(false);
@@ -272,7 +273,9 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   // Main Canvas Loop
   useEffect(() => {
     // Generate first question
-    currentQuestionRef.current = generateRunnerQuestion();
+    const firstQ = generateRunnerQuestion();
+    currentQuestionRef.current = firstQ;
+    setHudQuestion(firstQ);
 
     // Spawn initial stars
     const initialStars: Star[] = [];
@@ -407,8 +410,9 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       const timeSinceGate = time - lastGateTime.current;
       const timeSinceCollectible = time - lastCollectibleTime.current;
 
-      // Spawn obstacle spikes every 3 seconds (if no gate is immediately spawning)
-      if (elapsed > 3000 && timeSinceGate < 7000) {
+      // Spawn obstacle spikes every 3 seconds if no gate is nearby
+      const isAnyGateClose = gatesRef.current.some(gate => Math.abs(gate.x - (CANVAS_WIDTH + 20)) < 350);
+      if (elapsed > 3000 && !isAnyGateClose && timeSinceGate < 7000) {
         const lane = Math.floor(Math.random() * 3);
         obstaclesRef.current.push({
           id: Math.random().toString(36).substring(2, 9),
@@ -421,14 +425,25 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         lastSpawnTime.current = time;
       }
 
-      // Spawn Question Gates every 10 seconds
+      // Spawn Question Gates every 10 seconds (using the pre-generated HUD question)
       if (timeSinceGate > 10000 || lastGateTime.current === 0) {
-        const nextQ = generateRunnerQuestion();
-        currentQuestionRef.current = nextQ;
+        const activeQ = currentQuestionRef.current || generateRunnerQuestion();
+        currentQuestionRef.current = activeQ;
+        setHudQuestion(activeQ);
+
+        // Filter out any obstacles that are too close to the new gate's X position in the correct lane
+        obstaclesRef.current = obstaclesRef.current.filter(obs => {
+          const distance = Math.abs(obs.x - (CANVAS_WIDTH + 100));
+          if (obs.lane === activeQ.correctLane && distance < 350) {
+            return false;
+          }
+          return true;
+        });
+
         gatesRef.current.push({
           id: Math.random().toString(36).substring(2, 9),
           x: CANVAS_WIDTH + 100,
-          question: nextQ,
+          question: activeQ,
           passed: false,
         });
         lastGateTime.current = time;
@@ -694,13 +709,13 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         LANES.forEach((laneY, laneIdx) => {
           const answerVal = gate.question.choices[laneIdx];
           
-          // Gate frame
-          ctx.strokeStyle = laneIdx === gate.question.correctLane ? 'var(--neon-cyan)' : 'var(--neon-purple)';
+          // Gate frame (all are uniform to prevent visual hints)
+          ctx.strokeStyle = 'var(--neon-purple)';
           ctx.lineWidth = 4;
           ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
           ctx.save();
           ctx.shadowBlur = 8;
-          ctx.shadowColor = laneIdx === gate.question.correctLane ? '#00ffcc' : '#a855f7';
+          ctx.shadowColor = '#a855f7';
 
           // Render Gate block
           ctx.fillRect(gate.x, laneY - 20, 45, 40);
@@ -727,6 +742,11 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           } else {
             handleCollisionDamage('Resposta Errada!');
           }
+
+          // Generate next question immediately to show on HUD
+          const nextQ = generateRunnerQuestion();
+          currentQuestionRef.current = nextQ;
+          setHudQuestion(nextQ);
         }
 
         // Clean up
@@ -994,7 +1014,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           </div>
 
           {/* Active Math Question */}
-          {currentQuestionRef.current && !gameOver && (
+          {hudQuestion && !gameOver && (
             <div
               style={{
                 fontFamily: 'Share Tech Mono',
@@ -1008,7 +1028,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
                 border: '1px solid rgba(0, 255, 204, 0.2)',
               }}
             >
-              {currentQuestionRef.current.num1} {opSym} {currentQuestionRef.current.num2} = ?
+              {hudQuestion.num1} {opSym} {hudQuestion.num2} = ?
             </div>
           )}
 
