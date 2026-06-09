@@ -1679,6 +1679,138 @@ export const mockDb = {
     }
   },
 
+  getMathProgress(userId: string, op: string): {
+    currentTier: number;
+    maxUnlockedTier: number;
+    percentToNext: number;
+    unlockedList: number[];
+    masteredList: number[];
+  } {
+    const stats = this.getMathStats(userId);
+    const state = this.getGameState(userId);
+    const threshold = state?.masteryThreshold !== undefined ? state.masteryThreshold : 5;
+
+    if (op === 'multiplication' || op === 'division') {
+      const isMult = op === 'multiplication';
+      const masteredList: number[] = [];
+      const unlockedList: number[] = [2, 3]; // Initial unlocked houses
+
+      for (let h = 2; h <= 10; h++) {
+        let masteredFactsCount = 0;
+        for (let x = 2; x <= 9; x++) {
+          const key = isMult ? `${h}x${x}` : `${h * x}÷${h}`;
+          const altKey = isMult ? `${x}x${h}` : `${h * x}/${h}`;
+          const stat = stats.find(s => s.questionKey === key || s.questionKey === altKey);
+          if (stat && stat.correctCount >= threshold) {
+            masteredFactsCount++;
+          }
+        }
+        if (masteredFactsCount >= 6) {
+          masteredList.push(h);
+        }
+      }
+
+      for (let h = 4; h <= 10; h++) {
+        let allPrevMastered = true;
+        for (let prev = 2; prev < h; prev++) {
+          if (!masteredList.includes(prev)) {
+            allPrevMastered = false;
+            break;
+          }
+        }
+        if (allPrevMastered) {
+          unlockedList.push(h);
+        }
+      }
+
+      const activeHouse = unlockedList.find(h => !masteredList.includes(h)) || 10;
+
+      let masteredInActive = 0;
+      for (let x = 2; x <= 9; x++) {
+        const key = isMult ? `${activeHouse}x${x}` : `${activeHouse * x}÷${activeHouse}`;
+        const altKey = isMult ? `${x}x${activeHouse}` : `${activeHouse * x}/${activeHouse}`;
+        const stat = stats.find(s => s.questionKey === key || s.questionKey === altKey);
+        if (stat && stat.correctCount >= threshold) {
+          masteredInActive++;
+        }
+      }
+      const percentToNext = Math.round((masteredInActive / 8) * 100);
+
+      return {
+        currentTier: activeHouse,
+        maxUnlockedTier: Math.max(...unlockedList),
+        percentToNext,
+        unlockedList,
+        masteredList,
+      };
+    } else {
+      const isAdd = op === 'addition';
+      const masteredList: number[] = [];
+      const unlockedList: number[] = [1];
+      const opStats = stats.filter(s => isAdd ? s.questionKey.includes('+') : s.questionKey.includes('-'));
+
+      const getTierOfStat = (key: string): number => {
+        const parts = key.split(isAdd ? '+' : '-');
+        const num = parseInt(parts[0]);
+        if (isNaN(num)) return 1;
+
+        if (isAdd) {
+          const sum = num + parseInt(parts[1] || '0');
+          if (sum <= 20) return 1;
+          if (sum <= 50) return 2;
+          if (sum <= 100) return 3;
+          if (sum <= 200) return 4;
+          return 5;
+        } else {
+          if (num <= 10) return 1;
+          if (num <= 30) return 2;
+          if (num <= 60) return 3;
+          if (num <= 120) return 4;
+          return 5;
+        }
+      };
+
+      const masteredCountPerTier: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      opStats.forEach(s => {
+        if (s.correctCount >= threshold) {
+          const tier = getTierOfStat(s.questionKey);
+          masteredCountPerTier[tier] = (masteredCountPerTier[tier] || 0) + 1;
+        }
+      });
+
+      for (let t = 1; t <= 5; t++) {
+        if (masteredCountPerTier[t] >= 10) {
+          masteredList.push(t);
+        }
+      }
+
+      for (let t = 2; t <= 5; t++) {
+        let allPrevMastered = true;
+        for (let prev = 1; prev < t; prev++) {
+          if (!masteredList.includes(prev)) {
+            allPrevMastered = false;
+            break;
+          }
+        }
+        if (allPrevMastered) {
+          unlockedList.push(t);
+        }
+      }
+
+      const activeTier = unlockedList.find(t => !masteredList.includes(t)) || 5;
+      const percentToNext = Math.min(100, Math.round(((masteredCountPerTier[activeTier] || 0) / 10) * 100));
+
+      return {
+        currentTier: activeTier,
+        maxUnlockedTier: Math.max(...unlockedList),
+        percentToNext,
+        unlockedList,
+        masteredList,
+      };
+    }
+  },
+
+
   // Global Leaderboard View
   getLeaderboard(): {
     username: string;

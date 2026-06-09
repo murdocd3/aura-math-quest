@@ -710,6 +710,17 @@ export const backendService = {
     mockDb.resetMathStats(userId);
   },
 
+  getMathProgress(userId: string, op: string): {
+    currentTier: number;
+    maxUnlockedTier: number;
+    percentToNext: number;
+    unlockedList: number[];
+    masteredList: number[];
+  } {
+    return mockDb.getMathProgress(userId, op);
+  },
+
+
   async completeCampaignStage(userId: string, stageId: number, overrideXp?: number, overrideGems?: number): Promise<GameState | null> {
     if (isSupabaseEnabled && supabase) {
       try {

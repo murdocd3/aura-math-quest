@@ -236,69 +236,127 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
   // Generate a runner math question with adaptive complexity & Spaced Repetition
   const generateRunnerQuestion = (): RunnerQuestion => {
-    const stats = mockDb.getMathStats(playerUser.id);
+    const userId = playerUser.id;
     const op = selectedOperation;
-
-    // Filter stats matching the current operation
-    const opStats = stats.filter(s => {
-      if (op === 'addition') return s.questionKey.includes('+');
-      if (op === 'subtraction') return s.questionKey.includes('-');
-      if (op === 'multiplication') return s.questionKey.includes('x') || s.questionKey.includes('*');
-      if (op === 'division') return s.questionKey.includes('/') || s.questionKey.includes('÷');
-      return false;
-    });
-
-    // Find problem questions (correct ratio < 70% or has error count)
-    const problemStats = opStats.filter(s => {
-      const total = s.correctCount + s.errorCount;
-      if (total === 0) return false;
-      return (s.correctCount / total) < 0.70 || s.errorCount > 0;
-    });
 
     let num1 = 2;
     let num2 = 2;
     let isSrsQuestion = false;
 
-    // 40% chance of injecting a review question if any problem equations exist
-    if (Math.random() < 0.40 && problemStats.length > 0) {
-      const chosenStat = problemStats[Math.floor(Math.random() * problemStats.length)];
-      // Parse operands (splitting by operator symbols)
-      const parts = chosenStat.questionKey.split(/[\+\-\*x\/÷]/);
-      if (parts.length >= 2) {
-        num1 = parseInt(parts[0]);
-        num2 = parseInt(parts[1]);
-        if (!isNaN(num1) && !isNaN(num2)) {
+    try {
+      const stats = mockDb.getMathStats(userId);
+      const progress = mockDb.getMathProgress(userId, op);
+      const rand = Math.random();
+
+      // 40% Chance: Active Difficulties (SRS Review Queue)
+      if (rand < 0.40) {
+        const weakSpots = stats.filter(s => {
+          const isMatchOp = op === 'addition' ? s.questionKey.includes('+') :
+                            op === 'subtraction' ? s.questionKey.includes('-') :
+                            op === 'multiplication' ? (s.questionKey.includes('x') || s.questionKey.includes('*')) :
+                            (s.questionKey.includes('/') || s.questionKey.includes('÷'));
+          if (!isMatchOp) return false;
+          
+          const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
+          const n1 = parseInt(parts[0]);
+          const n2 = parseInt(parts[1] || '0');
+          if (isNaN(n1)) return false;
+
+          let isUnlocked = false;
+          if (op === 'multiplication' || op === 'division') {
+            const h = op === 'multiplication' ? n1 : n2;
+            isUnlocked = progress.unlockedList.includes(h);
+          } else {
+            if (op === 'addition') {
+              const sum = n1 + n2;
+              const tier = sum <= 20 ? 1 : sum <= 50 ? 2 : sum <= 100 ? 3 : sum <= 200 ? 4 : 5;
+              isUnlocked = progress.unlockedList.includes(tier);
+            } else {
+              const tier = n1 <= 10 ? 1 : n1 <= 30 ? 2 : n1 <= 60 ? 3 : n1 <= 120 ? 4 : 5;
+              isUnlocked = progress.unlockedList.includes(tier);
+            }
+          }
+
+          const total = s.correctCount + s.errorCount;
+          const isWeak = s.errorCount >= 2 || (total > 0 && (s.correctCount / total) < 0.70);
+          return isWeak && isUnlocked;
+        });
+
+        if (weakSpots.length > 0) {
+          const chosen = weakSpots[Math.floor(Math.random() * weakSpots.length)];
+          const parts = chosen.questionKey.split(/[\+\-\*x\/÷]/);
+          num1 = parseInt(parts[0]);
+          num2 = parseInt(parts[1]);
           isSrsQuestion = true;
         }
       }
-    }
 
-    if (!isSrsQuestion) {
-      // Scale complexity with total correct answers on this operator
-      const totalAcertosOp = opStats.reduce((sum, s) => sum + s.correctCount, 0);
-      const opLevel = Math.min(10, 1 + Math.floor(totalAcertosOp / 12));
-
-      if (op === 'addition') {
-        const maxLimit = 5 + opLevel * 2;
-        num1 = Math.floor(Math.random() * maxLimit) + 2;
-        num2 = Math.floor(Math.random() * maxLimit) + 2;
-      } else if (op === 'subtraction') {
-        const maxLimit = 8 + opLevel * 4;
-        num1 = Math.floor(Math.random() * maxLimit) + 5;
-        num2 = Math.floor(Math.random() * (num1 - 2)) + 1;
-      } else if (op === 'division') {
-        const maxDivisor = Math.min(10, 3 + Math.floor(opLevel * 0.7));
-        const maxQuotient = Math.min(10, 3 + Math.floor(opLevel * 0.7));
-        const divisor = Math.floor(Math.random() * (maxDivisor - 1)) + 2;
-        const quotient = Math.floor(Math.random() * (maxQuotient - 1)) + 2;
-        num1 = divisor * quotient;
-        num2 = divisor;
-      } else {
-        // multiplication
-        const maxLimit = Math.min(12, 3 + Math.floor(opLevel * 0.9));
-        num1 = Math.floor(Math.random() * (maxLimit - 1)) + 2;
-        num2 = Math.floor(Math.random() * (maxLimit - 1)) + 2;
+      // 20% Chance: Retention Checks (from masteredList)
+      let isRetention = false;
+      if (!isSrsQuestion && rand >= 0.40 && rand < 0.60 && progress.masteredList.length > 0) {
+        const masteredVal = progress.masteredList[Math.floor(Math.random() * progress.masteredList.length)];
+        if (op === 'multiplication') {
+          num1 = masteredVal;
+          num2 = Math.floor(Math.random() * 8) + 2; // 2..9
+          isRetention = true;
+        } else if (op === 'division') {
+          num2 = masteredVal;
+          num1 = num2 * (Math.floor(Math.random() * 8) + 2);
+          isRetention = true;
+        } else if (op === 'addition') {
+          const rangeMax = masteredVal === 1 ? 20 : masteredVal === 2 ? 50 : masteredVal === 3 ? 100 : masteredVal === 4 ? 200 : 1000;
+          const rangeMin = masteredVal === 1 ? 4 : masteredVal === 2 ? 21 : masteredVal === 3 ? 51 : masteredVal === 4 ? 101 : 201;
+          const sumTarget = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num1 = Math.floor(Math.random() * (sumTarget - 2)) + 2;
+          num2 = sumTarget - num1;
+          isRetention = true;
+        } else if (op === 'subtraction') {
+          const rangeMax = masteredVal === 1 ? 10 : masteredVal === 2 ? 30 : masteredVal === 3 ? 60 : masteredVal === 4 ? 120 : 1000;
+          const rangeMin = masteredVal === 1 ? 4 : masteredVal === 2 ? 11 : masteredVal === 3 ? 31 : masteredVal === 4 ? 61 : 121;
+          num1 = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
+          isRetention = true;
+        }
       }
+
+      // 40% Chance (Learning Frontier) or Fallback
+      if (!isSrsQuestion && !isRetention) {
+        const active = progress.currentTier;
+        const masteredAll = progress.masteredList.length >= (op === 'multiplication' || op === 'division' ? 9 : 5);
+
+        if (op === 'multiplication') {
+          if (masteredAll) {
+            num1 = Math.floor(Math.random() * 10) + 11;
+            num2 = Math.floor(Math.random() * 11) + 2;
+          } else {
+            num1 = active;
+            num2 = Math.floor(Math.random() * 8) + 2;
+          }
+        } else if (op === 'division') {
+          if (masteredAll) {
+            num2 = Math.floor(Math.random() * 10) + 11;
+            num1 = num2 * (Math.floor(Math.random() * 11) + 2);
+          } else {
+            num2 = active;
+            num1 = num2 * (Math.floor(Math.random() * 8) + 2);
+          }
+        } else if (op === 'addition') {
+          const rangeMax = active === 1 ? 20 : active === 2 ? 50 : active === 3 ? 100 : active === 4 ? 200 : masteredAll ? 5000 : 1000;
+          const rangeMin = active === 1 ? 4 : active === 2 ? 21 : active === 3 ? 51 : active === 4 ? 101 : 201;
+          const sumTarget = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num1 = Math.floor(Math.random() * (sumTarget - 2)) + 2;
+          num2 = sumTarget - num1;
+        } else if (op === 'subtraction') {
+          const rangeMax = active === 1 ? 10 : active === 2 ? 30 : active === 3 ? 60 : active === 4 ? 120 : masteredAll ? 5000 : 1000;
+          const rangeMin = active === 1 ? 4 : active === 2 ? 11 : active === 3 ? 31 : active === 4 ? 61 : 121;
+          num1 = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
+        }
+      }
+    } catch (e) {
+      console.warn('Error generating adaptive runner question, using basic fallback:', e);
+      num1 = Math.floor(Math.random() * 8) + 2;
+      num2 = Math.floor(Math.random() * 8) + 2;
     }
 
     let answer = 0;

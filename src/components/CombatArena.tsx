@@ -10,7 +10,7 @@ import type { CombatVfxCanvasRef } from './CombatVfxCanvas';
 
 interface CombatArenaProps {
   playerUser: User;
-  zone: 'forest' | 'volcano';
+  zone: 'forest' | 'volcano' | 'unified';
   gameState: GameState;
   onBattleFinished: (xpGained: number, gemsGained: number, isVictory?: boolean) => void;
   onBack: () => void;
@@ -52,6 +52,14 @@ const MONSTERS = {
     { name: 'Robo Spy', emoji: '🤖', maxHp: 3 },
   ],
   volcano: [
+    { name: 'Fire Trojan', emoji: '🔥', maxHp: 4 },
+    { name: 'Glitch Dragon', emoji: '🐉', maxHp: 4 },
+    { name: 'Mega Crash Worm', emoji: '🐛', maxHp: 5 },
+  ],
+  unified: [
+    { name: 'Slime Glitch', emoji: '👾', maxHp: 3 },
+    { name: 'Spider Virus', emoji: '🕷️', maxHp: 3 },
+    { name: 'Robo Spy', emoji: '🤖', maxHp: 3 },
     { name: 'Fire Trojan', emoji: '🔥', maxHp: 4 },
     { name: 'Glitch Dragon', emoji: '🐉', maxHp: 4 },
     { name: 'Mega Crash Worm', emoji: '🐛', maxHp: 5 },
@@ -143,7 +151,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     return null;
   };
   // Battle Config & Constants
-  const baseTimeLimit = gameState.customTimeLimit !== undefined ? gameState.customTimeLimit : (zone === 'forest' ? 9 : 6); // seconds
+  const baseTimeLimit = gameState.customTimeLimit !== undefined ? gameState.customTimeLimit : (zone === 'forest' ? 9 : zone === 'volcano' ? 6 : 8); // seconds
   const isVolcano = zone === 'volcano';
 
   // Clan Bonus state
@@ -212,13 +220,20 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     if (bMode === 'solo' || bMode === 'campaign') {
       if (zone === 'forest') {
         adjustedBase = baseHp + 3; // e.g. 3 becomes 6
-      } else {
+      } else if (zone === 'volcano') {
         adjustedBase = baseHp + 6; // e.g. 4 becomes 10
+      } else {
+        try {
+          const progress = mockDb.getMathProgress(userId, gameState.selectedOperation || 'multiplication');
+          adjustedBase = baseHp + 2 + progress.currentTier;
+        } catch (e) {
+          adjustedBase = baseHp + 5;
+        }
       }
     } else if (bMode === 'coop') {
       adjustedBase = 25; // Raids should have much higher health!
     } else if (bMode === 'pvp') {
-      adjustedBase = zone === 'forest' ? 8 : 14;
+      adjustedBase = zone === 'forest' ? 8 : zone === 'volcano' ? 14 : 11;
     }
 
     const levelFactor = 1 + Math.floor(gameState.auraLevel / 10) * 0.15;
@@ -386,64 +401,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     }
     const opSym = getOperationSymbol(op);
 
-    try {
-      const stats = mockDb.getMathStats(userId);
-      const weakSpots = stats.filter(stat => {
-        const hasLegacyX = stat.questionKey.includes('x') && op === 'multiplication';
-        const hasOpSym = stat.questionKey.includes(opSym);
-        if (!hasLegacyX && !hasOpSym) return false;
-
-        const parts = hasLegacyX ? stat.questionKey.split('x') : stat.questionKey.split(opSym);
-        const n1 = parseInt(parts[0]);
-        if (isNaN(n1)) return false;
-
-        let zoneMatches = false;
-        if (op === 'multiplication') {
-          const isForestTable = [2, 3, 4, 5].includes(n1);
-          const isVolcanoTable = [6, 7, 8, 9].includes(n1);
-          zoneMatches = (zone === 'forest' && isForestTable) || (zone === 'volcano' && isVolcanoTable);
-        } else if (op === 'addition') {
-          if (zone === 'forest') {
-            zoneMatches = n1 >= 2 && n1 <= 15;
-          } else {
-            zoneMatches = n1 >= 10 && n1 <= 50;
-          }
-        } else if (op === 'subtraction') {
-          if (zone === 'forest') {
-            zoneMatches = n1 >= 5 && n1 <= 30;
-          } else {
-            zoneMatches = n1 >= 15 && n1 <= 100;
-          }
-        } else if (op === 'division') {
-          const divisor = parseInt(parts[1]);
-          if (!isNaN(divisor)) {
-            const isForestDiv = [2, 3, 4, 5].includes(divisor);
-            const isVolcanoDiv = [6, 7, 8, 9].includes(divisor);
-            zoneMatches = (zone === 'forest' && isForestDiv) || (zone === 'volcano' && isVolcanoDiv);
-          }
-        }
-        return stat.errorCount >= 2 && zoneMatches;
-      });
-
-      // 40% chance to trigger an adaptive review question if weak spots exist
-      if (weakSpots.length > 0 && Math.random() < 0.40) {
-        const spot = weakSpots[Math.floor(Math.random() * weakSpots.length)];
-        const parts = spot.questionKey.includes('x') ? spot.questionKey.split('x') : spot.questionKey.split(opSym);
-        num1 = parseInt(parts[0]);
-        num2 = parseInt(parts[1]);
-        isWeakPoint = true;
-      }
-    } catch (e) {
-      console.warn('Error fetching adaptive stats:', e);
-    }
-
-    let answer = 0;
-    if (!isWeakPoint) {
-      // Calculate cycle factor for campaign mode difficulty scaling
-      const cycle = campaignStageId ? Math.floor((campaignStageId - 1) / 5) + 1 : 1;
-      const streakBonus = 1 + Math.floor(currentStreak / 3) * 0.15; // increases range by 15% for every 3 consecutive correct answers
-
-      // Dynamic Complexity Scaling based on player total correct answers
+    // If campaignStageId is active, fall back to cycle-based stage question generation
+    if (campaignStageId) {
+      const cycle = Math.floor((campaignStageId - 1) / 5) + 1;
+      const streakBonus = 1 + Math.floor(currentStreak / 3) * 0.15;
       let opLevelBonus = 1.0;
       try {
         const stats = mockDb.getMathStats(userId);
@@ -452,72 +413,202 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
           const hasOpSym = s.questionKey.includes(opSym);
           return hasLegacyX || hasOpSym;
         });
-        const totalCorrect = opStats.reduce((sum, s) => sum + s.correctCount, 0);
+        const totalCorrect = opStats.reduce((sum: number, s: any) => sum + s.correctCount, 0);
         const opLevel = Math.min(10, 1 + Math.floor(totalCorrect / 15));
         opLevelBonus = 1 + (opLevel - 1) * 0.15;
       } catch (e) {
         console.warn('Error calculating opLevel:', e);
       }
 
-      const difficultyMultiplier = (campaignStageId ? 1 + (cycle - 1) * 0.5 : 1) * streakBonus * opLevelBonus;
+      const difficultyMultiplier = (1 + (cycle - 1) * 0.5) * streakBonus * opLevelBonus;
+      let answer = 0;
 
       if (op === 'addition') {
-        if (zone === 'forest' || campaignStageId) {
-          const maxVal = Math.round(15 * difficultyMultiplier);
-          num1 = Math.floor(Math.random() * (maxVal - 1)) + 2;
-          num2 = Math.floor(Math.random() * (maxVal - 1)) + 2;
-        } else {
-          num1 = Math.floor(Math.random() * 41) + 10;
-          num2 = Math.floor(Math.random() * 41) + 10;
-        }
+        const maxVal = Math.round(15 * difficultyMultiplier);
+        num1 = Math.floor(Math.random() * (maxVal - 1)) + 2;
+        num2 = Math.floor(Math.random() * (maxVal - 1)) + 2;
         answer = num1 + num2;
       } else if (op === 'subtraction') {
-        if (zone === 'forest' || campaignStageId) {
-          const maxVal = Math.round(30 * difficultyMultiplier);
-          num1 = Math.floor(Math.random() * (maxVal - 4)) + 5;
-          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
-        } else {
-          num1 = Math.floor(Math.random() * 86) + 15;
-          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
-        }
+        const maxVal = Math.round(30 * difficultyMultiplier);
+        num1 = Math.floor(Math.random() * (maxVal - 4)) + 5;
+        num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
         answer = num1 - num2;
       } else if (op === 'division') {
-        let divisor = 2;
-        let quotient = 2;
-        if (zone === 'forest' || campaignStageId) {
-          const divisors = [2, 3, 4, 5].map(d => Math.round(d * (1 + (cycle - 1) * 0.2)));
-          divisor = divisors[Math.floor(Math.random() * divisors.length)];
-        } else {
-          const divisors = [6, 7, 8, 9];
-          divisor = divisors[Math.floor(Math.random() * divisors.length)];
-        }
+        const divisors = [2, 3, 4, 5].map(d => Math.round(d * (1 + (cycle - 1) * 0.2)));
+        let divisor = divisors[Math.floor(Math.random() * divisors.length)];
         const maxQuotient = Math.round(10 * difficultyMultiplier);
-        quotient = Math.floor(Math.random() * (maxQuotient - 1)) + 2;
+        let quotient = Math.floor(Math.random() * (maxQuotient - 1)) + 2;
         num1 = divisor * quotient;
         num2 = divisor;
         answer = quotient;
       } else {
-        if (zone === 'forest' || campaignStageId) {
-          const tables = [2, 3, 4, 5].map(t => Math.round(t * (1 + (cycle - 1) * 0.2)));
-          num1 = tables[Math.floor(Math.random() * tables.length)];
-        } else {
-          const tables = [6, 7, 8, 9];
-          num1 = tables[Math.floor(Math.random() * tables.length)];
-        }
+        const tables = [2, 3, 4, 5].map(t => Math.round(t * (1 + (cycle - 1) * 0.2)));
+        num1 = tables[Math.floor(Math.random() * tables.length)];
         const maxFactor = Math.round(9 * difficultyMultiplier);
         num2 = Math.floor(Math.random() * (maxFactor - 1)) + 2;
         answer = num1 * num2;
       }
-    } else {
-      if (op === 'addition') answer = num1 + num2;
-      else if (op === 'subtraction') answer = num1 - num2;
-      else if (op === 'division') answer = Math.round(num1 / num2);
-      else answer = num1 * num2;
+
+      const key = op === 'multiplication' ? `${num1}x${num2}` : `${num1}${opSym}${num2}`;
+      const choices = new Set<number>([answer]);
+      while (choices.size < 4) {
+        let fakeAnswer = 0;
+        if (op === 'multiplication') {
+          const offset = (Math.floor(Math.random() * 5) - 2) * num1;
+          fakeAnswer = answer + (offset === 0 ? num1 : offset);
+        } else if (op === 'division') {
+          const offset = Math.floor(Math.random() * 5) - 2;
+          fakeAnswer = answer + (offset === 0 ? 3 : offset);
+        } else if (op === 'addition' || op === 'subtraction') {
+          const offset = Math.floor(Math.random() * 7) - 3;
+          fakeAnswer = answer + (offset === 0 ? 4 : offset);
+        } else {
+          fakeAnswer = answer + Math.floor(Math.random() * 15) + 1;
+        }
+
+        if (fakeAnswer > 0 && fakeAnswer !== answer) {
+          choices.add(fakeAnswer);
+        } else {
+          choices.add(answer + Math.floor(Math.random() * 15) + 1);
+        }
+      }
+
+      return {
+        num1,
+        num2,
+        answer,
+        choices: Array.from(choices).sort(() => Math.random() - 0.5),
+        key,
+        isWeakPoint: false,
+        op,
+      };
     }
+
+    // Unified Adaptive World logic!
+    try {
+      const stats = mockDb.getMathStats(userId);
+      const progress = mockDb.getMathProgress(userId, op);
+      const rand = Math.random();
+
+      // 40% Chance: Active Difficulties (SRS Review Queue)
+      if (rand < 0.40) {
+        const weakSpots = stats.filter(s => {
+          const isMatchOp = op === 'addition' ? s.questionKey.includes('+') :
+                            op === 'subtraction' ? s.questionKey.includes('-') :
+                            op === 'multiplication' ? (s.questionKey.includes('x') || s.questionKey.includes('*')) :
+                            (s.questionKey.includes('/') || s.questionKey.includes('÷'));
+          if (!isMatchOp) return false;
+          
+          const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
+          const n1 = parseInt(parts[0]);
+          const n2 = parseInt(parts[1] || '0');
+          if (isNaN(n1)) return false;
+
+          let isUnlocked = false;
+          if (op === 'multiplication' || op === 'division') {
+            const h = op === 'multiplication' ? n1 : n2;
+            isUnlocked = progress.unlockedList.includes(h);
+          } else {
+            if (op === 'addition') {
+              const sum = n1 + n2;
+              const tier = sum <= 20 ? 1 : sum <= 50 ? 2 : sum <= 100 ? 3 : sum <= 200 ? 4 : 5;
+              isUnlocked = progress.unlockedList.includes(tier);
+            } else {
+              const tier = n1 <= 10 ? 1 : n1 <= 30 ? 2 : n1 <= 60 ? 3 : n1 <= 120 ? 4 : 5;
+              isUnlocked = progress.unlockedList.includes(tier);
+            }
+          }
+
+          const total = s.correctCount + s.errorCount;
+          const isWeak = s.errorCount >= 2 || (total > 0 && (s.correctCount / total) < 0.70);
+          return isWeak && isUnlocked;
+        });
+
+        if (weakSpots.length > 0) {
+          const chosen = weakSpots[Math.floor(Math.random() * weakSpots.length)];
+          const parts = chosen.questionKey.split(/[\+\-\*x\/÷]/);
+          num1 = parseInt(parts[0]);
+          num2 = parseInt(parts[1]);
+          isWeakPoint = true;
+        }
+      }
+
+      // 20% Chance: Retention Checks (from masteredList)
+      let isRetention = false;
+      if (!isWeakPoint && rand >= 0.40 && rand < 0.60 && progress.masteredList.length > 0) {
+        const masteredVal = progress.masteredList[Math.floor(Math.random() * progress.masteredList.length)];
+        if (op === 'multiplication') {
+          num1 = masteredVal;
+          num2 = Math.floor(Math.random() * 8) + 2; // 2..9
+          isRetention = true;
+        } else if (op === 'division') {
+          num2 = masteredVal; // divisor
+          num1 = num2 * (Math.floor(Math.random() * 8) + 2); // dividend
+          isRetention = true;
+        } else if (op === 'addition') {
+          const rangeMax = masteredVal === 1 ? 20 : masteredVal === 2 ? 50 : masteredVal === 3 ? 100 : masteredVal === 4 ? 200 : 1000;
+          const rangeMin = masteredVal === 1 ? 4 : masteredVal === 2 ? 21 : masteredVal === 3 ? 51 : masteredVal === 4 ? 101 : 201;
+          const sumTarget = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num1 = Math.floor(Math.random() * (sumTarget - 2)) + 2;
+          num2 = sumTarget - num1;
+          isRetention = true;
+        } else if (op === 'subtraction') {
+          const rangeMax = masteredVal === 1 ? 10 : masteredVal === 2 ? 30 : masteredVal === 3 ? 60 : masteredVal === 4 ? 120 : 1000;
+          const rangeMin = masteredVal === 1 ? 4 : masteredVal === 2 ? 11 : masteredVal === 3 ? 31 : masteredVal === 4 ? 61 : 121;
+          num1 = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
+          isRetention = true;
+        }
+      }
+
+      // 40% Chance (Learning Frontier) or Fallback
+      if (!isWeakPoint && !isRetention) {
+        const active = progress.currentTier;
+        const masteredAll = progress.masteredList.length >= (op === 'multiplication' || op === 'division' ? 9 : 5); // 2..10 are 9 houses, 1..5 are 5 tiers
+
+        if (op === 'multiplication') {
+          if (masteredAll) {
+            num1 = Math.floor(Math.random() * 10) + 11; // 11..20
+            num2 = Math.floor(Math.random() * 11) + 2;  // 2..12
+          } else {
+            num1 = active;
+            num2 = Math.floor(Math.random() * 8) + 2;  // 2..9
+          }
+        } else if (op === 'division') {
+          if (masteredAll) {
+            num2 = Math.floor(Math.random() * 10) + 11;
+            num1 = num2 * (Math.floor(Math.random() * 11) + 2);
+          } else {
+            num2 = active;
+            num1 = num2 * (Math.floor(Math.random() * 8) + 2);
+          }
+        } else if (op === 'addition') {
+          const rangeMax = active === 1 ? 20 : active === 2 ? 50 : active === 3 ? 100 : active === 4 ? 200 : masteredAll ? 5000 : 1000;
+          const rangeMin = active === 1 ? 4 : active === 2 ? 21 : active === 3 ? 51 : active === 4 ? 101 : 201;
+          const sumTarget = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num1 = Math.floor(Math.random() * (sumTarget - 2)) + 2;
+          num2 = sumTarget - num1;
+        } else if (op === 'subtraction') {
+          const rangeMax = active === 1 ? 10 : active === 2 ? 30 : active === 3 ? 60 : active === 4 ? 120 : masteredAll ? 5000 : 1000;
+          const rangeMin = active === 1 ? 4 : active === 2 ? 11 : active === 3 ? 31 : active === 4 ? 61 : 121;
+          num1 = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
+          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
+        }
+      }
+    } catch (e) {
+      console.warn('Error generating adaptive question, using basic fallback:', e);
+      num1 = Math.floor(Math.random() * 8) + 2;
+      num2 = Math.floor(Math.random() * 8) + 2;
+    }
+
+    let answer = 0;
+    if (op === 'addition') answer = num1 + num2;
+    else if (op === 'subtraction') answer = num1 - num2;
+    else if (op === 'division') answer = Math.round(num1 / num2);
+    else answer = num1 * num2;
 
     const key = op === 'multiplication' ? `${num1}x${num2}` : `${num1}${opSym}${num2}`;
 
-    // Generate multiple choice options
     const choices = new Set<number>([answer]);
     while (choices.size < 4) {
       let fakeAnswer = 0;
@@ -941,8 +1032,35 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setBattleState('won');
 
     // Reward math calculations
-    const baseXP = isVolcano ? 75 : 30;
-    const baseGems = isVolcano ? 4 : 1;
+    let baseXP = isVolcano ? 75 : 30;
+    let baseGems = isVolcano ? 4 : 1;
+
+    if (zone === 'unified') {
+      try {
+        const op = gameState.selectedOperation || 'multiplication';
+        const progress = mockDb.getMathProgress(userId, op);
+        const tier = progress.currentTier;
+        let tierMultiplier = 1.0;
+        if (op === 'multiplication' || op === 'division') {
+          if (tier <= 3) tierMultiplier = 1.0;
+          else if (tier <= 5) tierMultiplier = 1.3;
+          else if (tier <= 7) tierMultiplier = 1.7;
+          else if (tier <= 9) tierMultiplier = 2.2;
+          else tierMultiplier = 3.0;
+        } else {
+          if (tier === 1) tierMultiplier = 1.0;
+          else if (tier === 2) tierMultiplier = 1.3;
+          else if (tier === 3) tierMultiplier = 1.7;
+          else if (tier === 4) tierMultiplier = 2.2;
+          else tierMultiplier = 3.0;
+        }
+        baseXP = Math.round(40 * tierMultiplier);
+        baseGems = Math.round(2 * tierMultiplier);
+      } catch (e) {
+        baseXP = 40;
+        baseGems = 2;
+      }
+    }
     const perfectBonusGems = perfectBattle ? 3 : 0;
 
     let finalXP = baseXP;
@@ -1192,7 +1310,22 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         }}
       >
         <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
-          Local: <strong style={{ color: isVolcano ? 'var(--neon-pink)' : '#22c55e' }}>{isVolcano ? '🌋 Vulcão Glitch' : '🌲 Floresta Encantada'}</strong>
+          Local: <strong style={{ color: zone === 'unified' ? 'var(--neon-cyan)' : isVolcano ? 'var(--neon-pink)' : '#22c55e' }}>
+            {zone === 'unified' ? '🌌 Nexo Dimensional' : isVolcano ? '🌋 Vulcão Glitch' : '🌲 Floresta Encantada'}
+          </strong>
+          {zone === 'unified' && (() => {
+            try {
+              const progress = mockDb.getMathProgress(userId, gameState.selectedOperation || 'multiplication');
+              const isMultOrDiv = (gameState.selectedOperation || 'multiplication') === 'multiplication' || (gameState.selectedOperation || 'multiplication') === 'division';
+              return (
+                <span className="text-glow-cyan" style={{ marginLeft: '12px', color: 'var(--neon-cyan)', fontWeight: 'bold', border: '1px solid rgba(0, 255, 204, 0.3)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 255, 204, 0.05)' }}>
+                  ⚡ {isMultOrDiv ? `Casa do ${progress.currentTier}` : `Tier ${progress.currentTier}`}
+                </span>
+              );
+            } catch (e) {
+              return null;
+            }
+          })()}
         </span>
         <button
           className="cyber-btn cyber-btn-pink"

@@ -142,7 +142,7 @@ export const getCampaignStages = (currentStageId: number): CampaignStage[] => {
 
 interface HubWorldProps {
   playerUser: User;
-  onSelectZone: (zone: 'forest' | 'volcano') => void;
+  onSelectZone: (zone: 'forest' | 'volcano' | 'unified') => void;
   onSelectCampaignStage: (stageId: number) => void;
   onNavigateToPetShop: () => void;
   onNavigateToRunner: () => void;
@@ -1316,107 +1316,100 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             <div className="cyber-card">
               <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#fff' }}>⚔️ Mapas de Combate e Desafios</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                
-                {/* Forest (Easy) */}
+                {/* Unified Adaptive World Card */}
                 <div
                   className="cyber-card"
                   style={{
+                    gridColumn: 'span 2',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    border: '1.5px solid rgba(34, 197, 94, 0.3)',
-                    background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.05) 0%, rgba(3, 7, 18, 0.6) 100%)',
+                    border: '1.5px solid rgba(0, 255, 204, 0.4)',
+                    background: 'linear-gradient(135deg, rgba(0, 255, 204, 0.08) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(3, 7, 18, 0.75) 100%)',
+                    boxShadow: '0 0 20px rgba(0, 255, 204, 0.1), inset 0 0 15px rgba(168, 85, 247, 0.05)',
                   }}
                 >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <h4 style={{ fontSize: '1.2rem', color: '#22c55e' }}>🌲 Floresta Encantada</h4>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {addCount > 30 && (
-                          (gameState.selectedOperation || 'multiplication') === 'addition' ? (
-                            <span style={{ fontSize: '0.7rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-pink)', fontWeight: 'bold' }}>⚠️ 0.5x XP</span>
-                          ) : (
-                            ((gameState.selectedOperation === 'subtraction' && subCount < 15) ||
-                             (gameState.selectedOperation === 'multiplication' && multCount < 15) ||
-                             (gameState.selectedOperation === 'division' && divCount < 15)) && (
-                              <span style={{ fontSize: '0.7rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-yellow)', fontWeight: 'bold' }}>💡 2x XP</span>
-                            )
-                          )
-                        )}
-                        <span style={{ fontSize: '0.8rem', background: 'rgba(34, 197, 94, 0.2)', padding: '2px 8px', borderRadius: '10px', color: '#22c55e', fontWeight: 800 }}>FÁCIL</span>
+                  <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', padding: '12px' }}>
+                    <div style={{ flex: 1, minWidth: '280px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h4 className="text-glow-cyan" style={{ fontSize: '1.5rem', color: 'var(--neon-cyan)', margin: 0, fontFamily: 'Share Tech Mono', letterSpacing: '0.5px' }}>
+                          🌌 Nexo Dimensional (Arena Adaptativa)
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', background: 'rgba(0, 255, 204, 0.2)', padding: '4px 10px', borderRadius: '10px', color: 'var(--neon-cyan)', fontWeight: 800 }}>ADAPTATIVO</span>
                       </div>
-                    </div>
-                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
-                      Tabuadas: <strong style={{ color: '#22c55e' }}>2, 3, 4 e 5</strong>.<br />
-                      Ideal para treinar a base de forma tranquila. Inimigos fracos e com mais tempo.
-                    </p>
-                  </div>
-                  <button
-                    className="cyber-btn"
-                    onClick={() => {
-                      audioEngine.playCorrect();
-                      onSelectZone('forest');
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderColor: '#22c55e',
-                      background: 'rgba(34,197,94,0.1)',
-                    }}
-                  >
-                    Entrar na Floresta ➔
-                  </button>
-                </div>
+                      
+                      <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.85)', lineHeight: '1.4rem', marginBottom: '14px' }}>
+                        O simulador quântico analisa seu desempenho matemático e gera desafios na medida certa!
+                        As contas começam fáceis e ficam mais complexas conforme você as domina, revisando erros anteriores de forma inteligente.
+                      </p>
 
-                {/* Volcano (Hard) */}
-                <div
-                  className="cyber-card"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    border: '1.5px solid rgba(244, 63, 94, 0.3)',
-                    background: 'linear-gradient(180deg, rgba(244, 63, 94, 0.05) 0%, rgba(3, 7, 18, 0.6) 100%)',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <h4 style={{ fontSize: '1.2rem', color: 'var(--neon-pink)' }}>🌋 Vulcão Glitch</h4>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {addCount > 30 && (
-                          (gameState.selectedOperation || 'multiplication') === 'addition' ? (
-                            <span style={{ fontSize: '0.7rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-pink)', fontWeight: 'bold' }}>⚠️ 0.5x XP</span>
-                          ) : (
-                            ((gameState.selectedOperation === 'subtraction' && subCount < 15) ||
-                             (gameState.selectedOperation === 'multiplication' && multCount < 15) ||
-                             (gameState.selectedOperation === 'division' && divCount < 15)) && (
-                              <span style={{ fontSize: '0.7rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-yellow)', fontWeight: 'bold' }}>💡 2x XP</span>
-                            )
-                          )
-                        )}
-                        <span style={{ fontSize: '0.8rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-pink)', fontWeight: 800 }}>DIFÍCIL</span>
-                      </div>
+                      {/* Display current operation and dynamic tier progress */}
+                      {(() => {
+                        try {
+                          const op = gameState.selectedOperation || 'multiplication';
+                          const progress = mockDb.getMathProgress(gameState.userId, op);
+                          
+                          let tierName = '';
+                          if (op === 'multiplication') tierName = `Tabuada: Casa do ${progress.currentTier}`;
+                          else if (op === 'division') tierName = `Divisão: Divisor ${progress.currentTier}`;
+                          else if (op === 'addition') tierName = `Adição: Complexidade Tier ${progress.currentTier}/5`;
+                          else tierName = `Subtração: Complexidade Tier ${progress.currentTier}/5`;
+
+                          return (
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.08)', padding: '12px', borderRadius: '8px', marginBottom: '12px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                                <span>Progresso da Operação:</span>
+                                <strong style={{ color: 'var(--neon-yellow)' }}>{tierName}</strong>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ flex: 1, height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                  <div style={{ width: `${progress.percentToNext}%`, height: '100%', background: 'linear-gradient(90deg, var(--neon-cyan), var(--neon-purple))', boxShadow: '0 0 8px var(--neon-cyan)' }} />
+                                </div>
+                                <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 'bold', minWidth: '35px', textAlign: 'right' }}>{progress.percentToNext}%</span>
+                              </div>
+                              <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                <span>🔓 Liberados: {progress.unlockedList.join(', ')}</span>
+                                <span>•</span>
+                                <span>🏆 Dominados: {progress.masteredList.length}</span>
+                              </div>
+                            </div>
+                          );
+                        } catch (e) {
+                          return null;
+                        }
+                      })()}
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
-                      Tabuadas: <strong style={{ color: 'var(--neon-pink)' }}>6, 7, 8 e 9</strong>.<br />
-                      Monstros fortes com tempos curtos, mas garantem **2.5x mais Aura** e chance de ovos!
-                    </p>
+
+                    <div style={{ width: '220px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: '24px' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                        💎 **Multiplicador de XP:**
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--neon-yellow)', marginTop: '4px' }}>
+                          Até 3.0x XP por resposta
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                        🛡️ **Desafios:**
+                        <div style={{ color: '#fff', marginTop: '2px' }}>
+                          Inimigos adaptam sua energia ao seu nível matemático!
+                        </div>
+                      </div>
+                      <button
+                        className="cyber-btn cyber-btn-cyan"
+                        onClick={() => {
+                          audioEngine.playCorrect();
+                          onSelectZone('unified');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          marginTop: '8px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        Entrar no Nexo ➔
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    className="cyber-btn"
-                    onClick={() => {
-                      audioEngine.playCorrect();
-                      onSelectZone('volcano');
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderColor: 'var(--neon-pink)',
-                      background: 'rgba(244,63,94,0.1)',
-                    }}
-                  >
-                    Entrar no Vulcão ➔
-                  </button>
                 </div>
 
                 {/* Cyber Runner (Minigame) */}

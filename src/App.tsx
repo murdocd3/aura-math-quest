@@ -15,7 +15,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [screen, setScreen] = useState<'login' | 'hub' | 'admin' | 'pet_shop' | 'combat' | 'runner' | 'olympics'>('login');
-  const [selectedZone, setSelectedZone] = useState<'forest' | 'volcano'>('forest');
+  const [selectedZone, setSelectedZone] = useState<'forest' | 'volcano' | 'unified'>('unified');
   const [isAudioMuted, setIsAudioMuted] = useState(false);
 
   // Popups/notifications
@@ -104,7 +104,7 @@ function App() {
     audioEngine.playHatchRoll();
   };
 
-  const handleSelectZone = (zone: 'forest' | 'volcano') => {
+  const handleSelectZone = (zone: 'forest' | 'volcano' | 'unified') => {
     setSelectedZone(zone);
     setScreen('combat');
   };
