@@ -79,10 +79,10 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
   {
     level: 20,
     category: 'Atenção aos Detalhes',
-    question: 'Quantos números 7 existem entre os números de 1 a 50?',
+    question: 'Quantos números contendo o algarismo 7 existem entre os números de 1 a 50?',
     options: ['5', '14', '15', '20'],
-    answer: '15',
-    explanation: 'Listando com atenção: 7, 17, 27, 37, 47 (5 números) e todos na casa dos trinta e quarenta? Não, na casa dos setenta não entra. Mas temos 7, 17, 27, 37, 47 (5 unidades). Também no 70? Não, até 50 apenas. A resposta é 5 números.'
+    answer: '5',
+    explanation: 'Listando com atenção: 7, 17, 27, 37, 47. Logo, existem exatamente 5 números com o algarismo 7 nesse intervalo.'
   },
   {
     level: 25,
@@ -119,10 +119,10 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
   {
     level: 45,
     category: 'Velocidade de Resolução',
-    question: 'Um relógio digital marca 12:34. Daqui a quantos minutos todos os quatro algarismos serão iguais pela primeira vez?',
+    question: 'Um relógio digital marca 12:34. Daqui a quantos minutos o relógio marcará 13:11 pela primeira vez?',
     options: ['37 minutos', '58 minutos', '68 minutos', '77 minutos'],
     answer: '37 minutos',
-    explanation: 'A próxima hora com algarismos idênticos será 13:11? Não, 13:11 tem dígitos diferentes. 11:11 já passou. 22:22 está longe. O próximo horário é 13:11? Não, todos iguais: 11:11. De 12:34 até 13:11? Não, 13:11 tem "3". Todos os 4 algarismos iguais no dia é 11:11 ou 22:22. De 12:34 até 22:22 são muitos minutos. Ah, se for apenas de hora em hora: 13:33? Tem o 1. O menor tempo será até a próxima coincidência geral.'
+    explanation: 'De 12:34 até 13:00 são 26 minutos. De 13:00 até 13:11 são mais 11 minutos. Somando ambos: 26 + 11 = 37 minutos.'
   },
   {
     level: 50,
@@ -208,10 +208,14 @@ export const Olympics: React.FC<OlympicsProps> = ({
     localStorage.setItem(`amq_olympic_history_${gameState.userId}`, JSON.stringify(history));
   }, [history, gameState.userId]);
 
+  const [shuffledQuestions] = useState<OlympicQuestion[]>(() =>
+    [...OLYMPIC_DATABASE].sort(() => Math.random() - 0.5)
+  );
+
   const wrongQuestionsList = getWrongQuestions(gameState.userId);
   const activeQuestion = isReTrainingMode
     ? (wrongQuestionsList[reTrainingIndex] || wrongQuestionsList[0] || OLYMPIC_DATABASE[0])
-    : OLYMPIC_DATABASE[Math.min(currentLevel - 1, OLYMPIC_DATABASE.length - 1)];
+    : (shuffledQuestions[Math.min(currentLevel - 1, shuffledQuestions.length - 1)] || OLYMPIC_DATABASE[0]);
 
   const handleOptionSelect = (opt: string) => {
     if (answerSubmitted) return;
