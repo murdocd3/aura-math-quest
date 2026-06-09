@@ -25,6 +25,7 @@ interface Obstacle {
   width: number;
   height: number;
   passed: boolean;
+  type?: 'spike' | 'laser';
 }
 
 interface GateColumn {
@@ -64,6 +65,23 @@ interface Collectible {
 const LANES = [40, 100, 160];
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 200;
+
+const RUNNER_CONFIG = {
+  initialSpeed: 3.5,
+  maxSpeed: 7.0,
+  speedIncrement: 0.25,
+  obstacleSpawnRate: 3000,
+  gateSpawnRate: 10000,
+  collectibleSpawnRate: 1800,
+  magnetDuration: 7.0,
+  slowmoDuration: 5.0,
+  slowmoFactor: 0.5,
+  shieldMax: 3,
+  
+  // Pet specific variables
+  petTimeBonus: 2.0, // extra seconds for slowmo/magnet duration
+  petGemMultiplier: 2, // doubles the gem value (or adds extra gems)
+};
 
 export const CyberRunner: React.FC<CyberRunnerProps> = ({
   playerUser,
@@ -129,6 +147,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       name: equipped.nickname,
       emoji: petType?.emoji || '🐾',
       rarity: equipped.rarity,
+      buffType: equipped.buffType,
     };
   })();
 
@@ -298,12 +317,13 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     shieldsRef.current = 3;
     currentSpeedRef.current = 3.5;
     
-    // Reset powerups
+    // Reset powerups (Shield starts active if pet is aura_multiplier or combined)
+    const startWithShield = equippedPet && (equippedPet.buffType === 'aura_multiplier' || equippedPet.buffType === 'combined');
     magnetTimeLeftRef.current = 0;
-    shieldActiveRef.current = false;
+    shieldActiveRef.current = !!startWithShield;
     slowmoTimeLeftRef.current = 0;
     setHudMagnetActive(false);
-    setHudShieldActive(false);
+    setHudShieldActive(!!startWithShield);
     setHudSlowmoActive(false);
 
     setShields(3);
@@ -410,23 +430,57 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       const timeSinceGate = time - lastGateTime.current;
       const timeSinceCollectible = time - lastCollectibleTime.current;
 
-      // Spawn obstacle spikes every 3 seconds if no gate is nearby
+      // Spawn obstacle spikes every 3 seconds if no gate is nearby (configurable spawn rate)
       const isAnyGateClose = gatesRef.current.some(gate => Math.abs(gate.x - (CANVAS_WIDTH + 20)) < 350);
-      if (elapsed > 3000 && !isAnyGateClose && timeSinceGate < 7000) {
-        const lane = Math.floor(Math.random() * 3);
-        obstaclesRef.current.push({
-          id: Math.random().toString(36).substring(2, 9),
-          x: CANVAS_WIDTH + 20,
-          lane,
-          width: 25,
-          height: 25,
-          passed: false,
-        });
+      if (elapsed > RUNNER_CONFIG.obstacleSpawnRate && !isAnyGateClose && timeSinceGate < 7000) {
+        // Roll obstacle type: 70% spike, 15% laser, 15% double spikes
+        const roll = Math.random();
+        if (roll < 0.70) {
+          // Normal Spike
+          const lane = Math.floor(Math.random() * 3);
+          obstaclesRef.current.push({
+            id: Math.random().toString(36).substring(2, 9),
+            x: CANVAS_WIDTH + 20,
+            lane,
+            width: 25,
+            height: 25,
+            passed: false,
+            type: 'spike',
+          });
+        } else if (roll < 0.85) {
+          // Lane Laser Indicator
+          const lane = Math.floor(Math.random() * 3);
+          obstaclesRef.current.push({
+            id: Math.random().toString(36).substring(2, 9),
+            x: CANVAS_WIDTH + 20,
+            lane,
+            width: 40,
+            height: 20,
+            passed: false,
+            type: 'laser',
+          });
+        } else {
+          // Double Spikes (2 lanes blocked simultaneously, leaving 1 safe lane)
+          const safeLane = Math.floor(Math.random() * 3);
+          [0, 1, 2].forEach(lane => {
+            if (lane !== safeLane) {
+              obstaclesRef.current.push({
+                id: Math.random().toString(36).substring(2, 9),
+                x: CANVAS_WIDTH + 20,
+                lane,
+                width: 25,
+                height: 25,
+                passed: false,
+                type: 'spike',
+              });
+            }
+          });
+        }
         lastSpawnTime.current = time;
       }
 
       // Spawn Question Gates every 10 seconds (using the pre-generated HUD question)
-      if (timeSinceGate > 10000 || lastGateTime.current === 0) {
+      if (timeSinceGate > RUNNER_CONFIG.gateSpawnRate || lastGateTime.current === 0) {
         const activeQ = currentQuestionRef.current || generateRunnerQuestion();
         currentQuestionRef.current = activeQ;
         setHudQuestion(activeQ);
@@ -450,7 +504,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       }
 
       // Spawn Collectibles (Gems or Power-ups) every 1.8 seconds
-      if (timeSinceCollectible > 1800 && timeSinceGate < 8500) {
+      if (timeSinceCollectible > RUNNER_CONFIG.collectibleSpawnRate && timeSinceGate < 8500) {
         const lane = Math.floor(Math.random() * 3);
         
         // Determine type: 80% gems, 20% power-ups (Shield, Magnet, Slowmo)
@@ -591,34 +645,93 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       });
       ctx.globalAlpha = 1.0; // reset alpha
 
-      // 6. UPDATE AND RENDER OBSTACLES (SPIKES)
+      // 6. UPDATE AND RENDER OBSTACLES (SPIKES AND LASERS)
       obstaclesRef.current.forEach((obs, idx) => {
         obs.x -= activeSpeed;
 
-        // Draw glitchy spike
-        ctx.fillStyle = '#f43f5e';
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.save();
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#f43f5e';
-        
-        ctx.beginPath();
         const obsY = LANES[obs.lane];
-        ctx.moveTo(obs.x, obsY + 10);
-        ctx.lineTo(obs.x + 12, obsY - 15);
-        ctx.lineTo(obs.x + 25, obsY + 10);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
+        const isLaser = obs.type === 'laser';
 
-        // AABB Collision check
+        if (isLaser) {
+          ctx.save();
+          ctx.shadowBlur = 15;
+          const isWarning = obs.x > 320;
+          if (isWarning) {
+            // Draw flashing warning line across the lane
+            ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+            ctx.shadowColor = '#f43f5e';
+            ctx.lineWidth = 2;
+            if (Math.floor(time / 100) % 2 === 0) {
+              ctx.setLineDash([8, 4]);
+            } else {
+              ctx.setLineDash([2, 6]);
+            }
+            ctx.beginPath();
+            ctx.moveTo(0, obsY);
+            ctx.lineTo(CANVAS_WIDTH, obsY);
+            ctx.stroke();
+
+            // Warning label
+            ctx.fillStyle = '#f43f5e';
+            ctx.font = 'bold 9px Share Tech Mono';
+            ctx.textAlign = 'left';
+            ctx.fillText('⚠️ ALERTA: DISPARO DE LASER', 90, obsY - 8);
+          } else {
+            // Firing active laser beam
+            ctx.strokeStyle = '#ef4444';
+            ctx.shadowColor = '#ef4444';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(0, obsY);
+            ctx.lineTo(CANVAS_WIDTH, obsY);
+            ctx.stroke();
+
+            // White core glow
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, obsY);
+            ctx.lineTo(CANVAS_WIDTH, obsY);
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else {
+          // Draw standard spike
+          ctx.fillStyle = '#f43f5e';
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.save();
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#f43f5e';
+          
+          ctx.beginPath();
+          ctx.moveTo(obs.x, obsY + 10);
+          ctx.lineTo(obs.x + 12, obsY - 15);
+          ctx.lineTo(obs.x + 25, obsY + 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Collision Check
         const playerX = 65;
-        if (!obs.passed && obs.x < playerX + 15 && obs.x + obs.width > playerX - 15) {
-          if (obs.lane === playerLaneRef.current) {
-            obs.passed = true;
-            handleCollisionDamage('Obstáculo!');
+        if (!obs.passed) {
+          if (isLaser) {
+            const isWarning = obs.x > 320;
+            // Hit player if in same lane during the active fire window
+            if (!isWarning && obs.lane === playerLaneRef.current && obs.x > -20 && obs.x < 320) {
+              obs.passed = true;
+              handleCollisionDamage('Laser!');
+            }
+          } else {
+            // Spike collision
+            if (obs.x < playerX + 15 && obs.x + obs.width > playerX - 15) {
+              if (obs.lane === playerLaneRef.current) {
+                obs.passed = true;
+                handleCollisionDamage('Obstáculo!');
+              }
+            }
           }
         }
 
@@ -790,8 +903,12 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const handleCollectiblePickup = (type: 'gem' | 'magnet' | 'shield' | 'slowmo') => {
     audioEngine.playHatchRoll();
 
+    const hasTimeBuff = equippedPet && (equippedPet.buffType === 'time_bonus' || equippedPet.buffType === 'combined');
+    const hasGemBuff = equippedPet && (equippedPet.buffType === 'gem_multiplier' || equippedPet.buffType === 'combined');
+
     if (type === 'gem') {
-      scoreRef.current.gems += 1;
+      const gemVal = hasGemBuff ? RUNNER_CONFIG.petGemMultiplier : 1;
+      scoreRef.current.gems += gemVal;
       setGemsGained(scoreRef.current.gems);
       // Spawn tiny green sparkle particles
       for (let i = 0; i < 6; i++) {
@@ -806,7 +923,8 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         });
       }
     } else if (type === 'magnet') {
-      magnetTimeLeftRef.current = 7.0; // 7 seconds duration
+      const duration = RUNNER_CONFIG.magnetDuration + (hasTimeBuff ? RUNNER_CONFIG.petTimeBonus : 0);
+      magnetTimeLeftRef.current = duration;
       setHudMagnetActive(true);
       // Spawn blue magnet particle circle
       spawnPowerupParticles('#3b82f6');
@@ -816,7 +934,8 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       // Spawn cyan shield particle circle
       spawnPowerupParticles('#00ffcc');
     } else if (type === 'slowmo') {
-      slowmoTimeLeftRef.current = 5.0; // 5 seconds duration
+      const duration = RUNNER_CONFIG.slowmoDuration + (hasTimeBuff ? RUNNER_CONFIG.petTimeBonus : 0);
+      slowmoTimeLeftRef.current = duration;
       setHudSlowmoActive(true);
       // Spawn yellow clock particles
       spawnPowerupParticles('#eab308');
