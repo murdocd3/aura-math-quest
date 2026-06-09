@@ -757,10 +757,10 @@ export const backendService = {
           }
 
           const nextStage = isFirstTime ? stageId + 1 : state.campaignStage;
-          const updates: any = { 
-            campaign_stage: nextStage,
+          const camelCaseUpdates: Partial<GameState> = {
+            campaignStage: nextStage,
             gems: state.gems + gemsReward,
-            aura_xp: state.auraXp + xpReward
+            auraXp: state.auraXp + xpReward
           };
 
           // Level up logic calculation
@@ -778,11 +778,11 @@ export const backendService = {
           }
 
           if (leveledUp) {
-            updates.aura_level = level;
-            updates.aura_xp = xp;
+            camelCaseUpdates.auraLevel = level;
+            camelCaseUpdates.auraXp = xp;
           }
 
-          const freshState = await this.updateGameState(userId, mapDbToGameState(updates));
+          const freshState = await this.updateGameState(userId, camelCaseUpdates);
           
           if (freshState?.clanId) {
             await this.addClanXp(freshState.clanId, Math.max(1, Math.round(xpReward / 2)));
