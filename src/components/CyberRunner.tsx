@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { mockDb } from '../services/mockDb';
+import { mockDb, PET_TYPES } from '../services/mockDb';
 import type { User, GameState } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
 
@@ -51,6 +51,16 @@ interface Particle {
   size: number;
 }
 
+interface Collectible {
+  id: string;
+  x: number;
+  lane: number;
+  type: 'gem' | 'magnet' | 'shield' | 'slowmo';
+  width: number;
+  height: number;
+  passed: boolean;
+}
+
 const LANES = [40, 100, 160];
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 200;
@@ -71,6 +81,11 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const [gemsGained, setGemsGained] = useState<number>(0);
   const [questionsSolved, setQuestionsSolved] = useState<number>(0);
 
+  // Active power-up states for the UI HUD
+  const [hudMagnetActive, setHudMagnetActive] = useState<boolean>(false);
+  const [hudShieldActive, setHudShieldActive] = useState<boolean>(false);
+  const [hudSlowmoActive, setHudSlowmoActive] = useState<boolean>(false);
+
   // Active question references (shared with canvas thread)
   const currentQuestionRef = useRef<RunnerQuestion | null>(null);
   const selectedOperation = gameState.selectedOperation || 'addition';
@@ -81,15 +96,40 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const scoreRef = useRef<{ xp: number; gems: number }>({ xp: 0, gems: 0 });
   const shieldsRef = useRef<number>(3);
   
+  // Power-up durations & flags
+  const magnetTimeLeftRef = useRef<number>(0);
+  const shieldActiveRef = useRef<boolean>(false);
+  const slowmoTimeLeftRef = useRef<number>(0);
+  
+  // Speed Ramping
+  const currentSpeedRef = useRef<number>(3.5);
+
   // Lists of moving objects
   const starsRef = useRef<Star[]>([]);
   const obstaclesRef = useRef<Obstacle[]>([]);
   const gatesRef = useRef<GateColumn[]>([]);
   const particlesRef = useRef<Particle[]>([]);
+  const collectiblesRef = useRef<Collectible[]>([]);
 
   // Spawn timers
   const lastSpawnTime = useRef<number>(0);
   const lastGateTime = useRef<number>(0);
+  const lastCollectibleTime = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+
+  // Fetch equipped pet information
+  const equippedPet = (() => {
+    if (!gameState.equippedPetId) return null;
+    const pets = mockDb.getPets(playerUser.id);
+    const equipped = pets.find(p => p.id === gameState.equippedPetId);
+    if (!equipped) return null;
+    const petType = PET_TYPES.find(pt => pt.id === equipped.petTypeId);
+    return {
+      name: equipped.nickname,
+      emoji: petType?.emoji || '🐾',
+      rarity: equipped.rarity,
+    };
+  })();
 
   // Helper to resolve dynamic symbols
   const getOpSymbol = (op: string) => {
@@ -250,30 +290,90 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     obstaclesRef.current = [];
     gatesRef.current = [];
     particlesRef.current = [];
+    collectiblesRef.current = [];
     scoreRef.current = { xp: 0, gems: 0 };
     shieldsRef.current = 3;
+    currentSpeedRef.current = 3.5;
+    
+    // Reset powerups
+    magnetTimeLeftRef.current = 0;
+    shieldActiveRef.current = false;
+    slowmoTimeLeftRef.current = 0;
+    setHudMagnetActive(false);
+    setHudShieldActive(false);
+    setHudSlowmoActive(false);
+
     setShields(3);
     setGameOver(false);
     setIsPlaying(true);
+    setXpGained(0);
+    setGemsGained(0);
+    setQuestionsSolved(0);
 
     let animationFrameId: number;
 
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
 
-    const gameSpeed = 4.5;
+    lastTimeRef.current = performance.now();
 
     const updateAndRender = (time: number) => {
       if (!ctx || !canvasRef.current) return;
+
+      // Delta time in seconds
+      const dt = (time - lastTimeRef.current) / 1000;
+      lastTimeRef.current = time;
+
+      // Update Power-up timers
+      if (magnetTimeLeftRef.current > 0) {
+        magnetTimeLeftRef.current -= dt;
+        if (magnetTimeLeftRef.current <= 0) {
+          magnetTimeLeftRef.current = 0;
+          setHudMagnetActive(false);
+        }
+      }
+
+      if (slowmoTimeLeftRef.current > 0) {
+        slowmoTimeLeftRef.current -= dt;
+        if (slowmoTimeLeftRef.current <= 0) {
+          slowmoTimeLeftRef.current = 0;
+          setHudSlowmoActive(false);
+        }
+      }
+
+      // Base game speed with slow-mo modifier
+      const baseSpeed = currentSpeedRef.current;
+      const slowmoFactor = slowmoTimeLeftRef.current > 0 ? 0.5 : 1.0;
+      const activeSpeed = baseSpeed * slowmoFactor;
 
       // 1. CLEAR AND DRAW BACKGROUND
       ctx.fillStyle = '#030712';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+      // PARALLAX LAYER 1: Distant Cyber Skyscrapers
+      const buildingOffset = (time * 0.03 * slowmoFactor) % 300;
+      ctx.fillStyle = 'rgba(17, 24, 39, 0.4)';
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+      ctx.lineWidth = 1.5;
+      for (let i = -1; i < 6; i++) {
+        const bX = i * 160 - buildingOffset;
+        const bWidth = 100;
+        const bHeight = 80 + ((i * 47) % 50);
+        ctx.fillRect(bX, CANVAS_HEIGHT - bHeight, bWidth, bHeight);
+        ctx.strokeRect(bX, CANVAS_HEIGHT - bHeight, bWidth, bHeight);
+        
+        // Simple neon windows on skyscrapers
+        ctx.fillStyle = 'rgba(0, 255, 204, 0.03)';
+        ctx.fillRect(bX + 15, CANVAS_HEIGHT - bHeight + 15, 12, 12);
+        ctx.fillRect(bX + 45, CANVAS_HEIGHT - bHeight + 15, 12, 12);
+        ctx.fillRect(bX + 15, CANVAS_HEIGHT - bHeight + 40, 12, 12);
+        ctx.fillStyle = 'rgba(17, 24, 39, 0.4)';
+      }
+
       // Draw Grid Lines (moving left)
       ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
       ctx.lineWidth = 1;
-      const gridOffset = (time * 0.15) % 40;
+      const gridOffset = (time * 0.15 * slowmoFactor) % 40;
       for (let x = -gridOffset; x < CANVAS_WIDTH; x += 40) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -293,7 +393,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
       // 2. RENDER STARS
       starsRef.current.forEach(star => {
-        star.x -= star.speed;
+        star.x -= star.speed * slowmoFactor;
         if (star.x < 0) {
           star.x = CANVAS_WIDTH;
           star.y = Math.random() * CANVAS_HEIGHT;
@@ -305,6 +405,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       // 3. SPAWN ENTITIES
       const elapsed = time - lastSpawnTime.current;
       const timeSinceGate = time - lastGateTime.current;
+      const timeSinceCollectible = time - lastCollectibleTime.current;
 
       // Spawn obstacle spikes every 3 seconds (if no gate is immediately spawning)
       if (elapsed > 3000 && timeSinceGate < 7000) {
@@ -333,6 +434,32 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         lastGateTime.current = time;
       }
 
+      // Spawn Collectibles (Gems or Power-ups) every 1.8 seconds
+      if (timeSinceCollectible > 1800 && timeSinceGate < 8500) {
+        const lane = Math.floor(Math.random() * 3);
+        
+        // Determine type: 80% gems, 20% power-ups (Shield, Magnet, Slowmo)
+        let type: 'gem' | 'magnet' | 'shield' | 'slowmo' = 'gem';
+        const rand = Math.random();
+        if (rand > 0.80) {
+          const pRand = Math.random();
+          if (pRand < 0.33) type = 'magnet';
+          else if (pRand < 0.66) type = 'shield';
+          else type = 'slowmo';
+        }
+
+        collectiblesRef.current.push({
+          id: Math.random().toString(36).substring(2, 9),
+          x: CANVAS_WIDTH + 20,
+          lane,
+          type,
+          width: 18,
+          height: 18,
+          passed: false,
+        });
+        lastCollectibleTime.current = time;
+      }
+
       // 4. PLAYER MOVEMENT & ANIMATION
       // Interpolate player Y position smoothly to the selected lane
       const targetY = LANES[playerLaneRef.current];
@@ -349,6 +476,25 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           alpha: 1,
           size: Math.random() * 4 + 2,
         });
+      }
+
+      // Render Floating Pet
+      if (equippedPet) {
+        ctx.save();
+        const petBob = Math.sin(time * 0.005) * 6;
+        ctx.font = '1.4rem sans-serif';
+        ctx.textAlign = 'center';
+        // Render pet float behind hoverboard
+        ctx.fillText(equippedPet.emoji, 45, playerYRef.current - 14 + petBob);
+        
+        // Glow effect below pet
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#a855f7';
+        ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
+        ctx.beginPath();
+        ctx.ellipse(45, playerYRef.current + 12 + petBob, 6, 2.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
       }
 
       // Draw Player Wizard (glowing cyber hoverboard rider)
@@ -398,6 +544,21 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
       ctx.restore();
 
+      // Draw Active Shield Sphere
+      if (shieldActiveRef.current) {
+        ctx.save();
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#00ffcc';
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.6)';
+        ctx.fillStyle = 'rgba(0, 255, 204, 0.06)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(60, playerYRef.current + 8, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // 5. UPDATE AND RENDER PARTICLES
       particlesRef.current.forEach((p, idx) => {
         p.x += p.vx;
@@ -417,7 +578,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
       // 6. UPDATE AND RENDER OBSTACLES (SPIKES)
       obstaclesRef.current.forEach((obs, idx) => {
-        obs.x -= gameSpeed;
+        obs.x -= activeSpeed;
 
         // Draw glitchy spike
         ctx.fillStyle = '#f43f5e';
@@ -452,9 +613,82 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         }
       });
 
-      // 7. UPDATE AND RENDER QUESTION GATES
+      // 7. UPDATE AND RENDER COLLECTIBLES
+      collectiblesRef.current.forEach((item, idx) => {
+        // Magnet effect: attract gems towards the player
+        if (magnetTimeLeftRef.current > 0 && item.type === 'gem') {
+          const dx = 65 - item.x;
+          // Pull closer
+          item.x += dx * 0.08;
+          // offset forward pull
+          item.x -= activeSpeed * 0.4;
+        } else {
+          item.x -= activeSpeed;
+        }
+
+        // Render collectible graphics
+        ctx.save();
+        const itemY = LANES[item.lane];
+        ctx.shadowBlur = 10;
+
+        if (item.type === 'gem') {
+          // Glow green diamond
+          ctx.fillStyle = '#22c55e';
+          ctx.strokeStyle = '#fff';
+          ctx.shadowColor = '#22c55e';
+          ctx.beginPath();
+          ctx.moveTo(item.x, itemY - 8);
+          ctx.lineTo(item.x + 8, itemY);
+          ctx.lineTo(item.x, itemY + 8);
+          ctx.lineTo(item.x - 8, itemY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else if (item.type === 'magnet') {
+          // Glow blue horseshoe
+          ctx.fillStyle = '#3b82f6';
+          ctx.shadowColor = '#3b82f6';
+          ctx.font = '16px Share Tech Mono';
+          ctx.textAlign = 'center';
+          ctx.fillText('🧲', item.x, itemY + 5);
+        } else if (item.type === 'shield') {
+          // Glow cyan shield crest
+          ctx.fillStyle = '#06b6d4';
+          ctx.shadowColor = '#06b6d4';
+          ctx.font = '16px Share Tech Mono';
+          ctx.textAlign = 'center';
+          ctx.fillText('🛡️', item.x, itemY + 5);
+        } else if (item.type === 'slowmo') {
+          // Glow yellow hourglass
+          ctx.fillStyle = '#eab308';
+          ctx.shadowColor = '#eab308';
+          ctx.font = '16px Share Tech Mono';
+          ctx.textAlign = 'center';
+          ctx.fillText('⏳', item.x, itemY + 5);
+        }
+        ctx.restore();
+
+        // Check collision with player
+        const playerX = 65;
+        if (!item.passed && item.x < playerX + 18 && item.x + item.width > playerX - 18) {
+          // Map item position to lane
+          if (item.lane === playerLaneRef.current) {
+            item.passed = true;
+            collectiblesRef.current.splice(idx, 1);
+            handleCollectiblePickup(item.type);
+            return;
+          }
+        }
+
+        // Clean up
+        if (item.x < -30) {
+          collectiblesRef.current.splice(idx, 1);
+        }
+      });
+
+      // 8. UPDATE AND RENDER QUESTION GATES
       gatesRef.current.forEach((gate, idx) => {
-        gate.x -= gameSpeed;
+        gate.x -= activeSpeed;
 
         // Draw the 3 gate structures
         LANES.forEach((laneY, laneIdx) => {
@@ -501,6 +735,21 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         }
       });
 
+      // Show active buffs indicator inside Canvas
+      if (magnetTimeLeftRef.current > 0 || slowmoTimeLeftRef.current > 0) {
+        ctx.fillStyle = '#fff';
+        ctx.font = '11px Share Tech Mono';
+        ctx.textAlign = 'right';
+        let hudY = 20;
+        if (magnetTimeLeftRef.current > 0) {
+          ctx.fillText(`🧲 ÍMÃ: ${magnetTimeLeftRef.current.toFixed(1)}s`, CANVAS_WIDTH - 15, hudY);
+          hudY += 15;
+        }
+        if (slowmoTimeLeftRef.current > 0) {
+          ctx.fillText(`⏳ SLOW-MO: ${slowmoTimeLeftRef.current.toFixed(1)}s`, CANVAS_WIDTH - 15, hudY);
+        }
+      }
+
       // Continue loop if running
       if (shieldsRef.current > 0) {
         animationFrameId = requestAnimationFrame(updateAndRender);
@@ -516,8 +765,81 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       cancelAnimationFrame(animationFrameId);
     };
   }, [selectedOperation]);
+
+  // Handle Pickups of Collectibles
+  const handleCollectiblePickup = (type: 'gem' | 'magnet' | 'shield' | 'slowmo') => {
+    audioEngine.playHatchRoll();
+
+    if (type === 'gem') {
+      scoreRef.current.gems += 1;
+      setGemsGained(scoreRef.current.gems);
+      // Spawn tiny green sparkle particles
+      for (let i = 0; i < 6; i++) {
+        particlesRef.current.push({
+          x: 80,
+          y: playerYRef.current,
+          vx: Math.random() * 4 - 2,
+          vy: Math.random() * 4 - 2,
+          color: '#22c55e',
+          alpha: 1,
+          size: Math.random() * 3 + 1.5,
+        });
+      }
+    } else if (type === 'magnet') {
+      magnetTimeLeftRef.current = 7.0; // 7 seconds duration
+      setHudMagnetActive(true);
+      // Spawn blue magnet particle circle
+      spawnPowerupParticles('#3b82f6');
+    } else if (type === 'shield') {
+      shieldActiveRef.current = true;
+      setHudShieldActive(true);
+      // Spawn cyan shield particle circle
+      spawnPowerupParticles('#00ffcc');
+    } else if (type === 'slowmo') {
+      slowmoTimeLeftRef.current = 5.0; // 5 seconds duration
+      setHudSlowmoActive(true);
+      // Spawn yellow clock particles
+      spawnPowerupParticles('#eab308');
+    }
+  };
+
+  const spawnPowerupParticles = (color: string) => {
+    for (let i = 0; i < 15; i++) {
+      const angle = (i / 15) * Math.PI * 2;
+      particlesRef.current.push({
+        x: 80,
+        y: playerYRef.current + 8,
+        vx: Math.cos(angle) * 3,
+        vy: Math.sin(angle) * 3,
+        color,
+        alpha: 1.0,
+        size: Math.random() * 4 + 2,
+      });
+    }
+  };
+
   // Audio/Visual handlers on Collisions
   const handleCollisionDamage = (_source: string) => {
+    // If shield is active, absorb damage
+    if (shieldActiveRef.current) {
+      shieldActiveRef.current = false;
+      setHudShieldActive(false);
+      audioEngine.playCorrect(); // Play alternate high pitch sound or pop
+      // Splash shield particles
+      for (let i = 0; i < 20; i++) {
+        particlesRef.current.push({
+          x: 80,
+          y: playerYRef.current + 8,
+          vx: Math.random() * 6 - 3,
+          vy: Math.random() * 6 - 3,
+          color: '#00ffcc',
+          alpha: 1,
+          size: Math.random() * 4 + 2,
+        });
+      }
+      return;
+    }
+
     audioEngine.playError();
     
     // Trigger mobile vibration if available
@@ -563,9 +885,15 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       });
     }
 
-    // Earn XP and Gems
-    const xpBonus = 20;
-    const gemsBonus = 2;
+    // Dynamic Speed Ramping: increase speed on correct gates
+    if (currentSpeedRef.current < 7.0) {
+      currentSpeedRef.current += 0.25;
+    }
+
+    // Earn XP and Gems (scaled slightly by speed as rewards for risk)
+    const speedBonusFactor = 1 + Math.floor((currentSpeedRef.current - 3.5) * 2) * 0.1;
+    const xpBonus = Math.round(20 * speedBonusFactor);
+    const gemsBonus = Math.round(2 * speedBonusFactor);
 
     scoreRef.current.xp += xpBonus;
     scoreRef.current.gems += gemsBonus;
@@ -632,7 +960,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           
           {/* Shields Display */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             {[...Array(3)].map((_, idx) => (
               <span
                 key={idx}
@@ -646,6 +974,23 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
                 🛡️
               </span>
             ))}
+            {hudShieldActive && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  background: 'rgba(0, 255, 204, 0.2)',
+                  color: '#00ffcc',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(0, 255, 204, 0.4)',
+                  marginLeft: '8px',
+                  fontFamily: 'Share Tech Mono',
+                  boxShadow: '0 0 8px rgba(0, 255, 204, 0.3)'
+                }}
+              >
+                ESCUDO ATIVO
+              </span>
+            )}
           </div>
 
           {/* Active Math Question */}
@@ -667,8 +1012,10 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
             </div>
           )}
 
-          {/* Stats */}
-          <div style={{ display: 'flex', gap: '20px', fontSize: '0.95rem' }}>
+          {/* Stats & active buffs */}
+          <div style={{ display: 'flex', gap: '20px', fontSize: '0.95rem', alignItems: 'center' }}>
+            {hudMagnetActive && <span title="Ímã de Gemas ativo!" style={{ filter: 'drop-shadow(0 0 3px #3b82f6)' }}>🧲</span>}
+            {hudSlowmoActive && <span title="Câmera Lenta ativa!" style={{ filter: 'drop-shadow(0 0 3px #eab308)' }}>⏳</span>}
             <div>XP: <strong style={{ color: 'var(--neon-purple)' }}>+{xpGained}</strong></div>
             <div>Gemas: <strong style={{ color: 'var(--neon-cyan)' }}>💎 {gemsGained}</strong></div>
           </div>
@@ -705,7 +1052,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
               <h2 className="text-glow-pink" style={{ color: 'var(--neon-pink)', fontSize: '2.5rem', marginBottom: '10px' }}>
                 CORRIDA ENCERRADA!
               </h2>
-              <p style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '20px' }}>Você resolveu {questionsSolved} equações matemáticos!</p>
+              <p style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '20px' }}>Você resolveu {questionsSolved} equações matemáticas!</p>
               
               <button className="cyber-btn" onClick={handleFinishRun} style={{ padding: '12px 30px', fontSize: '1.1rem' }}>
                 Coletar Recompensas: +{xpGained} XP / 💎 {gemsGained} Gemas ➔
@@ -716,11 +1063,20 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
       </div>
 
-      {/* Control Instruction Card */}
-      <div className="cyber-card" style={{ width: '100%', maxWidth: '800px', marginTop: '16px', padding: '16px', display: 'flex', gap: '24px', alignItems: 'center' }}>
-        <span style={{ fontSize: '2rem' }}>🎮</span>
-        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: '1.3rem' }}>
-          <strong>Como Jogar:</strong> Use a tecla <strong>[W]</strong> ou <strong>Seta para Cima</strong> para subir de pista, e <strong>[S]</strong> ou <strong>Seta para Baixo</strong> para descer. Em telas sensíveis ao toque, você pode <strong>clicar ou tocar diretamente nas pistas superior, central ou inferior</strong> do canvas para mover o mago.
+      {/* Control & Power-ups Instruction Card */}
+      <div className="cyber-card" style={{ width: '100%', maxWidth: '800px', marginTop: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <span style={{ fontSize: '2rem' }}>🎮</span>
+          <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.4rem' }}>
+            <strong>Como Jogar:</strong> Use as teclas <strong>[W] / [S]</strong> ou as <strong>Setas Cima / Baixo</strong> para trocar de pista. Em dispositivos móveis, você pode <strong>tocar diretamente</strong> na pista que deseja ir (superior, central ou inferior).
+          </div>
+        </div>
+        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '0.8rem', justifySelf: 'start' }}>
+          <div><strong>Itens Especiais nas Pistas:</strong></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '1.1rem' }}>💎</span> Gema (+1 Gema)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '1.1rem' }}>🛡️</span> Escudo (Protege contra a próxima colisão ou erro)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '1.1rem' }}>🧲</span> Ímã (Atrai todas as gemas próximas para você)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '1.1rem' }}>⏳</span> Relógio (Câmera lenta temporária nas pistas)</div>
         </div>
       </div>
 
