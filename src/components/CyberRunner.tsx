@@ -152,6 +152,22 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const currentQuestionRef = useRef<RunnerQuestion | null>(null);
   const selectedOperation = gameState.selectedOperation || 'addition';
 
+  // Learning Buff check: 2x XP if Addition is heavily grinded while player selected another underplayed op
+  const isUnderplayedBonusActive = (() => {
+    const stats = mockDb.getMathStats(playerUser.id);
+    const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
+    const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
+    const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
+    const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+    
+    if (addCount > 30) {
+      if (selectedOperation === 'subtraction' && subCount < 15) return true;
+      if (selectedOperation === 'multiplication' && multCount < 15) return true;
+      if (selectedOperation === 'division' && divCount < 15) return true;
+    }
+    return false;
+  })();
+
   // Game variables
   const playerLaneRef = useRef<number>(1);
   const playerYRef = useRef<number>(LANES[1]);
@@ -218,34 +234,78 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     }
   };
 
-  // Generate a runner math question
+  // Generate a runner math question with adaptive complexity & Spaced Repetition
   const generateRunnerQuestion = (): RunnerQuestion => {
-    let num1 = 2;
-    let num2 = 2;
-    let answer = 0;
-
+    const stats = mockDb.getMathStats(playerUser.id);
     const op = selectedOperation;
 
-    if (op === 'addition') {
-      num1 = Math.floor(Math.random() * 12) + 2; // 2 to 14
-      num2 = Math.floor(Math.random() * 12) + 2; // 2 to 14
-      answer = num1 + num2;
-    } else if (op === 'subtraction') {
-      num1 = Math.floor(Math.random() * 20) + 6; // 6 to 25
-      num2 = Math.floor(Math.random() * (num1 - 3)) + 2; // Keep result positive
-      answer = num1 - num2;
-    } else if (op === 'division') {
-      const divisor = Math.floor(Math.random() * 4) + 2; // 2 to 5
-      const quotient = Math.floor(Math.random() * 8) + 2; // 2 to 9
-      num1 = divisor * quotient;
-      num2 = divisor;
-      answer = quotient;
-    } else {
-      // multiplication
-      num1 = Math.floor(Math.random() * 8) + 2; // 2 to 9
-      num2 = Math.floor(Math.random() * 8) + 2; // 2 to 9
-      answer = num1 * num2;
+    // Filter stats matching the current operation
+    const opStats = stats.filter(s => {
+      if (op === 'addition') return s.questionKey.includes('+');
+      if (op === 'subtraction') return s.questionKey.includes('-');
+      if (op === 'multiplication') return s.questionKey.includes('x') || s.questionKey.includes('*');
+      if (op === 'division') return s.questionKey.includes('/') || s.questionKey.includes('÷');
+      return false;
+    });
+
+    // Find problem questions (correct ratio < 70% or has error count)
+    const problemStats = opStats.filter(s => {
+      const total = s.correctCount + s.errorCount;
+      if (total === 0) return false;
+      return (s.correctCount / total) < 0.70 || s.errorCount > 0;
+    });
+
+    let num1 = 2;
+    let num2 = 2;
+    let isSrsQuestion = false;
+
+    // 40% chance of injecting a review question if any problem equations exist
+    if (Math.random() < 0.40 && problemStats.length > 0) {
+      const chosenStat = problemStats[Math.floor(Math.random() * problemStats.length)];
+      // Parse operands (splitting by operator symbols)
+      const parts = chosenStat.questionKey.split(/[\+\-\*x\/÷]/);
+      if (parts.length >= 2) {
+        num1 = parseInt(parts[0]);
+        num2 = parseInt(parts[1]);
+        if (!isNaN(num1) && !isNaN(num2)) {
+          isSrsQuestion = true;
+        }
+      }
     }
+
+    if (!isSrsQuestion) {
+      // Scale complexity with total correct answers on this operator
+      const totalAcertosOp = opStats.reduce((sum, s) => sum + s.correctCount, 0);
+      const opLevel = Math.min(10, 1 + Math.floor(totalAcertosOp / 12));
+
+      if (op === 'addition') {
+        const maxLimit = 5 + opLevel * 2;
+        num1 = Math.floor(Math.random() * maxLimit) + 2;
+        num2 = Math.floor(Math.random() * maxLimit) + 2;
+      } else if (op === 'subtraction') {
+        const maxLimit = 8 + opLevel * 4;
+        num1 = Math.floor(Math.random() * maxLimit) + 5;
+        num2 = Math.floor(Math.random() * (num1 - 2)) + 1;
+      } else if (op === 'division') {
+        const maxDivisor = Math.min(10, 3 + Math.floor(opLevel * 0.7));
+        const maxQuotient = Math.min(10, 3 + Math.floor(opLevel * 0.7));
+        const divisor = Math.floor(Math.random() * (maxDivisor - 1)) + 2;
+        const quotient = Math.floor(Math.random() * (maxQuotient - 1)) + 2;
+        num1 = divisor * quotient;
+        num2 = divisor;
+      } else {
+        // multiplication
+        const maxLimit = Math.min(12, 3 + Math.floor(opLevel * 0.9));
+        num1 = Math.floor(Math.random() * (maxLimit - 1)) + 2;
+        num2 = Math.floor(Math.random() * (maxLimit - 1)) + 2;
+      }
+    }
+
+    let answer = 0;
+    if (op === 'addition') answer = num1 + num2;
+    else if (op === 'subtraction') answer = num1 - num2;
+    else if (op === 'division') answer = num1 / num2;
+    else answer = num1 * num2;
 
     // Generate 3 choices
     const choices = new Set<number>([answer]);
@@ -1172,9 +1232,19 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   };
 
   // Audio/Visual handlers on Collisions
-  const handleCollisionDamage = (_source: string) => {
+  const handleCollisionDamage = (source: string) => {
     // Screen shake on taking damage
     triggerScreenShake(12);
+
+    if (source === 'Resposta Errada!') {
+      const q = currentQuestionRef.current;
+      if (q) {
+        const op = selectedOperation;
+        const opSign = op === 'addition' ? '+' : op === 'subtraction' ? '-' : op === 'multiplication' ? 'x' : '/';
+        const key = `${q.num1}${opSign}${q.num2}`;
+        mockDb.recordMathAnswer(playerUser.id, key, false, 5000);
+      }
+    }
 
     // If shield is active, absorb damage
     if (shieldActiveRef.current) {
@@ -1232,10 +1302,38 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const handleGateSuccess = (x: number, y: number) => {
     audioEngine.playCorrect();
     
-    // Earn XP and Gems (scaled slightly by speed as rewards for risk)
+    const q = currentQuestionRef.current;
+    let isMastered = false;
+    let baseXp = 20;
+    let baseGems = 2;
+
+    if (q) {
+      const op = selectedOperation;
+      const opSign = op === 'addition' ? '+' : op === 'subtraction' ? '-' : op === 'multiplication' ? 'x' : '/';
+      const key = `${q.num1}${opSign}${q.num2}`;
+
+      // Save success statistic
+      mockDb.recordMathAnswer(playerUser.id, key, true, 2000);
+
+      // Check if mastered (correct answers >= 5 and no errors)
+      const stats = mockDb.getMathStats(playerUser.id);
+      const factStat = stats.find(s => s.questionKey === key);
+      if (factStat && factStat.correctCount >= 5 && factStat.errorCount === 0) {
+        isMastered = true;
+        baseXp = 5;
+        baseGems = 0;
+      }
+    }
+
+    // Apply study nudges 2x XP learning buff if active
+    if (isUnderplayedBonusActive && !isMastered) {
+      baseXp *= 2;
+    }
+
+    // Scale rewards slightly by speed for risk (unless already mastered)
     const speedBonusFactor = 1 + Math.floor((currentSpeedRef.current - 3.5) * 2) * 0.1;
-    const xpBonus = Math.round(20 * speedBonusFactor);
-    const gemsBonus = Math.round(2 * speedBonusFactor);
+    const xpBonus = isMastered ? baseXp : Math.round(baseXp * speedBonusFactor);
+    const gemsBonus = isMastered ? baseGems : Math.round(baseGems * speedBonusFactor);
 
     scoreRef.current.xp += xpBonus;
     scoreRef.current.gems += gemsBonus;
@@ -1243,8 +1341,18 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     setXpGained(scoreRef.current.xp);
     setGemsGained(scoreRef.current.gems);
     
-    addFloatingText(`+${xpBonus} XP`, x, y - 10, '#a855f7');
-    addFloatingText(`+${gemsBonus} 💎`, x, y - 25, '#00ffcc');
+    if (isMastered) {
+      addFloatingText('⚠️ DOMINADO: XP Reduzido', x, y - 10, '#f97316');
+      addFloatingText(`+${xpBonus} XP`, x, y - 25, '#a855f7');
+    } else {
+      addFloatingText(`+${xpBonus} XP`, x, y - 10, '#a855f7');
+      if (gemsBonus > 0) {
+        addFloatingText(`+${gemsBonus} 💎`, x, y - 25, '#00ffcc');
+      }
+      if (isUnderplayedBonusActive) {
+        addFloatingText('💡 BÔNUS DE ESTUDO 2x XP!', x, y - 40, '#f97316');
+      }
+    }
 
     const nextSolved = questionsSolved + 1;
     setQuestionsSolved(nextSolved);

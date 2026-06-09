@@ -565,6 +565,15 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return list;
   };
 
+  // Nudge check for grinding addition
+  const mathStats = mockDb.getMathStats(playerUser.id);
+  const addCount = mathStats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
+  const subCount = mathStats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
+  const multCount = mathStats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
+  const divCount = mathStats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+
+  const showNudgeBanner = addCount > 30 && (subCount < 15 || multCount < 15 || divCount < 15);
+
   return (
     <div style={{ padding: '20px', minHeight: '90vh' }}>
       
@@ -650,6 +659,36 @@ export const HubWorld: React.FC<HubWorldProps> = ({
         {/* Left Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
+          {/* Pedagogical Nudge Banner */}
+          {showNudgeBanner && (
+            <div
+              className="cyber-card border-glow-pink"
+              style={{
+                background: 'rgba(244, 63, 94, 0.08)',
+                border: '1.5px solid var(--neon-pink)',
+                boxShadow: '0 0 15px rgba(244, 63, 94, 0.25)',
+                padding: '16px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                color: '#fff',
+                lineHeight: '1.4',
+              }}
+            >
+              <div style={{ fontSize: '2rem' }}>💡</div>
+              <div>
+                <strong style={{ color: 'var(--neon-pink)', display: 'block', fontSize: '0.95rem', marginBottom: '4px' }}>
+                  Dica do Orientador Pedagógico:
+                </strong>
+                Você já domina a Adição! Pratique as outras operações (Subtração, Multiplicação, Divisão) no Cyber Runner ou jogue no modo <strong>Olimpíada dos Deuses</strong> para ganhar <span style={{ color: 'var(--neon-yellow)', fontWeight: 'bold' }}>2x XP de Bônus de Estudo</span>!
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>
+                  ⚠️ Atenção: Contas de Adição que você já domina darão apenas metade do XP e nenhuma Gema.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Player Profile & Avatar Showcase */}
           <div className="cyber-card profile-card-grid">
             

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { audioEngine } from './AudioEngine';
+import { mockDb } from '../services/mockDb';
 import type { GameState } from '../services/mockDb';
 
 interface OlympicsProps {
@@ -157,6 +158,15 @@ export const Olympics: React.FC<OlympicsProps> = ({
   onBack,
   onStateUpdate,
 }) => {
+  const isUnderplayedBonusActive = useMemo(() => {
+    const stats = mockDb.getMathStats(gameState.userId);
+    const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
+    const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
+    const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
+    const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+    return addCount > 30 && (subCount < 15 || multCount < 15 || divCount < 15);
+  }, [gameState.userId]);
+
   const [currentLevel, setCurrentLevel] = useState<number>(1);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [answerSubmitted, setAnswerSubmitted] = useState<boolean>(false);
@@ -277,12 +287,34 @@ export const Olympics: React.FC<OlympicsProps> = ({
   };
 
   const handleNext = () => {
-    // Reward with gems on correct
+    // Reward with gems and XP on correct
     if (isCorrect) {
-      onStateUpdate({
-        ...gameState,
-        gems: gameState.gems + 2
+      const baseXp = 20;
+      const xpBonus = isUnderplayedBonusActive ? baseXp * 2 : baseXp;
+
+      const currentXp = gameState.auraXp + xpBonus;
+      let newLevel = gameState.auraLevel;
+      let newXp = currentXp;
+
+      const getXpNeeded = (lvl: number) => Math.round(100 * Math.pow(1.15, lvl - 1));
+      let boundary = getXpNeeded(newLevel);
+
+      while (newXp >= boundary && newLevel < 100) {
+        newXp -= boundary;
+        newLevel++;
+        boundary = getXpNeeded(newLevel);
+      }
+
+      mockDb.updateGameState(gameState.userId, {
+        auraLevel: newLevel,
+        auraXp: newXp,
+        gems: gameState.gems + 2,
       });
+
+      const updated = mockDb.getGameState(gameState.userId);
+      if (updated) {
+        onStateUpdate(updated);
+      }
     }
 
     if (isReTrainingMode) {
@@ -595,7 +627,20 @@ export const Olympics: React.FC<OlympicsProps> = ({
                     fontWeight: 'bold',
                     marginBottom: '12px'
                   }}>
-                    {isCorrect ? '✔️ Excelente! Resposta correta!' : `❌ Resposta incorreta. A resposta certa era: ${activeQuestion.answer}`}
+                    {isCorrect ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                        <span>✔️ Excelente! Resposta correta!</span>
+                        <span style={{ color: 'var(--neon-cyan)', marginLeft: '4px' }}>+2 💎</span>
+                        <span style={{ color: 'var(--neon-purple)', marginLeft: '4px' }}>
+                          +{isUnderplayedBonusActive ? 40 : 20} XP
+                        </span>
+                        {isUnderplayedBonusActive && (
+                          <span style={{ color: '#f97316', marginLeft: '8px', fontSize: '0.8rem', backgroundColor: 'rgba(249, 115, 22, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                            💡 BÔNUS 2x XP!
+                          </span>
+                        )}
+                      </div>
+                    ) : `❌ Resposta incorreta. A resposta certa era: ${activeQuestion.answer}`}
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginBottom: '16px' }}>
                     <strong>Explicação Pedagógica:</strong> {activeQuestion.explanation}
