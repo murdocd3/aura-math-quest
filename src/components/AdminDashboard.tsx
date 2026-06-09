@@ -179,75 +179,241 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     await loadUsers();
   };
 
-  const handlePrintPdf = () => {
-    if (!activeStats) return;
+  const handlePrintPdf = async () => {
+    if (!selectedUserId || !activeStats) return;
+    
+    // Fetch chronological timeline entries
+    const timeline = await backendService.getTimeline(selectedUserId);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const statsRows = activeStats.stats.map((s: any) => {
-      const total = s.correctCount + s.errorCount;
-      const rate = total > 0 ? Math.round((s.correctCount / total) * 100) : 0;
+    // Group timeline entries by date (DD/MM/YYYY)
+    const groupedByDate: Record<string, { total: number; correct: number; timeSum: number; categories: Record<string, { total: number; correct: number }> }> = {};
+    
+    timeline.forEach(t => {
+      const dateStr = new Date(t.timestamp).toLocaleDateString('pt-BR');
+      if (!groupedByDate[dateStr]) {
+        groupedByDate[dateStr] = { total: 0, correct: 0, timeSum: 0, categories: {} };
+      }
+      const day = groupedByDate[dateStr];
+      day.total++;
+      if (t.correct) day.correct++;
+      day.timeSum += t.timeMs;
+      
+      if (!day.categories[t.category]) {
+        day.categories[t.category] = { total: 0, correct: 0 };
+      }
+      day.categories[t.category].total++;
+      if (t.correct) day.categories[t.category].correct++;
+    });
+
+    const datesSorted = Object.keys(groupedByDate).sort((a, b) => {
+      const partsA = a.split('/');
+      const partsB = b.split('/');
+      return new Date(Number(partsA[2]), Number(partsA[1]) - 1, Number(partsA[0])).getTime() - 
+             new Date(Number(partsB[2]), Number(partsB[1]) - 1, Number(partsB[0])).getTime();
+    });
+
+    // Generate timeline rows and visualization
+    let timelineHtml = '';
+    let progressionAnalysis = '';
+    
+    if (datesSorted.length > 0) {
+      timelineHtml = datesSorted.slice(-7).map(date => {
+        const d = groupedByDate[date];
+        const accuracy = Math.round((d.correct / d.total) * 100);
+        const avgTimeSec = (d.timeSum / d.total / 1000).toFixed(1);
+        
+        return `
+          <div style="margin-bottom: 12px; border-bottom: 1px dashed #e5e7eb; padding-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; margin-bottom: 4px;">
+              <span>📅 ${date}</span>
+              <span style="color: #4b5563; font-weight: 500;">${d.total} resolvidas • Tempo Médio: ${avgTimeSec}s</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="flex-grow: 1; background-color: #e5e7eb; height: 16px; border-radius: 8px; overflow: hidden; position: relative;">
+                <div style="background: linear-gradient(90deg, #7c3aed, #4f46e5); width: ${accuracy}%; height: 100%; border-radius: 8px;"></div>
+                <span style="position: absolute; width: 100%; text-align: center; left: 0; top: 0; font-size: 9px; color: ${accuracy > 50 ? '#fff' : '#1f2937'}; font-weight: bold; line-height: 16px;">
+                  Precisão: ${accuracy}%
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Pedagogy diagnostics
+      const firstDay = groupedByDate[datesSorted[0]];
+      const lastDay = groupedByDate[datesSorted[datesSorted.length - 1]];
+      const firstAccuracy = Math.round((firstDay.correct / firstDay.total) * 100);
+      const lastAccuracy = Math.round((lastDay.correct / lastDay.total) * 100);
+      const firstTime = firstDay.timeSum / firstDay.total / 1000;
+      const lastTime = lastDay.timeSum / lastDay.total / 1000;
+
+      let accuracyTrend = '';
+      if (lastAccuracy > firstAccuracy) {
+        accuracyTrend = `📈 A precisão geral do aluno subiu de <strong>${firstAccuracy}%</strong> para <strong>${lastAccuracy}%</strong> no período analisado, o que indica consolidação gradual dos fatos numéricos.`;
+      } else if (lastAccuracy === firstAccuracy) {
+        accuracyTrend = `⚖️ A precisão se manteve estável em <strong>${lastAccuracy}%</strong>, sugerindo estabilização do aprendizado.`;
+      } else {
+        accuracyTrend = `⚠️ Houve uma oscilação na precisão (de ${firstAccuracy}% para ${lastAccuracy}%). Isso é esperado ao introduzir operações de maior complexidade (como tabuadas mais altas).`;
+      }
+
+      let speedTrend = '';
+      if (lastTime < firstTime) {
+        speedTrend = `⚡ O tempo médio de resposta caiu de <strong>${firstTime.toFixed(1)} segundos</strong> para <strong>${lastTime.toFixed(1)} segundos</strong>. Essa aceleração indica que o processo de raciocínio está se tornando automatizado (memória de trabalho liberada).`;
+      } else {
+        speedTrend = `⏱️ O tempo médio de resposta se manteve estável em cerca de <strong>${lastTime.toFixed(1)} segundos</strong>. Recomenda-se estimular a agilidade no modo Cyber Runner.`;
+      }
+
+      progressionAnalysis = `
+        <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; margin-top: 10px;">
+          <h3 style="margin-top: 0; color: #4c1d95; font-size: 13px; font-weight: 700;">📈 Análise da Curva de Aprendizagem</h3>
+          <p style="margin: 0 0 8px 0;">${accuracyTrend}</p>
+          <p style="margin: 0;">${speedTrend}</p>
+        </div>
+      `;
+    } else {
+      timelineHtml = '<p style="color: #6b7280; font-style: italic; font-size: 12px;">Nenhum histórico temporal de linha de tempo registrado ainda.</p>';
+      progressionAnalysis = '';
+    }
+
+    // Category summary aggregation
+    const categoryTotals: Record<string, { correct: number, total: number, timeSum: number }> = {};
+    timeline.forEach(t => {
+      if (!categoryTotals[t.category]) {
+        categoryTotals[t.category] = { correct: 0, total: 0, timeSum: 0 };
+      }
+      categoryTotals[t.category].total++;
+      if (t.correct) categoryTotals[t.category].correct++;
+      categoryTotals[t.category].timeSum += t.timeMs;
+    });
+
+    const categoryHtml = Object.entries(categoryTotals).map(([cat, val]) => {
+      const accuracy = Math.round((val.correct / val.total) * 100);
+      const avgTime = (val.timeSum / val.total / 1000).toFixed(1);
+      
+      let badgeClass = 'success';
+      if (accuracy < 60) badgeClass = 'danger';
+      else if (accuracy < 80) badgeClass = 'warning';
+
       return `
         <tr>
-          <td>${s.questionKey}</td>
-          <td>${s.correctCount}</td>
-          <td>${s.errorCount}</td>
-          <td>${rate}%</td>
-          <td>${s.correctCount + s.errorCount > 0 ? Math.round(s.averageTimeMs / 1000) : 0}s</td>
+          <td style="font-weight: bold;">${cat}</td>
+          <td>${val.total}</td>
+          <td>${val.correct}</td>
+          <td>${val.total - val.correct}</td>
+          <td>
+            <span class="badge ${badgeClass}">${accuracy}%</span>
+          </td>
+          <td>${avgTime}s</td>
         </tr>
       `;
     }).join('');
+
+    // Formulate custom educational tips based on weaknesses
+    let weakestOp = 'Nenhuma';
+    let minAccuracy = 100;
+    Object.entries(categoryTotals).forEach(([cat, val]) => {
+      const acc = Math.round((val.correct / val.total) * 100);
+      if (acc < minAccuracy) {
+        minAccuracy = acc;
+        weakestOp = cat;
+      }
+    });
+
+    let customizedTip = '';
+    if (minAccuracy < 70 && weakestOp !== 'Nenhuma') {
+      customizedTip = `Recomendamos dar atenção especial à operação de <strong>${weakestOp}</strong> (precisão de ${minAccuracy}%). O jogo continuará ativando a repetição espaçada (SRS) nessas contas para auxiliar a memorização.`;
+    } else {
+      customizedTip = 'O aluno demonstra ótimo equilíbrio e precisão geral consistente nas operações básicas de matemática. Continue incentivando a prática contínua.';
+    }
 
     printWindow.document.write(`
       <html>
         <head>
           <title>Relatório Pedagógico - ${activeStats.user.username}</title>
           <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 40px; }
-            h1 { color: #4c1d95; font-size: 24px; margin-bottom: 5px; }
-            .header-info { margin-bottom: 30px; font-size: 14px; border-bottom: 2px solid #ddd; padding-bottom: 15px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
-            th { background-color: #f3f4f6; color: #374151; font-weight: bold; }
-            .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-            .danger { background-color: #fee2e2; color: #991b1b; }
-            .success { background-color: #d1fae5; color: #065f46; }
-            .tip-box { margin-top: 30px; background-color: #f5f3ff; border-left: 4px solid #7c3aed; padding: 15px; border-radius: 4px; font-size: 13px; }
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1f2937; padding: 40px; line-height: 1.5; }
+            h1 { color: #4c1d95; font-size: 24px; margin: 0 0 5px 0; font-weight: 800; }
+            .header-info { margin-bottom: 25px; font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; background-color: #faf5ff; border: 1px solid #f3e8ff; padding: 15px; border-radius: 8px; }
+            .info-item { display: flex; justify-content: space-between; border-bottom: 1px solid #f3e8ff; padding-bottom: 4px; }
+            .info-label { color: #6b7280; font-weight: 500; }
+            .info-val { font-weight: 700; color: #4c1d95; }
+            h2 { color: #1e1b4b; font-size: 14px; margin: 25px 0 10px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+            th, td { padding: 8px 10px; text-align: left; font-size: 12px; border-bottom: 1px solid #e5e7eb; }
+            th { background-color: #f9fafb; color: #4b5563; font-weight: 600; text-transform: uppercase; font-size: 10px; }
+            .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-align: center; }
+            .danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+            .warning { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+            .success { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+            .tip-box { margin-top: 25px; background-color: #f5f3ff; border-left: 4px solid #7c3aed; padding: 15px; border-radius: 6px; font-size: 12px; }
+            .grid-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px; }
           </style>
         </head>
         <body>
-          <h1>Relatório de Progresso Matemático 🌌</h1>
+          <h1>Relatório de Progresso Pedagógico 🌌</h1>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #4b5563;">Acompanhamento pedagógico temporal do estudante e estatísticas cognitivas de matemática.</p>
+          
           <div class="header-info">
-            <strong>Aluno(a):</strong> ${activeStats.user.username}<br>
-            <strong>Nível de Aura:</strong> ${activeStats.state?.auraLevel || 1}<br>
-            <strong>Rebirths:</strong> ${activeStats.state?.rebirths || 0}<br>
-            <strong>Tempo de Jogo:</strong> ${formatTime(activeStats.state?.totalPlayTimeSeconds || 0)}<br>
-            <strong>Gemas:</strong> ${activeStats.state?.gems || 0}<br>
-            <strong>Data do Relatório:</strong> ${new Date().toLocaleDateString('pt-BR')}
+            <div class="info-item">
+              <span class="info-label">Estudante:</span>
+              <span class="info-val">${activeStats.user.username}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Data de Emissão:</span>
+              <span class="info-val">${new Date().toLocaleDateString('pt-BR')}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Nível de Aura:</span>
+              <span class="info-val">Lvl ${activeStats.state?.auraLevel || 1}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tempo Total de Prática:</span>
+              <span class="info-val">${formatTime(activeStats.state?.totalPlayTimeSeconds || 0)}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Gemas Coletadas:</span>
+              <span class="info-val">💎 ${activeStats.state?.gems || 0}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Rebirths (Reinícios):</span>
+              <span class="info-val">✨ ${activeStats.state?.rebirths || 0}</span>
+            </div>
           </div>
 
-          <h2>Detalhamento por Equação</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Operação</th>
-                <th>Acertos</th>
-                <th>Erros</th>
-                <th>Taxa de Precisão</th>
-                <th>Tempo Médio</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${statsRows || '<tr><td colspan="5">Nenhum dado registrado para este aluno ainda.</td></tr>'}
-            </tbody>
-          </table>
+          <div class="grid-layout">
+            <div>
+              <h2>📊 Resumo de Desempenho por Categoria</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Respondidas</th>
+                    <th>Acertos</th>
+                    <th>Erros</th>
+                    <th>Precisão</th>
+                    <th>Tempo Médio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${categoryHtml || '<tr><td colspan="6" style="text-align: center; color: #6b7280; font-style: italic;">Nenhum dado registrado para esta categoria.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h2>📈 Linha do Tempo de Evolução</h2>
+              ${timelineHtml}
+            </div>
+          </div>
+
+          ${progressionAnalysis}
 
           <div class="tip-box">
-            <h3>💡 Dicas Pedagógicas Personalizadas</h3>
-            ${activeStats.stats.length > 0 && activeStats.stats[0].errorCount > 0
-              ? `O aluno apresenta maior índice de dificuldade na operação <strong>${activeStats.stats[0].questionKey}</strong> (com ${activeStats.stats[0].errorCount} erros registrados). Recomendamos jogos físicos rápidos de fixação para esta tabuada específica.`
-              : 'O aluno está progredindo de forma consistente. Continue incentivando a prática para aumentar a velocidade de raciocínio!'
-            }
+            <h3 style="margin-top: 0; color: #7c3aed; font-size: 13px; font-weight: 700;">💡 Dicas Pedagógicas & Recomendações de Treino</h3>
+            <p style="margin: 0; line-height: 1.5; color: #374151;">${customizedTip}</p>
           </div>
         </body>
       </html>

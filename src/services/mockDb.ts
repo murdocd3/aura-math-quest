@@ -155,6 +155,15 @@ export interface MathStatistic {
   averageTimeMs: number;
 }
 
+export interface TimelineEntry {
+  userId: string;
+  timestamp: string; // ISO String
+  category: string; // 'Adição' | 'Subtração' | 'Multiplicação' | 'Divisão' | 'Olimpíadas' | 'Geral'
+  questionKey: string;
+  correct: boolean;
+  timeMs: number;
+}
+
 export interface PetType {
   id: string;
   name: string;
@@ -891,6 +900,7 @@ const STORAGE_KEYS = {
   STATS: 'amq_stats',
   CLANS: 'amq_clans',
   TRADES: 'amq_trades',
+  TIMELINE: 'amq_timeline',
 };
 
 // Seed initial data if empty
@@ -1093,6 +1103,39 @@ export function seedDatabase() {
     localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(defaultStats));
     localStorage.setItem(STORAGE_KEYS.CLANS, JSON.stringify(defaultClans));
     localStorage.setItem(STORAGE_KEYS.TRADES, JSON.stringify(defaultTrades));
+  }
+
+  // Check or seed timeline logs
+  if (!localStorage.getItem('amq_timeline')) {
+    const defaultTimeline: TimelineEntry[] = [];
+    const categories = ['Adição', 'Subtração', 'Multiplicação', 'Divisão'];
+    const mockUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
+
+    for (let dayOffset = 5; dayOffset >= 0; dayOffset--) {
+      const date = new Date();
+      date.setDate(date.getDate() - dayOffset);
+      const isoDate = date.toISOString();
+
+      mockUserIds.forEach(u => {
+        const numQuestions = 6 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < numQuestions; i++) {
+          const cat = categories[Math.floor(Math.random() * categories.length)];
+          const correctChance = 0.55 + ((5 - dayOffset) * 0.07);
+          const correct = Math.random() < correctChance;
+          const timeMs = Math.round(7500 - ((5 - dayOffset) * 700) + (Math.random() * 1000));
+
+          defaultTimeline.push({
+            userId: u,
+            timestamp: isoDate,
+            category: cat,
+            questionKey: `${2 + Math.floor(Math.random() * 8)}x${2 + Math.floor(Math.random() * 8)}`,
+            correct,
+            timeMs
+          });
+        }
+      });
+    }
+    localStorage.setItem('amq_timeline', JSON.stringify(defaultTimeline));
   }
 
   // Clear specific users (patricia, luigi, manu, maju) if they exist in localStorage
@@ -1527,6 +1570,10 @@ export const mockDb = {
   },
 
   // Math Statistics APIs
+  getTimeline(userId: string): TimelineEntry[] {
+    return (getStorageItem<TimelineEntry>(STORAGE_KEYS.TIMELINE) || []).filter(t => t.userId === userId);
+  },
+
   getMathStats(userId: string): MathStatistic[] {
     const stats = getStorageItem<MathStatistic>(STORAGE_KEYS.STATS);
     return stats.filter(s => s.userId === userId);
@@ -1566,6 +1613,27 @@ export const mockDb = {
     }
 
     setStorageItem(STORAGE_KEYS.STATS, stats);
+
+    // Record timeline entry for temporal progress tracking
+    let category = 'Geral';
+    if (questionKey.includes('+')) category = 'Adição';
+    else if (questionKey.includes('-')) category = 'Subtração';
+    else if (questionKey.includes('x') || questionKey.includes('*')) category = 'Multiplicação';
+    else if (questionKey.includes('/') || questionKey.includes('÷')) category = 'Divisão';
+    else if (questionKey.startsWith('Olimpíadas')) category = 'Olimpíadas';
+
+    const timeline = getStorageItem<TimelineEntry>(STORAGE_KEYS.TIMELINE) || [];
+    timeline.push({
+      userId,
+      timestamp: new Date().toISOString(),
+      category,
+      questionKey,
+      correct,
+      timeMs
+    });
+    const userTimeline = timeline.filter(t => t.userId === userId).slice(-1000);
+    const otherUsers = timeline.filter(t => t.userId !== userId);
+    setStorageItem(STORAGE_KEYS.TIMELINE, [...otherUsers, ...userTimeline]);
 
     // Sync to Supabase in background
     if (isSupabaseEnabled && supabase) {

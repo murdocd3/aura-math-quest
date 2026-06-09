@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { mockDb, COSMETIC_ITEMS } from './mockDb';
-import type { User, GameState, Pet, MathStatistic } from './mockDb';
+import type { User, GameState, Pet, MathStatistic, TimelineEntry } from './mockDb';
 
 /**
  * DATABASE SETUP SCHEMA FOR SUPABASE:
@@ -637,6 +637,10 @@ export const backendService = {
       throw new Error('Um ou ambos os pets não pertencem ao usuário ou não existem no Banco Local.');
     }
     return mockDb.fusePets(userId, parentId1, parentId2);
+  },
+
+  async getTimeline(userId: string): Promise<TimelineEntry[]> {
+    return mockDb.getTimeline(userId);
   },
 
   // 5. Statistics & Adaptive Review

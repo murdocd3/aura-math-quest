@@ -894,6 +894,9 @@ export const Olympics: React.FC<OlympicsProps> = ({
     setAnswerSubmitted(true);
 
     const timeTakenSec = (Date.now() - questionStartTime) / 1000;
+
+    // Log answer to math statistics and timeline
+    mockDb.recordMathAnswer(gameState.userId, 'Olimpíadas L' + activeQuestion.level, correct, Math.round(timeTakenSec * 1000));
     
     if (correct) {
       audioEngine.playHatchSuccess();
