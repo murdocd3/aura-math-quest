@@ -889,6 +889,17 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 { id: 'division', label: 'Divisão (÷)', emoji: '➗' },
               ].map(op => {
                 const isSelected = (gameState.selectedOperation || 'multiplication') === op.id;
+                let opBadge = null;
+                if (addCount > 30) {
+                  if (op.id === 'addition') {
+                    opBadge = <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--neon-pink)', fontWeight: 'bold', marginTop: '2px' }}>⚠️ 0.5x XP</span>;
+                  } else {
+                    const count = op.id === 'subtraction' ? subCount : op.id === 'multiplication' ? multCount : divCount;
+                    if (count < 15) {
+                      opBadge = <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--neon-yellow)', fontWeight: 'bold', marginTop: '2px' }}>💡 2x XP</span>;
+                    }
+                  }
+                }
                 return (
                   <button
                     key={op.id}
@@ -896,14 +907,23 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     onClick={() => handleOperationChange(op.id as any)}
                     style={{
                       flex: 1,
-                      padding: '10px',
-                      fontSize: '0.85rem',
+                      padding: '8px 4px',
+                      fontSize: '0.8rem',
                       background: isSelected ? 'rgba(0, 255, 204, 0.15)' : 'rgba(15,23,42,0.6)',
                       borderColor: isSelected ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.1)',
                       color: isSelected ? '#fff' : 'rgba(255,255,255,0.7)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minHeight: '62px',
+                      justifyContent: 'center',
                     }}
                   >
-                    <span style={{ fontSize: '1.1rem', marginRight: '4px' }}>{op.emoji}</span> {op.label.split(' ')[0]}
+                    <div>
+                      <span style={{ fontSize: '1rem', marginRight: '4px' }}>{op.emoji}</span>
+                      {op.label.split(' ')[0]}
+                    </div>
+                    {opBadge}
                   </button>
                 );
               })}
@@ -1305,7 +1325,20 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ fontSize: '1.2rem', color: '#22c55e' }}>🌲 Floresta Encantada</h4>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(34, 197, 94, 0.2)', padding: '2px 8px', borderRadius: '10px', color: '#22c55e', fontWeight: 800 }}>FÁCIL</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {addCount > 30 && (
+                          (gameState.selectedOperation || 'multiplication') === 'addition' ? (
+                            <span style={{ fontSize: '0.7rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-pink)', fontWeight: 'bold' }}>⚠️ 0.5x XP</span>
+                          ) : (
+                            ((gameState.selectedOperation === 'subtraction' && subCount < 15) ||
+                             (gameState.selectedOperation === 'multiplication' && multCount < 15) ||
+                             (gameState.selectedOperation === 'division' && divCount < 15)) && (
+                              <span style={{ fontSize: '0.7rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-yellow)', fontWeight: 'bold' }}>💡 2x XP</span>
+                            )
+                          )
+                        )}
+                        <span style={{ fontSize: '0.8rem', background: 'rgba(34, 197, 94, 0.2)', padding: '2px 8px', borderRadius: '10px', color: '#22c55e', fontWeight: 800 }}>FÁCIL</span>
+                      </div>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
                       Tabuadas: <strong style={{ color: '#22c55e' }}>2, 3, 4 e 5</strong>.<br />
@@ -1343,7 +1376,20 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ fontSize: '1.2rem', color: 'var(--neon-pink)' }}>🌋 Vulcão Glitch</h4>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-pink)', fontWeight: 800 }}>DIFÍCIL</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {addCount > 30 && (
+                          (gameState.selectedOperation || 'multiplication') === 'addition' ? (
+                            <span style={{ fontSize: '0.7rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-pink)', fontWeight: 'bold' }}>⚠️ 0.5x XP</span>
+                          ) : (
+                            ((gameState.selectedOperation === 'subtraction' && subCount < 15) ||
+                             (gameState.selectedOperation === 'multiplication' && multCount < 15) ||
+                             (gameState.selectedOperation === 'division' && divCount < 15)) && (
+                              <span style={{ fontSize: '0.7rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-yellow)', fontWeight: 'bold' }}>💡 2x XP</span>
+                            )
+                          )
+                        )}
+                        <span style={{ fontSize: '0.8rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-pink)', fontWeight: 800 }}>DIFÍCIL</span>
+                      </div>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
                       Tabuadas: <strong style={{ color: 'var(--neon-pink)' }}>6, 7, 8 e 9</strong>.<br />
@@ -1381,7 +1427,20 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ fontSize: '1.2rem', color: 'var(--neon-cyan)' }}>⚡ Cyber Runner 2D</h4>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(0, 255, 204, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-cyan)', fontWeight: 800 }}>MINIJOGO</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {addCount > 30 && (
+                          (gameState.selectedOperation || 'multiplication') === 'addition' ? (
+                            <span style={{ fontSize: '0.7rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-pink)', fontWeight: 'bold' }}>⚠️ 0.5x XP</span>
+                          ) : (
+                            ((gameState.selectedOperation === 'subtraction' && subCount < 15) ||
+                             (gameState.selectedOperation === 'multiplication' && multCount < 15) ||
+                             (gameState.selectedOperation === 'division' && divCount < 15)) && (
+                              <span style={{ fontSize: '0.7rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-yellow)', fontWeight: 'bold' }}>💡 2x XP</span>
+                            )
+                          )
+                        )}
+                        <span style={{ fontSize: '0.8rem', background: 'rgba(0, 255, 204, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-cyan)', fontWeight: 800 }}>MINIJOGO</span>
+                      </div>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
                       Corra infinitamente em uma arena neon de alta velocidade! Desvie de espinhos usando W/S e cruze os portais com os resultados corretos da tabuada!
@@ -1418,7 +1477,12 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ fontSize: '1.2rem', color: 'var(--neon-yellow)' }}>🏆 Olimpíadas dos Deuses</h4>
-                      <span style={{ fontSize: '0.8rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-yellow)', fontWeight: 800 }}>OLÍMPICO</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {addCount > 30 && (subCount < 15 || multCount < 15 || divCount < 15) && (
+                          <span style={{ fontSize: '0.7rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 6px', borderRadius: '6px', color: 'var(--neon-yellow)', fontWeight: 'bold' }}>💡 2x XP</span>
+                        )}
+                        <span style={{ fontSize: '0.8rem', background: 'rgba(234, 179, 8, 0.2)', padding: '2px 8px', borderRadius: '10px', color: 'var(--neon-yellow)', fontWeight: 800 }}>OLÍMPICO</span>
+                      </div>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.3rem', marginBottom: '14px' }}>
                       Preparatório OBMEP, OBM e competições nacionais! 100 níveis adaptativos avaliando Raciocínio Lógico, Padrões, Geometria e Lógica.

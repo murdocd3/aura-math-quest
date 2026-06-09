@@ -113,7 +113,7 @@ function App() {
     if (user) {
       if (selectedCampaignStageId !== null) {
         if (isVictory) {
-          await backendService.completeCampaignStage(user.id, selectedCampaignStageId);
+          await backendService.completeCampaignStage(user.id, selectedCampaignStageId, xpGained, gemsGained);
         }
         setSelectedCampaignStageId(null);
       }

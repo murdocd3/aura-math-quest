@@ -702,8 +702,7 @@ export const backendService = {
     mockDb.recordMathAnswer(userId, questionKey, isCorrect, timeTakenMs);
   },
 
-  // 6. Campaign Unlocks
-  async completeCampaignStage(userId: string, stageId: number): Promise<GameState | null> {
+  async completeCampaignStage(userId: string, stageId: number, overrideXp?: number, overrideGems?: number): Promise<GameState | null> {
     if (isSupabaseEnabled && supabase) {
       try {
         const state = await this.getGameState(userId);
@@ -725,15 +724,17 @@ export const backendService = {
             case 4: baseXP = 500; baseGems = 50; break;
           }
 
-          let xpReward = 0;
-          let gemsReward = 0;
+          let xpReward = overrideXp !== undefined ? overrideXp : 0;
+          let gemsReward = overrideGems !== undefined ? overrideGems : 0;
 
-          if (isFirstTime) {
-            xpReward = baseXP * cycle;
-            gemsReward = baseGems * cycle;
-          } else {
-            xpReward = Math.max(10, Math.round((baseXP * cycle) * 0.1));
-            gemsReward = Math.max(1, Math.round((baseGems * cycle) * 0.1));
+          if (overrideXp === undefined || overrideGems === undefined) {
+            if (isFirstTime) {
+              xpReward = baseXP * cycle;
+              gemsReward = baseGems * cycle;
+            } else {
+              xpReward = Math.max(10, Math.round((baseXP * cycle) * 0.1));
+              gemsReward = Math.max(1, Math.round((baseGems * cycle) * 0.1));
+            }
           }
 
           const nextStage = isFirstTime ? stageId + 1 : state.campaignStage;
@@ -778,7 +779,7 @@ export const backendService = {
         console.error('[BackendService] Supabase error in completeCampaignStage:', err);
       }
     }
-    return mockDb.completeCampaignStage(userId, stageId);
+    return mockDb.completeCampaignStage(userId, stageId, overrideXp, overrideGems);
   },
 
   // 7. Real-Time Leaderboard View

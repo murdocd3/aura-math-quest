@@ -2273,7 +2273,7 @@ export const mockDb = {
     }
   },
 
-  completeCampaignStage(userId: string, stageId: number): GameState | null {
+  completeCampaignStage(userId: string, stageId: number, overrideXp?: number, overrideGems?: number): GameState | null {
     const state = this.getGameState(userId);
     if (!state) return null;
 
@@ -2294,17 +2294,19 @@ export const mockDb = {
 
     const isFirstTime = stageId === state.campaignStage;
     
-    let xpReward = 0;
-    let gemsReward = 0;
+    let xpReward = overrideXp !== undefined ? overrideXp : 0;
+    let gemsReward = overrideGems !== undefined ? overrideGems : 0;
 
-    if (isFirstTime) {
-      // First-time clear rewards scaled by cycle
-      xpReward = baseXP * cycle;
-      gemsReward = baseGems * cycle;
-    } else {
-      // Repeated clear rewards: 10% of the cycle-scaled rewards (minimum 1 gem, 10 XP)
-      xpReward = Math.max(10, Math.round((baseXP * cycle) * 0.1));
-      gemsReward = Math.max(1, Math.round((baseGems * cycle) * 0.1));
+    if (overrideXp === undefined || overrideGems === undefined) {
+      if (isFirstTime) {
+        // First-time clear rewards scaled by cycle
+        xpReward = baseXP * cycle;
+        gemsReward = baseGems * cycle;
+      } else {
+        // Repeated clear rewards: 10% of the cycle-scaled rewards (minimum 1 gem, 10 XP)
+        xpReward = Math.max(10, Math.round((baseXP * cycle) * 0.1));
+        gemsReward = Math.max(1, Math.round((baseGems * cycle) * 0.1));
+      }
     }
 
     // Advance campaign stage only on first-time clear
