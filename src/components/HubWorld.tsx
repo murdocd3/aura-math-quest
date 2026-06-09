@@ -889,8 +889,11 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 { id: 'division', label: 'Divisão (÷)', emoji: '➗' },
               ].map(op => {
                 const isSelected = (gameState.selectedOperation || 'multiplication') === op.id;
+                const isLocked = gameState.lockedOperations?.includes(op.id);
                 let opBadge = null;
-                if (addCount > 30) {
+                if (isLocked) {
+                  opBadge = <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--neon-pink)', fontWeight: 'bold', marginTop: '2px' }}>🔒 Bloqueado</span>;
+                } else if (addCount > 30) {
                   if (op.id === 'addition') {
                     opBadge = <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--neon-pink)', fontWeight: 'bold', marginTop: '2px' }}>⚠️ 0.5x XP</span>;
                   } else {
@@ -904,19 +907,22 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <button
                     key={op.id}
                     className="cyber-btn"
+                    disabled={isLocked}
                     onClick={() => handleOperationChange(op.id as any)}
                     style={{
                       flex: 1,
                       padding: '8px 4px',
                       fontSize: '0.8rem',
                       background: isSelected ? 'rgba(0, 255, 204, 0.15)' : 'rgba(15,23,42,0.6)',
-                      borderColor: isSelected ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.1)',
-                      color: isSelected ? '#fff' : 'rgba(255,255,255,0.7)',
+                      borderColor: isLocked ? 'rgba(244,63,94,0.3)' : (isSelected ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.1)'),
+                      color: isLocked ? 'rgba(255,255,255,0.25)' : (isSelected ? '#fff' : 'rgba(255,255,255,0.7)'),
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       minHeight: '62px',
                       justifyContent: 'center',
+                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                      opacity: isLocked ? 0.6 : 1,
                     }}
                   >
                     <div>

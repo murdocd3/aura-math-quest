@@ -30,6 +30,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   // Tab state
   const [activeTab, setActiveTab] = useState<'users' | 'analytics'>('users');
 
+  // Advanced Curriculum & Settings State
+  const [timeLimitInput, setTimeLimitInput] = useState<number>(15);
+  const [masteryThresholdInput, setMasteryThresholdInput] = useState<number>(5);
+  const [lockedOpsList, setLockedOpsList] = useState<string[]>([]);
+  const [levelAdjustment, setLevelAdjustment] = useState<string>('1');
+  const [customFactKey, setCustomFactKey] = useState('');
+  const [customFactState, setCustomFactState] = useState<'mastered' | 'weak'>('weak');
+
   const loadUsers = async () => {
     const allUsers = await backendService.getUsers();
     setUsers(allUsers);
@@ -81,10 +89,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         state,
         stats: stats.sort((a, b) => b.errorCount - a.errorCount),
       });
+
+      if (state) {
+        setTimeLimitInput(state.customTimeLimit !== undefined ? state.customTimeLimit : 15);
+        setMasteryThresholdInput(state.masteryThreshold !== undefined ? state.masteryThreshold : 5);
+        setLockedOpsList(state.lockedOperations || []);
+        setLevelAdjustment(String(state.auraLevel || 1));
+      }
     };
 
     fetchStats();
   }, [selectedUserId, users]);
+
+  const handleSaveCurriculum = async () => {
+    if (!selectedUserId) return;
+    const success = await backendService.updateGameState(selectedUserId, {
+      customTimeLimit: Number(timeLimitInput),
+      masteryThreshold: Number(masteryThresholdInput),
+      lockedOperations: lockedOpsList,
+    });
+    if (success) {
+      alert('Parâmetros curriculares salvos com sucesso!');
+      audioEngine.playCorrect();
+      await loadUsers();
+    } else {
+      alert('Erro ao salvar os parâmetros.');
+    }
+  };
+
+  const toggleLockedOp = (opId: string) => {
+    setLockedOpsList(prev => 
+      prev.includes(opId) ? prev.filter(o => o !== opId) : [...prev, opId]
+    );
+  };
+
+  const handleAdjustGems = async (amount: number) => {
+    if (!selectedUserId || !activeStats?.state) return;
+    const newGems = Math.max(0, activeStats.state.gems + amount);
+    const success = await backendService.updateGameState(selectedUserId, {
+      gems: newGems
+    });
+    if (success) {
+      audioEngine.playCorrect();
+      await loadUsers();
+    }
+  };
+
+  const handleAdjustLevel = async () => {
+    if (!selectedUserId || !activeStats?.state) return;
+    const newLvl = Math.max(1, Math.min(100, Number(levelAdjustment)));
+    const success = await backendService.updateGameState(selectedUserId, {
+      auraLevel: newLvl,
+      auraXp: 0 // Reset XP on manual level jump
+    });
+    if (success) {
+      audioEngine.playCorrect();
+      await loadUsers();
+    }
+  };
+
+  const handleResetMathStats = async () => {
+    if (!selectedUserId) return;
+    if (window.confirm('Deseja realmente RESETAR todas as estatísticas e histórico de erros/acertos do aluno? Esta ação não pode ser desfeita.')) {
+      await backendService.resetMathStats(selectedUserId);
+      audioEngine.playCorrect();
+      await loadUsers();
+    }
+  };
+
+  const handleForceSrsState = async (questionKey: string, targetState: 'mastered' | 'weak') => {
+    if (!selectedUserId) return;
+    await backendService.forceMathStatsState(selectedUserId, questionKey, targetState);
+    audioEngine.playCorrect();
+    await loadUsers();
+  };
+
+  const handleAddCustomFactOverride = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserId || !customFactKey.trim()) return;
+    const cleanKey = customFactKey.replace(/\s+/g, '').toLowerCase(); // Remove spaces
+    // Verify format (e.g. 7x8 or 5+5)
+    if (!/^\d+[\+\-x\/]\d+$/.test(cleanKey)) {
+      alert('Formato inválido. Use formatos como: 7x8, 5+5, 12-4, 15/3');
+      return;
+    }
+    await backendService.forceMathStatsState(selectedUserId, cleanKey, customFactState);
+    setCustomFactKey('');
+    audioEngine.playCorrect();
+    await loadUsers();
+  };
 
   const handlePrintPdf = () => {
     if (!activeStats) return;
@@ -517,8 +610,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         </div>
       )}
 
-      {activeTab === 'analytics' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.3fr', gap: '24px' }}>
+      {activeTab === 'analytics' && (() => {
+        const raw = localStorage.getItem('amq_stats');
+        const parsed = raw ? JSON.parse(raw) : [];
+        const players = users.filter(u => u.role === 'player');
+        const playerIds = players.map(p => p.id);
+
+        let avgLevel = 1;
+        let totalGems = 0;
+        let overallAccuracy = 0;
+        let topWeakFacts: any[] = [];
+
+        if (playerIds.length > 0) {
+          const totalLevel = playerIds.reduce((sum, id) => sum + (gameStatesMap[id]?.auraLevel || 1), 0);
+          avgLevel = Math.round(totalLevel / playerIds.length);
+          totalGems = playerIds.reduce((sum, id) => sum + (gameStatesMap[id]?.gems || 0), 0);
+
+          const playerStats = parsed.filter((s: any) => playerIds.includes(s.userId));
+          const totalCorrect = playerStats.reduce((sum: number, s: any) => sum + s.correctCount, 0);
+          const totalError = playerStats.reduce((sum: number, s: any) => sum + s.errorCount, 0);
+          overallAccuracy = (totalCorrect + totalError) > 0 
+            ? Math.round((totalCorrect / (totalCorrect + totalError)) * 100)
+            : 0;
+
+          const factErrorsMap: Record<string, { key: string; errors: number; correct: number }> = {};
+          playerStats.forEach((s: any) => {
+            const key = s.questionKey;
+            if (!factErrorsMap[key]) {
+              factErrorsMap[key] = { key, errors: 0, correct: 0 };
+            }
+            factErrorsMap[key].errors += s.errorCount;
+            factErrorsMap[key].correct += s.correctCount;
+          });
+
+          topWeakFacts = Object.values(factErrorsMap)
+            .filter((f: any) => f.errors > 0)
+            .sort((a: any, b: any) => b.errors - a.errors)
+            .slice(0, 5);
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* Classroom Analytics Header Cards */}
+            <div className="grid-cols-4" style={{ gap: '16px' }}>
+              <div className="cyber-card" style={{ padding: '16px', textAlign: 'center', borderColor: 'var(--neon-purple)', background: 'rgba(168, 85, 247, 0.05)' }}>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' }}>Nível Médio da Turma</div>
+                <div className="text-glow-purple" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--neon-purple)', marginTop: '4px' }}>
+                  ⭐ {avgLevel}
+                </div>
+              </div>
+
+              <div className="cyber-card" style={{ padding: '16px', textAlign: 'center', borderColor: 'var(--neon-cyan)', background: 'rgba(0, 255, 204, 0.05)' }}>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' }}>Precisão Geral (Média)</div>
+                <div className="text-glow-cyan" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--neon-cyan)', marginTop: '4px' }}>
+                  🎯 {overallAccuracy}%
+                </div>
+              </div>
+
+              <div className="cyber-card" style={{ padding: '16px', textAlign: 'center', borderColor: 'var(--neon-yellow)', background: 'rgba(234, 179, 8, 0.05)' }}>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' }}>Total de Gemas Coletadas</div>
+                <div className="text-glow-yellow" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--neon-yellow)', marginTop: '4px' }}>
+                  💎 {totalGems}
+                </div>
+              </div>
+
+              <div className="cyber-card" style={{ padding: '16px', borderColor: 'var(--neon-pink)', background: 'rgba(244, 63, 94, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', textAlign: 'center', marginBottom: '4px' }}>Dificuldades Críticas (Turma)</div>
+                {topWeakFacts.length === 0 ? (
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: '6px' }}>Nenhuma falha crítica registrada.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center' }}>
+                    {topWeakFacts.map((f: any) => (
+                      <span key={f.key} style={{ fontSize: '0.7rem', background: 'rgba(244, 63, 94, 0.2)', padding: '2px 6px', borderRadius: '4px', color: 'var(--neon-pink)', fontWeight: 'bold' }}>
+                        {f.key.replace('x', '×')}: {f.errors}❌
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.3fr', gap: '24px' }}>
           {/* User selector list */}
           <div className="cyber-card" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
             <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: 'rgba(255,255,255,0.8)' }}>
@@ -661,6 +834,238 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                     </div>
                   </div>
 
+                  {/* Ajustes Rápidos Card */}
+                  <div className="cyber-card" style={{ marginBottom: '28px' }}>
+                    <h4 style={{ fontSize: '1.1rem', color: 'var(--neon-cyan)', marginBottom: '16px' }}>⚙️ Ajustes Rápidos de Progresso</h4>
+                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                      
+                      {/* Gems Control */}
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Gemas Matemáticas</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => handleAdjustGems(-10)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>-10 💎</button>
+                          <button type="button" className="cyber-btn cyber-btn-cyan" onClick={() => handleAdjustGems(10)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>+10 💎</button>
+                          <button type="button" className="cyber-btn cyber-btn-cyan" onClick={() => handleAdjustGems(50)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>+50 💎</button>
+                        </div>
+                      </div>
+
+                      {/* Level Control */}
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Alterar Nível do Aluno</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input
+                            type="number"
+                            value={levelAdjustment}
+                            onChange={(e) => setLevelAdjustment(e.target.value)}
+                            min="1"
+                            max="100"
+                            style={{
+                              width: '70px',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              backgroundColor: 'rgba(15,23,42,0.8)',
+                              color: '#fff',
+                            }}
+                          />
+                          <button type="button" className="cyber-btn" onClick={handleAdjustLevel} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Atualizar Nível</button>
+                        </div>
+                      </div>
+
+                      {/* Stats Reset */}
+                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <button type="button" className="cyber-btn cyber-btn-pink" onClick={handleResetMathStats} style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                          🗑️ Resetar Estatísticas de Contas
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Controle Curricular Card */}
+                  <div className="cyber-card" style={{ marginBottom: '28px' }}>
+                    <h4 style={{ fontSize: '1.1rem', color: 'var(--neon-purple)', marginBottom: '16px' }}>🎯 Parâmetros Curriculares do Aluno</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
+                      {/* Parameters settings */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', gap: '16px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Tempo Limite (Segundos)</label>
+                            <input
+                              type="number"
+                              value={timeLimitInput}
+                              onChange={(e) => setTimeLimitInput(Number(e.target.value))}
+                              min="3"
+                              max="60"
+                              style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                backgroundColor: 'rgba(15,23,42,0.8)',
+                                color: '#fff',
+                              }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Acertos para Domínio (Threshold)</label>
+                            <input
+                              type="number"
+                              value={masteryThresholdInput}
+                              onChange={(e) => setMasteryThresholdInput(Number(e.target.value))}
+                              min="2"
+                              max="20"
+                              style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                backgroundColor: 'rgba(15,23,42,0.8)',
+                                color: '#fff',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Bloquear Operações de Treino</label>
+                          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                            {[
+                              { id: 'addition', label: 'Adição (+)' },
+                              { id: 'subtraction', label: 'Subtração (-)' },
+                              { id: 'multiplication', label: 'Multiplicação (×)' },
+                              { id: 'division', label: 'Divisão (÷)' },
+                            ].map(op => {
+                              const isLocked = lockedOpsList.includes(op.id);
+                              return (
+                                <button
+                                  type="button"
+                                  key={op.id}
+                                  className={`cyber-btn ${isLocked ? 'cyber-btn-pink' : ''}`}
+                                  onClick={() => toggleLockedOp(op.id)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    fontSize: '0.8rem',
+                                    background: isLocked ? 'rgba(244,63,94,0.15)' : 'rgba(15,23,42,0.6)',
+                                    borderColor: isLocked ? 'var(--neon-pink)' : 'rgba(255,255,255,0.1)',
+                                    color: isLocked ? '#fff' : 'rgba(255,255,255,0.7)',
+                                  }}
+                                >
+                                  {isLocked ? '🔒 ' : '🔓 '} {op.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Save button and instructions */}
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'rgba(168, 85, 247, 0.03)', border: '1px dashed rgba(168, 85, 247, 0.2)', padding: '12px', borderRadius: '8px' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.2rem', margin: 0 }}>
+                          💡 O limitador de tempo encurta ou estende a contagem na Arena. O limiar de domínio regula quantas vezes o aluno deve acertar uma conta para que ela dê recompensa reduzida. Bloquear operações impede que o aluno as selecione no Hub.
+                        </p>
+                        <button type="button" className="cyber-btn cyber-btn-purple" onClick={handleSaveCurriculum} style={{ width: '100%', padding: '10px', marginTop: '12px', fontWeight: 'bold' }}>
+                          💾 Aplicar Parâmetros
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila SRS e Estatísticas Re-Treino */}
+                  <div className="cyber-card" style={{ marginBottom: '28px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                      <h4 style={{ fontSize: '1.1rem', color: 'var(--neon-yellow)' }}>🔄 Auditoria de Repetição Espaçada (SRS Queue)</h4>
+                      
+                      {/* Custom override form */}
+                      <form onSubmit={handleAddCustomFactOverride} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={customFactKey}
+                          onChange={(e) => setCustomFactKey(e.target.value)}
+                          placeholder="Nova conta (ex: 7x8)"
+                          style={{
+                            width: '130px',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            backgroundColor: 'rgba(15,23,42,0.8)',
+                            color: '#fff',
+                            fontSize: '0.8rem',
+                          }}
+                        />
+                        <select
+                          value={customFactState}
+                          onChange={(e) => setCustomFactState(e.target.value as 'mastered' | 'weak')}
+                          style={{
+                            padding: '6px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            backgroundColor: 'rgba(15,23,42,0.8)',
+                            color: '#fff',
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          <option value="weak">Forçar Re-Treino</option>
+                          <option value="mastered">Forçar Domínio</option>
+                        </select>
+                        <button type="submit" className="cyber-btn" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Injetar</button>
+                      </form>
+                    </div>
+
+                    <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
+                      Visualize o estado das equações na fila adaptativa. Você pode forçar de forma manual a revisão ou o domínio de qualquer conta.
+                    </p>
+
+                    {/* Columns: Weak (SRS Review Queue) vs Mastered */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      
+                      {/* Left: Review Queue (Weak Facts) */}
+                      <div style={{ background: 'rgba(244, 63, 94, 0.02)', border: '1px solid rgba(244, 63, 94, 0.15)', borderRadius: '8px', padding: '12px' }}>
+                        <h5 style={{ fontSize: '0.9rem', color: 'var(--neon-pink)', margin: '0 0 10px 0', borderBottom: '1px solid rgba(244, 63, 94, 0.1)', paddingBottom: '4px' }}>
+                          🚨 Fila de Re-Treino (Dificuldades)
+                        </h5>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '25vh', overflowY: 'auto' }}>
+                          {(() => {
+                            const weakList = activeStats.stats.filter((s: any) => s.errorCount >= 2 || (s.correctCount + s.errorCount > 0 && (s.correctCount / (s.correctCount + s.errorCount)) < 0.7));
+                            if (weakList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', padding: '10px 0', textAlign: 'center' }}>Nenhuma dificuldade crítica registrada.</div>;
+                            return weakList.map((s: any) => (
+                              <div key={s.questionKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(244, 63, 94, 0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(244, 63, 94, 0.1)' }}>
+                                <span style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '1rem', color: 'var(--neon-pink)' }}>{s.questionKey.replace('x', '×')}</span>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>({s.errorCount}❌)</span>
+                                  <button type="button" className="cyber-btn" onClick={() => handleForceSrsState(s.questionKey, 'mastered')} style={{ padding: '2px 6px', fontSize: '0.65rem', borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>Forçar Domínio</button>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Right: Mastered Facts */}
+                      <div style={{ background: 'rgba(0, 255, 204, 0.02)', border: '1px solid rgba(0, 255, 204, 0.15)', borderRadius: '8px', padding: '12px' }}>
+                        <h5 style={{ fontSize: '0.9rem', color: 'var(--neon-cyan)', margin: '0 0 10px 0', borderBottom: '1px solid rgba(0, 255, 204, 0.1)', paddingBottom: '4px' }}>
+                          ✔️ Contas Dominadas (Diminuídas)
+                        </h5>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '25vh', overflowY: 'auto' }}>
+                          {(() => {
+                            const threshold = activeStats.state?.masteryThreshold !== undefined ? activeStats.state.masteryThreshold : 5;
+                            const masteredList = activeStats.stats.filter((s: any) => s.correctCount >= threshold && s.errorCount === 0);
+                            if (masteredList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', padding: '10px 0', textAlign: 'center' }}>Nenhuma conta dominada ainda.</div>;
+                            return masteredList.map((s: any) => (
+                              <div key={s.questionKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 255, 204, 0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(0, 255, 204, 0.1)' }}>
+                                <span style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '1rem', color: 'var(--neon-cyan)' }}>{s.questionKey.replace('x', '×')}</span>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>({s.correctCount}✔️)</span>
+                                  <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => handleForceSrsState(s.questionKey, 'weak')} style={{ padding: '2px 6px', fontSize: '0.65rem' }}>Forçar Re-Treino</button>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
                   {/* Operator Performance Grid */}
                   <h4 style={{ fontSize: '1.2rem', color: '#fff', marginBottom: '12px', marginTop: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '6px' }}>
                     📊 Desempenho por Operação
@@ -784,7 +1189,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
             )}
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    );
+  })()}
+</div>
   );
 };
+

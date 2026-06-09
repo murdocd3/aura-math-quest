@@ -702,6 +702,14 @@ export const backendService = {
     mockDb.recordMathAnswer(userId, questionKey, isCorrect, timeTakenMs);
   },
 
+  async forceMathStatsState(userId: string, questionKey: string, targetState: 'mastered' | 'weak'): Promise<void> {
+    mockDb.forceMathStatsState(userId, questionKey, targetState);
+  },
+
+  async resetMathStats(userId: string): Promise<void> {
+    mockDb.resetMathStats(userId);
+  },
+
   async completeCampaignStage(userId: string, stageId: number, overrideXp?: number, overrideGems?: number): Promise<GameState | null> {
     if (isSupabaseEnabled && supabase) {
       try {

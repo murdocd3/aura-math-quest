@@ -52,6 +52,9 @@ export interface GameState {
   treats?: number;
   activeExpeditions?: { petId: string; endTime: string; rewardGems: number }[];
   fedBonusUntil?: string;
+  customTimeLimit?: number;
+  masteryThreshold?: number;
+  lockedOperations?: string[];
 }
 
 export interface Skill {
@@ -1251,6 +1254,9 @@ export const mockDb = {
         clanId: null,
         clanContributions: 0,
         campaignStage: 1,
+        customTimeLimit: 15,
+        masteryThreshold: 5,
+        lockedOperations: [],
       };
       gameStates.push(createdState);
       newState = createdState;
@@ -1603,6 +1609,73 @@ export const mockDb = {
               });
           }
         });
+    }
+  },
+
+  forceMathStatsState(userId: string, questionKey: string, targetState: 'mastered' | 'weak'): void {
+    const stats = getStorageItem<MathStatistic>(STORAGE_KEYS.STATS);
+    const index = stats.findIndex(s => s.userId === userId && s.questionKey === questionKey);
+
+    const updatedStat: MathStatistic = {
+      userId,
+      questionKey,
+      correctCount: targetState === 'mastered' ? 5 : 0,
+      errorCount: targetState === 'weak' ? 3 : 0,
+      averageTimeMs: targetState === 'mastered' ? 800 : 5000,
+    };
+
+    if (index === -1) {
+      stats.push(updatedStat);
+    } else {
+      stats[index] = updatedStat;
+    }
+
+    setStorageItem(STORAGE_KEYS.STATS, stats);
+
+    // Sync to Supabase if active
+    if (isSupabaseEnabled && supabase) {
+      const updates = {
+        correct_count: targetState === 'mastered' ? 5 : 0,
+        incorrect_count: targetState === 'weak' ? 3 : 0,
+        total_time_taken_ms: targetState === 'mastered' ? 800 : 5000
+      };
+      supabase.from('math_statistics')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('question_key', questionKey)
+        .then(({ data, error }) => {
+          if (error) return;
+          if (data && data.length > 0) {
+            supabase.from('math_statistics')
+              .update(updates)
+              .eq('user_id', userId)
+              .eq('question_key', questionKey)
+              .then(() => {});
+          } else {
+            const statId = 'stat_' + Math.random().toString(36).substring(2, 11);
+            supabase.from('math_statistics')
+              .insert({
+                id: statId,
+                user_id: userId,
+                question_key: questionKey,
+                ...updates
+              })
+              .then(() => {});
+          }
+        });
+    }
+  },
+
+  resetMathStats(userId: string): void {
+    const stats = getStorageItem<MathStatistic>(STORAGE_KEYS.STATS);
+    const filtered = stats.filter(s => s.userId !== userId);
+    setStorageItem(STORAGE_KEYS.STATS, filtered);
+
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('math_statistics')
+        .delete()
+        .eq('user_id', userId)
+        .then(() => {});
     }
   },
 

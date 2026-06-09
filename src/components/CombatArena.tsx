@@ -143,7 +143,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     return null;
   };
   // Battle Config & Constants
-  const baseTimeLimit = zone === 'forest' ? 9 : 6; // seconds
+  const baseTimeLimit = gameState.customTimeLimit !== undefined ? gameState.customTimeLimit : (zone === 'forest' ? 9 : 6); // seconds
   const isVolcano = zone === 'volcano';
 
   // Clan Bonus state

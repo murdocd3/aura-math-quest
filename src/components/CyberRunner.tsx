@@ -1315,10 +1315,11 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       // Save success statistic
       mockDb.recordMathAnswer(playerUser.id, key, true, 2000);
 
-      // Check if mastered (correct answers >= 5 and no errors)
+      // Check if mastered (correct answers >= threshold and no errors)
       const stats = mockDb.getMathStats(playerUser.id);
       const factStat = stats.find(s => s.questionKey === key);
-      if (factStat && factStat.correctCount >= 5 && factStat.errorCount === 0) {
+      const threshold = gameState.masteryThreshold !== undefined ? gameState.masteryThreshold : 5;
+      if (factStat && factStat.correctCount >= threshold && factStat.errorCount === 0) {
         isMastered = true;
         baseXp = 5;
         baseGems = 0;
