@@ -63,6 +63,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     origin: 'OBMEP 2023 (Nível 1)'
   },
   {
+    level: 3,
+    category: 'Cálculo Mental',
+    question: 'Um sorvete custa 6 reais. Se você comprar 4 sorvetes e pagar com uma nota de 50 reais, quanto receberá de troco?',
+    options: ['24 reais', '26 reais', '30 reais', '34 reais'],
+    answer: '26 reais',
+    explanation: 'O custo total dos sorvetes é 4 * 6 = 24 reais. O troco será 50 - 24 = 26 reais.',
+    origin: 'Canguru Matemático'
+  },
+  {
     level: 4,
     category: 'Resolução de Problemas',
     question: 'Vítor tem uma fita adesiva de 1 metro de comprimento. Ele usou pedaços de 15 centímetros para fechar caixas de presente. Qual é o maior número de caixas de presente que ele conseguiu fechar com essa fita?',
@@ -87,6 +96,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     answer: '26 anos',
     explanation: 'A idade do n-ésimo termo é dada por 8 + (n-1)*2. Para n=10, temos 8 + 9 * 2 = 8 + 18 = 26 anos.',
     origin: 'OBMEP 2017 (Nível 1)'
+  },
+  {
+    level: 7,
+    category: 'Resolução de Problemas',
+    question: 'Para pintar um muro, 3 pintores levam 6 dias. Quantos dias levariam 9 pintores para pintar o mesmo muro no mesmo ritmo?',
+    options: ['2 dias', '3 dias', '4 dias', '18 dias'],
+    answer: '2 dias',
+    explanation: 'Se triplicamos o número de pintores (de 3 para 9), o tempo necessário cai para um terço: 6 / 3 = 2 dias.',
+    origin: 'Olimpíada de Maio'
   },
   {
     level: 8,
@@ -133,6 +151,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     origin: 'OBMEP 2022 (Nível 1)'
   },
   {
+    level: 13,
+    category: 'Reconhecimento de Padrões',
+    question: 'Qual é o próximo número na sequência numérica: 2, 4, 8, 16, 32, ...?',
+    options: ['40', '48', '64', '80'],
+    answer: '64',
+    explanation: 'Cada termo é o dobro do termo anterior na progressão geométrica. Portanto, 32 * 2 = 64.',
+    origin: 'Canguru Matemático'
+  },
+  {
     level: 14,
     category: 'Atenção aos Detalhes',
     question: 'Joãozinho escreveu os números de 1 a 20 em uma folha. Ele apagou todos os números pares e, em seguida, apagou todos os múltiplos de 3 que restaram. Quantos números sobraram escritos na folha?',
@@ -177,6 +204,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     origin: 'OBMEP 2019 (Nível 1)'
   },
   {
+    level: 19,
+    category: 'Lógica Matemática',
+    question: 'Uma pizza foi cortada em 8 fatias iguais. Se você comer 3 fatias, que fração da pizza restará no prato?',
+    options: ['3/8', '5/8', '1/2', '8/5'],
+    answer: '5/8',
+    explanation: 'Se comemos 3 fatias de 8, restam 8 - 3 = 5 fatias. Em forma de fração, representamos por 5/8.',
+    origin: 'Canguru Matemático'
+  },
+  {
     level: 20,
     category: 'Atenção aos Detalhes',
     question: 'Quantos números contendo o algarismo 7 existem entre os números de 1 a 50?',
@@ -201,6 +237,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     answer: '8 maneiras',
     explanation: 'R1 é azul. Para R2 sobram 2 cores. Para R3 sobram 2 cores (diferentes de R2). Para R4 sobram 2 cores (diferentes de R3). Multiplicando as possibilidades: 1 * 2 * 2 * 2 = 8 maneiras.',
     origin: 'OBMEP 2023 (Nível A)'
+  },
+  {
+    level: 23,
+    category: 'Atenção aos Detalhes',
+    question: 'Quantas vezes o algarismo 9 aparece ao escrevermos todos os números inteiros de 1 a 100?',
+    options: ['10 vezes', '19 vezes', '20 vezes', '21 vezes'],
+    answer: '20 vezes',
+    explanation: 'Aparece nas unidades de: 9, 19, 29, 39, 49, 59, 69, 79, 89, 99 (10 vezes, sendo 2 no 99) e nas dezenas de 90 a 99 (10 vezes). Total de 20 vezes.',
+    origin: 'OBMEP 2015 (Nível 1)'
   },
   {
     level: 24,
@@ -229,6 +274,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     origin: 'OBMEP 2023 (Nível 1)'
   },
   {
+    level: 27,
+    category: 'Pensamento Estratégico',
+    question: 'Em uma gaveta há 10 meias pretas e 10 meias brancas. Se você retirar as meias no escuro, qual o menor número de meias que precisa tirar para garantir que terá pelo menos um par de meias da mesma cor?',
+    options: ['2 meias', '3 meias', '11 meias', '12 meias'],
+    answer: '3 meias',
+    explanation: 'Retirando 3 meias, pelo menos duas devem ser pretas ou duas brancas, pois só temos duas cores disponíveis (Princípio da Casa dos Pombos).',
+    origin: 'Canguru Matemático'
+  },
+  {
     level: 28,
     category: 'Resolução de Problemas',
     question: 'Em uma escola, os alunos da Olimpíada de Matemática foram divididos em salas. Se colocarmos 3 alunos em cada sala, sobra 1 aluno. Se colocarmos 4 alunos em cada sala, uma sala fica vazia. Quantos alunos participam dessa Olimpíada?',
@@ -236,6 +290,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     answer: '16 alunos',
     explanation: 'Equacionando: a = 3s + 1 e a = 4(s - 1) = 4s - 4. Igualando: 3s + 1 = 4s - 4 => s = 5. Logo, a = 3(5) + 1 = 16 alunos.',
     origin: 'OBMEP 2018 (Nível 1)'
+  },
+  {
+    level: 29,
+    category: 'Persistência',
+    question: 'Um sapo sobe 2 metros de uma parede de dia e escorrega 1 metro à noite. Se a parede tem 5 metros de altura, em qual dia o sapo chegará ao topo da parede?',
+    options: ['3º dia', '4º dia', '5º dia', '6º dia'],
+    answer: '4º dia',
+    explanation: 'No fim do 3º dia ele está na marca de 3 metros. No 4º dia, ele sobe 2 metros, atingindo a marca de 5 metros e saindo da parede antes de escorregar.',
+    origin: 'Canguru Matemático'
   },
   {
     level: 30,
@@ -264,6 +327,23 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     origin: 'OBMEP 2022 (Nível 1)'
   },
   {
+    level: 33,
+    category: 'Velocidade de Resolução',
+    question: 'Qual é a metade de 2 mais 2?',
+    options: ['2', '3', '4', '1'],
+    answer: '3',
+    explanation: 'A expressão verbal "metade de 2, mais 2" representa (2 / 2) + 2 = 1 + 2 = 3.',
+    origin: 'Desafio Raciocínio'
+  },
+  {
+    level: 34,
+    category: 'Cálculo Mental',
+    question: 'Qual é o dobro de 15 somado com o triplo de 10?',
+    options: ['45', '60', '75', '80'],
+    answer: '60',
+    explanation: 'O dobro de 15 é 30. O triplo de 10 é 30. Somando 30 + 30 = 60.'
+  },
+  {
     level: 35,
     category: 'Persistência',
     question: 'Um caracol está no fundo de um poço de 6 metros de profundidade. Durante o dia ele sobe 3 metros, mas à noite ele escorrega 2 metros. Quantos dias ele levará para sair do poço?',
@@ -281,12 +361,71 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     origin: 'OBMEP 2017 (Nível A)'
   },
   {
+    level: 37,
+    category: 'Resolução de Problemas',
+    question: 'Um livro tem 120 páginas. Se ler 10 páginas por dia, em quantas semanas terminarei a leitura completa?',
+    options: ['1 semana', '2 semanas', '12 dias', 'Mais de 3 semanas'],
+    answer: '2 semanas',
+    explanation: '120 páginas dividido por 10 páginas ao dia resulta em 12 dias. Como 1 semana tem 7 dias, 12 dias cabem na segunda semana (14 dias).',
+    origin: 'Canguru Matemático'
+  },
+  {
+    level: 38,
+    category: 'Lógica Matemática',
+    question: 'Se o ontem de amanhã é segunda-feira, que dia da semana é hoje?',
+    options: ['Domingo', 'Segunda-feira', 'Terça-feira', 'Sábado'],
+    answer: 'Segunda-feira',
+    explanation: 'O ontem do amanhã é o próprio dia de hoje. Portanto, hoje é segunda-feira.'
+  },
+  {
+    level: 39,
+    category: 'Geometria Visual',
+    question: 'Quantos cubos de 1 cm de aresta cabem perfeitamente dentro de uma caixa cúbica de 3 cm de aresta?',
+    options: ['9 cubos', '18 cubos', '27 cubos', '36 cubos'],
+    answer: '27 cubos',
+    explanation: 'Volume da caixa grande: 3 * 3 * 3 = 27 cm³. Como cada cubinho tem 1 cm³, cabem exatamente 27 cubinhos.',
+    origin: 'Canguru Matemático'
+  },
+  {
     level: 40,
     category: 'Criatividade Matemática',
     question: 'Usando quatro algarismos 4 e as operações básicas (+, -, *, /), qual das opções abaixo representa o número 10?',
     options: ['4 + 4 + (4 / 4)', '(4 * 4) - 4 - 4', '(44 - 4) / 4', '4 + 4 + 4 - 4'],
     answer: '(44 - 4) / 4',
     explanation: 'Pensando fora da caixa: 44 - 4 = 40. Dividido por 4 = 10. Uma elegante combinação criativa!'
+  },
+  {
+    level: 41,
+    category: 'Reconhecimento de Padrões',
+    question: 'Se a letra A = 1, B = 2, C = 3, etc. Qual é a soma dos valores numéricos das letras da palavra AURA?',
+    options: ['38', '40', '42', '45'],
+    answer: '42',
+    explanation: 'Valores: A=1, U=21, R=19, A=1. Somando: 1 + 21 + 19 + 1 = 42.'
+  },
+  {
+    level: 42,
+    category: 'Criatividade Matemática',
+    question: 'Qual é o número que, se somado com o seu próprio dobro, resulta em 24?',
+    options: ['6', '8', '12', '16'],
+    answer: '8',
+    explanation: 'A equação é x + 2x = 24 => 3x = 24 => x = 8.'
+  },
+  {
+    level: 43,
+    category: 'Atenção aos Detalhes',
+    question: 'Um avião decola às 14h30 de Brasília e pousa em Salvador às 16h15 do mesmo dia. Quanto tempo durou o voo de avião?',
+    options: ['1h15min', '1h30min', '1h45min', '2h15min'],
+    answer: '1h45min',
+    explanation: 'De 14h30 até 15h30 é 1 hora. De 15h30 até 16h15 são mais 45 minutos. Total de 1 hora e 45 minutos.'
+  },
+  {
+    level: 44,
+    category: 'Pensamento Estratégico',
+    question: 'Em uma fila de banco, Júlia está na 5ª posição de frente para trás e na 6ª posição de trás para frente. Quantas pessoas estão na fila?',
+    options: ['10 pessoas', '11 pessoas', '9 pessoas', '12 pessoas'],
+    answer: '10 pessoas',
+    explanation: 'Há 4 pessoas na frente de Júlia e 5 pessoas atrás dela. Total: 4 + Júlia (1) + 5 = 10 pessoas.',
+    origin: 'OBMEP 2012 (Nível A)'
   },
   {
     level: 45,
@@ -297,12 +436,365 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     explanation: 'De 12:34 até 13:00 são 26 minutos. De 13:00 até 13:11 são mais 11 minutos. Somando ambos: 26 + 11 = 37 minutos.'
   },
   {
+    level: 46,
+    category: 'Persistência',
+    question: 'Cinco amigos disputaram uma corrida. Beto chegou antes de Carlos, mas depois de Adriano. Daniel chegou antes de Eduardo, mas depois de Carlos. Quem ganhou a corrida?',
+    options: ['Adriano', 'Beto', 'Carlos', 'Daniel'],
+    answer: 'Adriano',
+    explanation: 'Temos a ordem: Adriano > Beto > Carlos > Daniel > Eduardo. Logo, Adriano foi o primeiro colocado.',
+    origin: 'OBMEP 2018 (Nível A)'
+  },
+  {
+    level: 47,
+    category: 'Velocidade de Resolução',
+    question: 'Se 5 impressoras imprimem 5 panfletos em 5 segundos, quantos segundos 10 impressoras de mesma capacidade levarão para imprimir 10 panfletos?',
+    options: ['5 segundos', '10 segundos', '2 segundos', '1 segundo'],
+    answer: '5 segundos',
+    explanation: 'Como cada impressora imprime 1 panfleto em 5 segundos de forma independente, 10 impressoras trabalhando juntas farão 10 panfletos nos mesmos 5 segundos.'
+  },
+  {
+    level: 48,
+    category: 'Resolução de Problemas',
+    question: 'Um fazendeiro plantou 80 sementes. Sabendo que a cada 5 sementes plantadas, exatamente 4 germinam, quantas plantas o fazendeiro terá?',
+    options: ['60 plantas', '64 plantas', '70 plantas', '75 plantas'],
+    answer: '64 plantas',
+    explanation: 'Multiplicamos o total pela taxa 4/5: 80 * (4/5) = 16 * 4 = 64 plantas germinadas.',
+    origin: 'OBMEP 2021 (Nível 1)'
+  },
+  {
+    level: 49,
+    category: 'Geometria Visual',
+    question: 'Quantos lados tem a figura formada ao juntarmos dois hexágonos regulares idênticos colados por um lado compartilhado completo?',
+    options: ['10 lados', '11 lados', '12 lados', '8 lados'],
+    answer: '10 lados',
+    explanation: 'Cada hexágono tem 6 lados. Ao colá-los, a aresta de junção vai para o interior. A nova figura terá 6 + 6 - 2 = 10 lados externos.',
+    origin: 'Canguru Matemático'
+  },
+  {
     level: 50,
     category: 'Resolução de Problemas',
     question: 'Em um sítio há galinhas e coelhos, totalizando 10 cabeças e 28 patas. Quantos coelhos há no sítio?',
     options: ['3 coelhos', '4 coelhos', '5 coelhos', '6 coelhos'],
     answer: '4 coelhos',
     explanation: 'Se todos fossem galinhas teríamos 20 patas. Sobram 8 patas (28 - 20). Cada coelho tem 2 patas a mais que a galinha, logo 8 / 2 = 4 coelhos.'
+  },
+  {
+    level: 51,
+    category: 'Reconhecimento de Padrões',
+    question: 'Na sequência de números: 1, 3, 6, 10, 15, 21, ... Qual é o próximo termo?',
+    options: ['25', '27', '28', '30'],
+    answer: '28',
+    explanation: 'A diferença entre os termos cresce linearmente: +2, +3, +4, +5, +6. O próximo somará +7: 21 + 7 = 28.'
+  },
+  {
+    level: 52,
+    category: 'Criatividade Matemática',
+    question: 'Uma garrafa com sua rolha custa 1,10 reais. A garrafa custa 1,00 real a mais que a rolha. Quanto custa a rolha?',
+    options: ['0,10 reais', '0,05 reais', '0,01 reais', '0,15 reais'],
+    answer: '0,05 reais',
+    explanation: 'Se a rolha custa r, a garrafa custa r+1. Juntos: r + r + 1 = 1,10 => 2r = 0,10 => r = 0,05 reais.'
+  },
+  {
+    level: 53,
+    category: 'Lógica Matemática',
+    question: 'Quatro amigos estão sentados em uma mesa redonda. Maria diz: "Estou ao lado de Paulo e de Ana". Lucas diz: "Estou ao lado de Paulo". Quem está sentado em frente a Maria?',
+    options: ['Ana', 'Paulo', 'Lucas', 'Não é possível saber'],
+    answer: 'Lucas',
+    explanation: 'A mesa segue a ordem circular: Ana - Maria - Paulo - Lucas. Logo, Lucas e Maria estão em posições diametralmente opostas.',
+    origin: 'OBMEP 2017 (Nível 1)'
+  },
+  {
+    level: 54,
+    category: 'Atenção aos Detalhes',
+    question: 'Se você escrever os números de 1 a 30 em ordem crescente, quantas vezes utilizará o algarismo 3?',
+    options: ['3 vezes', '4 vezes', '12 vezes', '13 vezes'],
+    answer: '4 vezes',
+    explanation: 'O algarismo 3 aparece em: 3, 13, 23 e 30. Total de 4 vezes.'
+  },
+  {
+    level: 55,
+    category: 'Pensamento Estratégico',
+    question: 'Quatro times disputam um torneio onde cada time joga exatamente uma vez contra todos os outros. Quantos jogos ocorrerão no total?',
+    options: ['4 jogos', '6 jogos', '8 jogos', '12 jogos'],
+    answer: '6 jogos',
+    explanation: 'Para 4 times, as partidas possíveis são combinadas 2 a 2: (4 * 3) / 2 = 6 jogos.',
+    origin: 'OBMEP 2019 (Nível A)'
+  },
+  {
+    level: 56,
+    category: 'Persistência',
+    question: 'Para subir uma escada de 8 degraus, Tiago pode dar passos de 1 degrau ou pulos de 2 degraus de cada vez. De quantas maneiras diferentes ele pode subir essa escada?',
+    options: ['21 maneiras', '34 maneiras', '55 maneiras', '8 maneiras'],
+    answer: '34 maneiras',
+    explanation: 'A progressão dos degraus segue a sequência de Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34. Logo, para 8 degraus são 34 combinações.',
+    origin: 'Desafio Fibonacci'
+  },
+  {
+    level: 57,
+    category: 'Velocidade de Resolução',
+    question: 'Se duas torneiras de mesma capacidade enchem um tanque em 4 horas, quantas horas quatro dessas torneiras levariam para encher o mesmo tanque?',
+    options: ['2 horas', '4 horas', '8 horas', '1 hora'],
+    answer: '2 horas',
+    explanation: 'Dobrando o número de torneiras de mesma vazão, o tempo cai pela metade: 4 / 2 = 2 horas.'
+  },
+  {
+    level: 58,
+    category: 'Resolução de Problemas',
+    question: 'Um grupo de 5 amigos divide uma conta de restaurante. Se cada um pagou 18 reais e sobrou 2 reais de troco no total, qual era o valor da conta?',
+    options: ['88 reais', '90 reais', '92 reais', '94 reais'],
+    answer: '88 reais',
+    explanation: 'O dinheiro pago pelos amigos foi 5 * 18 = 90 reais. Se sobrou 2 reais de troco, a conta foi de 90 - 2 = 88 reais.'
+  },
+  {
+    level: 59,
+    category: 'Geometria Visual',
+    question: 'Se cortarmos um retângulo de 10 cm por 4 cm ao meio em seu lado maior, qual será o perímetro de um dos novos retângulos formados?',
+    options: ['14 cm', '18 cm', '20 cm', '28 cm'],
+    answer: '18 cm',
+    explanation: 'O corte gera retângulos de 5 cm por 4 cm. Perímetro: 2 * (5 + 4) = 18 cm.'
+  },
+  {
+    level: 60,
+    category: 'Cálculo Mental',
+    question: 'Qual é o resultado da operação aritmética: (12 * 5) + (24 / 3)?',
+    options: ['64', '68', '72', '80'],
+    answer: '68',
+    explanation: '12 * 5 = 60. 24 / 3 = 8. Somando os dois resultados obtemos 68.'
+  },
+  {
+    level: 61,
+    category: 'Reconhecimento de Padrões',
+    question: 'A sequência de letras A, B, D, G, K, ... segue um padrão de saltos no alfabeto. Qual é a próxima letra da sequência?',
+    options: ['N', 'O', 'P', 'Q'],
+    answer: 'P',
+    explanation: 'Salto cresce de 1 em 1: +1 (A para B), +2 (B para D), +3 (D para G), +4 (G para K). O próximo salto é de +5: K + 5 = P.'
+  },
+  {
+    level: 62,
+    category: 'Criatividade Matemática',
+    question: 'Se duas galinhas botam dois ovos em dois dias, quantos ovos seis galinhas botarão em seis dias?',
+    options: ['6 ovos', '12 ovos', '18 ovos', '36 ovos'],
+    answer: '18 ovos',
+    explanation: '2 galinhas botam 2 ovos em 2 dias => 6 galinhas botam 6 ovos em 2 dias => Em 6 dias (3 ciclos de 2 dias), 6 galinhas botam 6 * 3 = 18 ovos.',
+    origin: 'Canguru Matemático'
+  },
+  {
+    level: 63,
+    category: 'Lógica Matemática',
+    question: 'Bruno tem mais figurinhas que Tiago, e Tiago tem menos que Rafael. Quem tem mais figurinhas entre Bruno e Rafael?',
+    options: ['Bruno', 'Rafael', 'Eles têm a mesma quantidade', 'Não é possível saber'],
+    answer: 'Não é possível saber',
+    explanation: 'Sabemos que ambos têm mais que Tiago, mas não há informações comparando diretamente Bruno e Rafael.'
+  },
+  {
+    level: 64,
+    category: 'Atenção aos Detalhes',
+    question: 'Uma costureira corta uma fita de 12 metros em pedaços de 2 metros cada um. Ela leva 5 segundos para fazer cada corte. Quanto tempo ela levará para cortar toda a fita?',
+    options: ['25 segundos', '30 segundos', '20 segundos', '15 segundos'],
+    answer: '25 segundos',
+    explanation: 'Ela precisará fazer apenas 5 cortes para obter 6 pedaços. 5 cortes * 5 segundos = 25 segundos.'
+  },
+  {
+    level: 65,
+    category: 'Pensamento Estratégico',
+    question: 'Para abrir um cadeado de 3 dígitos (onde cada dígito vai de 0 a 9), qual o número máximo de combinações que se deve testar?',
+    options: ['100', '999', '1000', '30'],
+    answer: '1000',
+    explanation: 'Como cada posição tem 10 dígitos possíveis (0-9), o total de combinações é 10 * 10 * 10 = 1000.',
+    origin: 'OBMEP 2014 (Nível A)'
+  },
+  {
+    level: 66,
+    category: 'Persistência',
+    question: 'Um jogo de dados consiste em lançar dois dados normais de 6 faces. Você ganha se a soma das faces for 10 ou mais. Quantas combinações fazem você vencer?',
+    options: ['3 combinações', '4 combinações', '5 combinações', '6 combinações'],
+    answer: '6 combinações',
+    explanation: 'Combinações válidas: (4,6), (5,5), (6,4) para soma 10; (5,6), (6,5) para soma 11; (6,6) para soma 12. Total de 6 combinações.'
+  },
+  {
+    level: 67,
+    category: 'Velocidade de Resolução',
+    question: 'Um carro viaja a uma velocidade constante de 90 km/h. Qual distância ele percorrerá em 40 minutos?',
+    options: ['50 km', '60 km', '70 km', '80 km'],
+    answer: '60 km',
+    explanation: '40 minutos correspondem a 2/3 de hora. 90 km/h * 2/3 h = 60 km.'
+  },
+  {
+    level: 68,
+    category: 'Resolução de Problemas',
+    question: 'A soma das idades de Mariana e de sua mãe é 48 anos. Mariana tem exatamente um terço da idade da mãe. Quantos anos tem Mariana?',
+    options: ['10 anos', '12 anos', '14 anos', '16 anos'],
+    answer: '12 anos',
+    explanation: 'f + 3f = 48 => 4f = 48 => f = 12 anos. A mãe tem 36 anos.',
+    origin: 'OBMEP 2023 (Nível A)'
+  },
+  {
+    level: 69,
+    category: 'Geometria Visual',
+    question: 'Qual é o perímetro de um triângulo retângulo cujos dois lados menores (catetos) medem 3 cm e 4 cm?',
+    options: ['7 cm', '10 cm', '12 cm', '14 cm'],
+    answer: '12 cm',
+    explanation: 'Hipotenusa = raiz(3² + 4²) = 5 cm. O perímetro é a soma dos lados: 3 + 4 + 5 = 12 cm.'
+  },
+  {
+    level: 70,
+    category: 'Cálculo Mental',
+    question: 'Qual é o resultado da expressão numérica: 150 - 4 * 12 + 8?',
+    options: ['110', '120', '94', '118'],
+    answer: '110',
+    explanation: 'Primeiro fazemos a multiplicação: 4 * 12 = 48. Depois: 150 - 48 + 8 = 110.'
+  },
+  {
+    level: 71,
+    category: 'Reconhecimento de Padrões',
+    question: 'Se a sequência de números 1, 4, 9, 16, 25 representa as áreas de quadrados, qual será a área do próximo quadrado da sequência?',
+    options: ['30', '35', '36', '49'],
+    answer: '36',
+    explanation: 'Os números são quadrados perfeitos: 1², 2², 3², 4², 5². O próximo termo é 6² = 36.'
+  },
+  {
+    level: 72,
+    category: 'Criatividade Matemática',
+    question: 'Se duas torneiras idênticas conseguem encher metade de um reservatório em 3 horas, quanto tempo quatro torneiras levariam para encher o reservatório completo?',
+    options: ['3 horas', '6 horas', '1,5 horas', '4,5 horas'],
+    answer: '3 horas',
+    explanation: '2 torneiras enchem metade do tanque em 3h, logo encheriam todo em 6h. Se dobramos as torneiras para 4, o tempo cai pela metade: 6 / 2 = 3 horas.'
+  },
+  {
+    level: 73,
+    category: 'Lógica Matemática',
+    question: 'De três irmãos, um é médico, um é professor e um é engenheiro. O médico é o mais velho. Lucas é mais novo que o engenheiro. Mateus é professor e é mais velho que Lucas. Quem é o médico?',
+    options: ['Lucas', 'Mateus', 'Pedro', 'Não é possível saber'],
+    answer: 'Pedro',
+    explanation: 'Por eliminação de idades e profissões, Pedro é o médico (mais velho), Mateus é o professor (médio) e Lucas é o engenheiro (mais novo).',
+    origin: 'OBMEP 2021 (Nível 1)'
+  },
+  {
+    level: 74,
+    category: 'Atenção aos Detalhes',
+    question: 'Quantos números inteiros e ímpares existem no intervalo entre 10 e 50?',
+    options: ['20', '21', '19', '22'],
+    answer: '20',
+    explanation: 'Existem 40 inteiros nesse intervalo. Exatamente a metade é ímpar, ou seja, 20.'
+  },
+  {
+    level: 75,
+    category: 'Pensamento Estratégico',
+    question: 'Em um jogo, você pode trocar 3 cartas de bronze por 1 de prata, e 2 de prata por 1 de ouro. Quantas cartas de bronze você precisa para obter 3 cartas de ouro?',
+    options: ['12', '18', '24', '30'],
+    answer: '18',
+    explanation: '3 ouro = 6 prata = 18 bronze. Multiplica-se: 3 * 2 * 3 = 18.',
+    origin: 'Canguru Matemático'
+  },
+  {
+    level: 76,
+    category: 'Persistência',
+    question: 'Uma aranha sobe um poste de 10 metros. A cada dia ela sobe 4 metros e escorrega 2 metros à noite. Em quantos dias ela atingirá o topo?',
+    options: ['3 dias', '4 dias', '5 dias', '6 dias'],
+    answer: '4 dias',
+    explanation: 'Dia 3 termina na marca de 6 metros. No Dia 4, ela sobe 4 metros e atinge os 10 metros, saindo do topo.'
+  },
+  {
+    level: 77,
+    category: 'Velocidade de Resolução',
+    question: 'Um relógio atrasa 2 minutos a cada 3 horas. Quantos minutos ele atrasará no período de 24 horas?',
+    options: ['12 minutos', '16 minutos', '18 minutos', '24 minutos'],
+    answer: '16 minutos',
+    explanation: '24 horas / 3 horas = 8 ciclos. 8 ciclos * 2 minutos = 16 minutos de atraso.'
+  },
+  {
+    level: 78,
+    category: 'Resolução de Problemas',
+    question: 'Dona Benta dividiu uma barra de chocolate. Pedrinho comeu 1/3 da barra e Narizinha comeu 2/5. Que fração sobrou?',
+    options: ['1/15', '4/15', '11/15', '2/15'],
+    answer: '4/15',
+    explanation: 'Soma consumida: 1/3 + 2/5 = 11/15. O que restou é 15/15 - 11/15 = 4/15.',
+    origin: 'OBMEP 2022 (Nível A)'
+  },
+  {
+    level: 79,
+    category: 'Geometria Visual',
+    question: 'Se um retângulo tem perímetro de 20 cm e seu comprimento é o triplo de sua largura, qual é a área do retângulo?',
+    options: ['12 cm²', '15 cm²', '18.75 cm²', '20 cm²'],
+    answer: '18.75 cm²',
+    explanation: 'Lados x e 3x. Perímetro: 8x = 20 => x = 2.5. Lados: 2.5 e 7.5. Área: 2.5 * 7.5 = 18.75 cm².'
+  },
+  {
+    level: 80,
+    category: 'Cálculo Mental',
+    question: 'Qual é o resultado numérico da porcentagem: 12.5% de 80?',
+    options: ['8', '10', '12', '16'],
+    answer: '10',
+    explanation: '12.5% equivale a 1/8. Logo, 80 / 8 = 10.'
+  },
+  {
+    level: 81,
+    category: 'Reconhecimento de Padrões',
+    question: 'Uma sequência de símbolos repete o padrão: Sol, Chuva, Neve, Raio, Sol, Chuva, ... Qual será o 100º símbolo da sequência?',
+    options: ['Sol', 'Chuva', 'Neve', 'Raio'],
+    answer: 'Raio',
+    explanation: 'Ciclo de 4 termos. 100 dividido por 4 dá resto 0, correspondendo ao quarto símbolo (Raio).'
+  },
+  {
+    level: 82,
+    category: 'Criatividade Matemática',
+    question: 'De quantas maneiras diferentes podemos pagar uma conta de 15 reais usando apenas notas de 5 reais e moedas de 2 reais?',
+    options: ['Duas maneiras', 'Três maneiras', 'Quatro maneiras', 'Apenas uma maneira'],
+    answer: 'Duas maneiras',
+    explanation: 'Maneiras: (3 de 5 reais) ou (1 de 5 reais + 5 de 2 reais). Apenas estas duas combinações somam 15.',
+    origin: 'OBMEP 2023 (Nível A)'
+  },
+  {
+    level: 83,
+    category: 'Lógica Matemática',
+    question: 'Três lâmpadas piscam em intervalos de 2s, 3s e 5s. Se piscarem juntas agora, em quantos segundos piscarão juntas novamente?',
+    options: ['10 segundos', '15 segundos', '30 segundos', '60 segundos'],
+    answer: '30 segundos',
+    explanation: 'O menor tempo comum é o MMC(2, 3, 5) = 2 * 3 * 5 = 30 segundos.',
+    origin: 'Canguru Matemático'
+  },
+  {
+    level: 84,
+    category: 'Atenção aos Detalhes',
+    question: 'Um relógio analógico marca exatamente 3 horas. Qual é o menor ângulo formado pelos ponteiros de horas e minutos?',
+    options: ['45 graus', '90 graus', '120 graus', '180 graus'],
+    answer: '90 graus',
+    explanation: 'Com 3 divisões de horas e 30 graus por hora, temos 3 * 30 = 90 graus (um ângulo reto).'
+  },
+  {
+    level: 85,
+    category: 'Pensamento Estratégico',
+    question: 'No jogo de retirar 1, 2 ou 3 palitos de uma pilha com 10, ganha quem tirar o último. Para garantir a vitória, o primeiro deve retirar:',
+    options: ['1 palito', '2 palitos', '3 palitos', 'Não é possível garantir'],
+    answer: '2 palitos',
+    explanation: 'Retirando 2 palitos você deixa a pilha com 8 (múltiplo de 4) para o adversário, o que permite controlar os complementos de soma 4 dali em diante até o fim.',
+    origin: 'Teoria dos Jogos'
+  },
+  {
+    level: 86,
+    category: 'Persistência',
+    question: 'Um reservatório de 1000L perde 50L por dia por vazamento e ganha 30L de chuva a cada dois dias. Em quantos dias esvaziará?',
+    options: ['20 dias', '24 dias', '28 dias', '30 dias'],
+    answer: '28 dias',
+    explanation: 'No 26º dia resta 90 litros. No 27º dia perde 50L (resta 40L). No 28º dia perde os 40L restantes antes de qualquer nova chuva entrar.',
+    origin: 'Desafio Raciocínio'
+  },
+  {
+    level: 87,
+    category: 'Velocidade de Resolução',
+    question: 'Um atleta corre a velocidade constante de 12 km/h. Quanto tempo ele levará para completar uma corrida de 3000 metros?',
+    options: ['12 minutos', '15 minutos', '18 minutos', '20 minutos'],
+    answer: '15 minutos',
+    explanation: '3000m = 3 km. Tempo = 3 / 12 = 0.25 horas, que corresponde a exatamente 15 minutos.'
+  },
+  {
+    level: 90,
+    category: 'Resolução de Problemas',
+    question: 'Em uma escola com 100 alunos, 60 jogam futebol, 45 jogam vôlei e 15 jogam ambos. Quantos não jogam nenhum esporte?',
+    options: ['5 alunos', '10 alunos', '15 alunos', '20 alunos'],
+    answer: '10 alunos',
+    explanation: 'Total com esporte: 60 + 45 - 15 = 90. Sem esporte: 100 - 90 = 10 alunos.',
+    origin: 'OBMEP 2024 (Nível 1)'
   }
 ];
 
