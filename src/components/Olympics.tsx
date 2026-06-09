@@ -17,6 +17,7 @@ interface OlympicQuestion {
   answer: string;
   explanation: string;
   timeLimitSec?: number;
+  origin?: string;
 }
 
 // 10 key competency domains mapping to their specialization & weights
@@ -53,12 +54,57 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     explanation: 'Se Carla veste verde, sobram azul e vermelho. Como Ana não veste vermelho, Ana veste azul. Logo, Beatriz veste vermelho.'
   },
   {
+    level: 2,
+    category: 'Geometria Visual',
+    question: 'Nícolas tem duas peças de papelão formato retangular com medidas 3 cm por 4 cm. Ele junta essas duas peças de várias formas sem sobreposição. Qual das seguintes figuras NÃO pode ser formada por essas duas peças?',
+    options: ['Retângulo de 3 cm por 8 cm', 'Retângulo de 6 cm por 4 cm', 'Retângulo de 6 cm por 8 cm', 'Uma figura em formato de L com lados alternados'],
+    answer: 'Retângulo de 6 cm por 8 cm',
+    explanation: 'A área total das duas peças juntas é 3*4 + 3*4 = 24 cm². Um retângulo de 6 cm por 8 cm teria área de 48 cm², o que é o dobro da área disponível. Portanto, é impossível formá-lo.',
+    origin: 'OBMEP 2023 (Nível 1)'
+  },
+  {
+    level: 4,
+    category: 'Resolução de Problemas',
+    question: 'Vítor tem uma fita adesiva de 1 metro de comprimento. Ele usou pedaços de 15 centímetros para fechar caixas de presente. Qual é o maior número de caixas de presente que ele conseguiu fechar com essa fita?',
+    options: ['5 caixas', '6 caixas', '7 caixas', '8 caixas'],
+    answer: '6 caixas',
+    explanation: '1 metro equivale a 100 centímetros. Dividindo 100 por 15, temos 100 = 6 * 15 + 10. Portanto, ele consegue fechar no máximo 6 caixas completas.',
+    origin: 'OBMEP 2023 (Nível A)'
+  },
+  {
     level: 5,
     category: 'Reconhecimento de Padrões',
     question: 'Observe a sequência de figuras formadas por palitos: Figura 1 tem 4 palitos (um quadrado). Figura 2 tem 7 palitos (dois quadrados grudados). Quantos palitos terá a Figura 4?',
     options: ['10 palitos', '11 palitos', '13 palitos', '14 palitos'],
     answer: '13 palitos',
     explanation: 'A cada nova figura adicionamos 3 palitos (um quadrado que compartilha uma parede). Sequência: 4, 7, 10, 13.'
+  },
+  {
+    level: 6,
+    category: 'Reconhecimento de Padrões',
+    question: 'Em uma fila de 10 pessoas, cada um a partir do segundo na fila tem 2 anos a mais que o anterior. Se a primeira pessoa da fila tem 8 anos, qual é a idade da última pessoa da fila?',
+    options: ['24 anos', '26 anos', '28 anos', '30 anos'],
+    answer: '26 anos',
+    explanation: 'A idade do n-ésimo termo é dada por 8 + (n-1)*2. Para n=10, temos 8 + 9 * 2 = 8 + 18 = 26 anos.',
+    origin: 'OBMEP 2017 (Nível 1)'
+  },
+  {
+    level: 8,
+    category: 'Geometria Visual',
+    question: 'Na malha quadriculada de quadradinhos de 1 cm x 1 cm, desenhamos uma letra O estilizada constituída por uma moldura externa de 4 cm x 4 cm de onde foi retirado um quadrado central de 2 cm x 2 cm. Qual é a área dessa letra O?',
+    options: ['8 cm²', '12 cm²', '14 cm²', '16 cm²'],
+    answer: '12 cm²',
+    explanation: 'Área da moldura total: 4 * 4 = 16 cm². Área do quadrado retirado: 2 * 2 = 4 cm². Área restante da letra O: 16 - 4 = 12 cm².',
+    origin: 'OBMEP 2023 (Nível A)'
+  },
+  {
+    level: 9,
+    category: 'Resolução de Problemas',
+    question: 'Um suco de laranja é feito misturando-se 2 copos de suco concentrado com 5 copos de água. Para fazer uma jarra maior mantendo o mesmo sabor, quantos copos de água devem ser misturados com 6 copos de suco concentrado?',
+    options: ['10 copos de água', '12 copos de água', '15 copos de água', '18 copos de água'],
+    answer: '15 copos de água',
+    explanation: 'A proporção é de 2 partes de suco para 5 de água. Se triplicamos a quantidade de suco concentrado (de 2 para 6 copos), devemos triplicar a água: 5 * 3 = 15 copos.',
+    origin: 'OBMEP 2018 (Nível A)'
   },
   {
     level: 10,
@@ -69,12 +115,66 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     explanation: 'O troco é 50 - 35 = 15 reais. Dividindo esse valor pelas moedas de 5 reais: 15 / 5 = 3 moedas.'
   },
   {
+    level: 11,
+    category: 'Reconhecimento de Padrões',
+    question: 'Sofia escreveu uma palavra repetidamente: AURAURAURA... seguindo o mesmo padrão de repetição. Qual será a 50ª letra escrita por Sofia?',
+    options: ['A', 'U', 'R', 'Não é possível saber'],
+    answer: 'U',
+    explanation: 'O padrão "AUR" tem tamanho 3. Dividindo 50 por 3, temos 50 = 16 * 3 + 2. O resto é 2, o que significa que a 50ª letra corresponde à 2ª letra do padrão, que é "U".',
+    origin: 'OBMEP 2021 (Nível A)'
+  },
+  {
+    level: 12,
+    category: 'Lógica Matemática',
+    question: 'A formiguinha da OBMEP quer andar do ponto A (canto inferior esquerdo) ao ponto B (canto superior direito) seguindo as linhas de uma grade de 2x2. Ela só pode andar para a direita ou para cima. De quantas maneiras diferentes ela pode fazer esse trajeto?',
+    options: ['4 caminhos', '6 caminhos', '8 caminhos', '10 caminhos'],
+    answer: '6 caminhos',
+    explanation: 'Para ir de (0,0) a (2,2) dando 4 passos (2 para a direita e 2 para cima), o número de caminhos é a combinação de 4 elementos 2 a 2: C(4,2) = 6 caminhos (D-D-C-C, D-C-D-C, D-C-C-D, C-D-D-C, C-D-C-D, C-C-D-D).',
+    origin: 'OBMEP 2022 (Nível 1)'
+  },
+  {
+    level: 14,
+    category: 'Atenção aos Detalhes',
+    question: 'Joãozinho escreveu os números de 1 a 20 em uma folha. Ele apagou todos os números pares e, em seguida, apagou todos os múltiplos de 3 que restaram. Quantos números sobraram escritos na folha?',
+    options: ['7 números', '8 números', '9 números', '10 números'],
+    answer: '7 números',
+    explanation: 'Ímpares de 1 a 20: 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 (10 números). Apagando múltiplos de 3 (3, 9, 15): restam 1, 5, 7, 11, 13, 17, 19. Total de 7 números.',
+    origin: 'OBMEP 2021 (Nível 1)'
+  },
+  {
     level: 15,
     category: 'Cálculo Mental',
     question: 'Qual é o resultado da operação: 45 + 37 - 12?',
     options: ['60', '70', '72', '80'],
     answer: '70',
     explanation: 'Somando mentalmente: 45 + 37 = 82. Subtraindo 12: 82 - 12 = 70.'
+  },
+  {
+    level: 16,
+    category: 'Resolução de Problemas',
+    question: 'Um vaso cheio de água pesa 900 gramas. Se jogarmos metade da água fora, o vaso com o restante da água passa a pesar 500 gramas. Quanto pesa o vaso vazio?',
+    options: ['100 gramas', '200 gramas', '300 gramas', '400 gramas'],
+    answer: '100 gramas',
+    explanation: 'A metade da água pesa 900 - 500 = 400g. Logo, a água toda pesa 800g. O vaso vazio pesa 900 - 800 = 100g.',
+    origin: 'OBMEP 2022 (Nível A)'
+  },
+  {
+    level: 17,
+    category: 'Criatividade Matemática',
+    question: 'Em uma caixa temos 5 bolas azuis, 5 bolas vermelhas e 5 bolas amarelas. Retiramos bolas de olhos vendados. Qual é o menor número de bolas que devemos retirar para ter certeza de que pegamos pelo menos duas da mesma cor?',
+    options: ['3 bolas', '4 bolas', '5 bolas', '6 bolas'],
+    answer: '4 bolas',
+    explanation: 'Pelo Princípio da Casa dos Pombos, ao retirar 3 bolas, podemos pegar uma de cada cor. Ao retirar a 4ª bola, ela obrigatoriamente repetirá uma das cores das bolas já retiradas.',
+    origin: 'OBMEP 2019 (Nível A)'
+  },
+  {
+    level: 18,
+    category: 'Pensamento Estratégico',
+    question: 'Três cartões numerados com 1, 2 e 3 são colocados em uma linha. Podemos trocar a posição de dois cartões vizinhos por vez. Qual é o número mínimo de trocas necessárias para inverter completamente a ordem dos cartões, deixando-os como 3, 2, 1?',
+    options: ['2 trocas', '3 trocas', '4 trocas', '5 trocas'],
+    answer: '3 trocas',
+    explanation: 'Começando em [1, 2, 3]: Troca vizinhos 1 e 2 -> [2, 1, 3]. Troca vizinhos 1 e 3 -> [2, 3, 1]. Troca vizinhos 2 e 3 -> [3, 2, 1]. Portanto, o mínimo de trocas necessárias é 3.',
+    origin: 'OBMEP 2019 (Nível 1)'
   },
   {
     level: 20,
@@ -85,6 +185,33 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     explanation: 'Listando com atenção: 7, 17, 27, 37, 47. Logo, existem exatamente 5 números com o algarismo 7 nesse intervalo.'
   },
   {
+    level: 21,
+    category: 'Pensamento Estratégico',
+    question: 'Teresa quer preencher uma tabela 3x3 com os números 1, 2 e 3 de forma que a soma de cada linha e de cada coluna seja a mesma. Qual deve ser o valor da soma de cada linha e coluna?',
+    options: ['5', '6', '7', '9'],
+    answer: '6',
+    explanation: 'Os números usados em cada linha/coluna devem somar 6 (uma combinação possível é usar 1, 2, 3 em cada linha e coluna. A soma é 1+2+3=6).',
+    origin: 'OBMEP 2024 (Nível 1)'
+  },
+  {
+    level: 22,
+    category: 'Lógica Matemática',
+    question: 'Manuela quer pintar as quatro regiões de uma bandeira em linha (R1, R2, R3, R4) usando três cores: azul, vermelho e amarelo. Regiões vizinhas não podem ter a mesma cor. Se ela pintar R1 de azul, de quantas maneiras pode pintar o resto?',
+    options: ['4 maneiras', '6 maneiras', '8 maneiras', '12 maneiras'],
+    answer: '8 maneiras',
+    explanation: 'R1 é azul. Para R2 sobram 2 cores. Para R3 sobram 2 cores (diferentes de R2). Para R4 sobram 2 cores (diferentes de R3). Multiplicando as possibilidades: 1 * 2 * 2 * 2 = 8 maneiras.',
+    origin: 'OBMEP 2023 (Nível A)'
+  },
+  {
+    level: 24,
+    category: 'Persistência',
+    question: 'Uma formiguinha caminha pelas arestas de um cubo de arame de 10 cm de aresta. Ela quer ir de um vértice A a um vértice B oposto pelo caminho mais curto seguindo as arestas. Qual a distância percorrida por ela?',
+    options: ['20 cm', '30 cm', '40 cm', '50 cm'],
+    answer: '30 cm',
+    explanation: 'Em um cubo, o caminho mais curto sobre as arestas de um vértice ao seu oposto exige percorrer exatamente 3 arestas distintas. Logo, 3 * 10 cm = 30 cm.',
+    origin: 'OBMEP 2016 (Nível A)'
+  },
+  {
     level: 25,
     category: 'Geometria Visual',
     question: 'Se juntarmos dois triângulos equiláteros idênticos colando-os por um de seus lados comuns, qual nova figura plana formamos?',
@@ -93,12 +220,48 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     explanation: 'Dois triângulos equiláteros unidos por um lado formam uma figura de 4 lados iguais cujos ângulos opostos são iguais, caracterizando um losango.'
   },
   {
+    level: 26,
+    category: 'Atenção aos Detalhes',
+    question: 'Um número inteiro de três algarismos tem a propriedade de que o algarismo das centenas é igual ao algarismo das unidades. Quantos números assim existem entre 100 e 999?',
+    options: ['90 números', '100 números', '900 números', '99 números'],
+    answer: '90 números',
+    explanation: 'O número tem a forma ABA. O algarismo das centenas A pode ser escolhido de 1 a 9 (9 opções). O algarismo das dezenas B pode ser de 0 a 9 (10 opções). O algarismo das unidades é igual a A (1 opção). Total = 9 * 10 * 1 = 90 números.',
+    origin: 'OBMEP 2023 (Nível 1)'
+  },
+  {
+    level: 28,
+    category: 'Resolução de Problemas',
+    question: 'Em uma escola, os alunos da Olimpíada de Matemática foram divididos em salas. Se colocarmos 3 alunos em cada sala, sobra 1 aluno. Se colocarmos 4 alunos em cada sala, uma sala fica vazia. Quantos alunos participam dessa Olimpíada?',
+    options: ['10 alunos', '13 alunos', '16 alunos', '20 alunos'],
+    answer: '16 alunos',
+    explanation: 'Equacionando: a = 3s + 1 e a = 4(s - 1) = 4s - 4. Igualando: 3s + 1 = 4s - 4 => s = 5. Logo, a = 3(5) + 1 = 16 alunos.',
+    origin: 'OBMEP 2018 (Nível 1)'
+  },
+  {
     level: 30,
+    category: 'Pensamento Estratégico',
+    question: 'Numa competição de corrida, se Júlia ultrapassar o segundo colocado, em que posição ela ficará?',
+    options: ['Primeiro lugar', 'Segundo lugar', 'Terceiro lugar', 'Não é possível saber'],
+    answer: 'Segundo lugar',
+    explanation: 'Se Júlia ultrapassa o segundo colocado, ela assume o lugar dele, passando a ser a segunda colocada, enquanto o que estava em segundo passa para terceiro.',
+    origin: 'OBMEP 2022 (Nível A)'
+  },
+  {
+    level: 31,
     category: 'Pensamento Estratégico',
     question: 'Em um jogo de tabuleiro, se você der um passo para frente avança 2 casas. Se der um passo para trás volta 1 casa. Qual a melhor sequência estratégica para avançar exatamente 5 casas no menor número de passos?',
     options: ['3 passos para frente', '4 passos para frente e 3 para trás', '3 passos para frente e 1 para trás', '2 passos para frente e 1 para trás'],
     answer: '3 passos para frente e 1 para trás',
     explanation: '3 passos para frente dão 6 casas. 1 para trás volta para 5. Total de 4 passos. 3 passos para frente dão 6 (passou). 2 para frente e 1 para trás dá 3.'
+  },
+  {
+    level: 32,
+    category: 'Geometria Visual',
+    question: 'Um quadrado de lado 6 cm é cortado em três retângulos idênticos de mesma área. Qual é o perímetro de cada um desses três retângulos?',
+    options: ['10 cm', '14 cm', '16 cm', '20 cm'],
+    answer: '16 cm',
+    explanation: 'Como o quadrado tem lado 6 cm, seus retângulos terão dimensões 6 cm por 2 cm (já que 6 / 3 = 2 cm). O perímetro de cada um é 2 * (6 + 2) = 16 cm.',
+    origin: 'OBMEP 2022 (Nível 1)'
   },
   {
     level: 35,
@@ -107,6 +270,15 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     options: ['3 dias', '4 dias', '5 dias', '6 dias'],
     answer: '4 dias',
     explanation: 'Dia 1: sobe para 3, escorrega para 1. Dia 2: sobe para 4, escorrega para 2. Dia 3: sobe para 5, escorrega para 3. Dia 4: sobe 3 metros e alcança 6 metros (topo), saindo do poço sem escorregar.'
+  },
+  {
+    level: 36,
+    category: 'Lógica Matemática',
+    question: 'Em uma caixa, há 6 fichas numeradas de 1 a 6. Retiramos duas fichas sem olhar. Qual é a probabilidade de que a soma dos números das fichas retiradas seja igual a 7?',
+    options: ['1/5', '1/3', '1/2', '2/5'],
+    answer: '1/5',
+    explanation: 'Total de duplas possíveis de 6 fichas: (6 * 5) / 2 = 15 pares. Os pares favoráveis que somam 7 são: (1,6), (2,5), (3,4). São 3 pares. Probabilidade: 3/15 = 1/5.',
+    origin: 'OBMEP 2017 (Nível A)'
   },
   {
     level: 40,
@@ -549,18 +721,34 @@ export const Olympics: React.FC<OlympicsProps> = ({
           <div className="cyber-card" style={{ borderColor: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', minHeight: '430px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: isReTrainingMode ? '0 0 15px rgba(168, 85, 247, 0.15)' : 'none' }}>
             
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
-                <span style={{ 
-                  fontSize: '0.85rem', 
-                  fontWeight: 800, 
-                  color: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', 
-                  background: isReTrainingMode ? 'rgba(168, 85, 247, 0.1)' : 'rgba(234, 179, 8, 0.1)', 
-                  padding: '2px 8px', 
-                  borderRadius: '4px',
-                  textShadow: isReTrainingMode ? '0 0 6px rgba(168, 85, 247, 0.4)' : '0 0 6px rgba(234, 179, 8, 0.4)'
-                }}>
-                  {isReTrainingMode ? '📖 RE-TREINO: ' : ''}{activeQuestion.category.toUpperCase()}
-                </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ 
+                    fontSize: '0.85rem', 
+                    fontWeight: 800, 
+                    color: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', 
+                    background: isReTrainingMode ? 'rgba(168, 85, 247, 0.1)' : 'rgba(234, 179, 8, 0.1)', 
+                    padding: '2px 8px', 
+                    borderRadius: '4px',
+                    textShadow: isReTrainingMode ? '0 0 6px rgba(168, 85, 247, 0.4)' : '0 0 6px rgba(234, 179, 8, 0.4)'
+                  }}>
+                    {isReTrainingMode ? '📖 RE-TREINO: ' : ''}{activeQuestion.category.toUpperCase()}
+                  </span>
+                  {activeQuestion.origin && (
+                    <span style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      color: 'var(--neon-cyan)',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(6, 182, 212, 0.3)',
+                      textShadow: '0 0 5px rgba(6, 182, 212, 0.5)'
+                    }}>
+                      ⭐ {activeQuestion.origin}
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
                   {isReTrainingMode ? `Revisando Questão ${reTrainingIndex + 1}/${wrongQuestionsList.length}` : `Questão do Templo #${currentLevel}`}
                 </span>
