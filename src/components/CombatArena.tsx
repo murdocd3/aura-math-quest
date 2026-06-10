@@ -353,7 +353,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     audioEngine.playHatchRoll();
 
     setTimeout(() => {
-      const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.username !== playerUser.username);
+      const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.isActive !== false && u.username !== playerUser.username);
       const randomOpponent = (activePlayers.length > 0 ? activePlayers[Math.floor(Math.random() * activePlayers.length)] : { id: 'player-lucas', username: 'lucas', role: 'player' }) as any;
       const opponentEmoji = randomOpponent.username === 'sofia' ? '🧪' : randomOpponent.username === 'beatriz' ? '👑' : '🧙‍♂️';
       

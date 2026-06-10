@@ -18,7 +18,9 @@ export interface User {
   role: 'admin' | 'player';
   passwordHash: string; // Plaintext for mockup simplicity, or base64
   createdAt: string;
+  isActive?: boolean;
 }
+
 
 export interface GameState {
   userId: string;
@@ -1186,6 +1188,104 @@ export function seedDatabase() {
   } catch (err) {
     console.error('[mockDb] Error during user cleanup step:', err);
   }
+
+  // Dynamic creation and seeding for robust demonstration user
+  try {
+    const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (rawUsers) {
+      const usersList: User[] = JSON.parse(rawUsers);
+      const hasDemo = usersList.some(u => u.username === 'aluno_demonstracao');
+      if (!hasDemo) {
+        const demoUser: User = {
+          id: 'player-demo',
+          username: 'aluno_demonstracao',
+          role: 'player',
+          passwordHash: 'demo123',
+          createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+          isActive: false // inactive by default so they can test turning it on/off
+        };
+        usersList.push(demoUser);
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(usersList));
+
+        // Add GameState
+        const rawStates = localStorage.getItem(STORAGE_KEYS.GAME_STATES);
+        if (rawStates) {
+          const statesList: GameState[] = JSON.parse(rawStates);
+          if (!statesList.some(s => s.userId === 'player-demo')) {
+            statesList.push({
+              userId: 'player-demo',
+              auraLevel: 32,
+              auraXp: 800,
+              auraColor: '#00ffcc',
+              rebirths: 1,
+              gems: 50,
+              currentZone: 'forest',
+              equippedPetId: null,
+              activeAuras: ['lvl10', 'lvl30'],
+              totalPlayTimeSeconds: 8500,
+              updatedAt: new Date().toISOString(),
+              purchasedCosmetics: [],
+              equippedCosmeticId: null,
+              selectedOperation: 'addition',
+              questWins: 5,
+              questCriticals: 2,
+              questStreak: 3,
+              claimedQuests: [],
+              classId: 'chronomancer',
+              skillPoints: 2,
+              unlockedSkills: [],
+              clanId: null,
+              clanContributions: 0,
+              campaignStage: 3,
+            });
+            localStorage.setItem(STORAGE_KEYS.GAME_STATES, JSON.stringify(statesList));
+          }
+        }
+      }
+    }
+
+    // Seed 15 days of progressive statistics for player-demo if timeline not already populated for them
+    const rawTimeline = localStorage.getItem('amq_timeline');
+    if (rawTimeline) {
+      const timelineList: TimelineEntry[] = JSON.parse(rawTimeline);
+      const hasDemoTimeline = timelineList.some(t => t.userId === 'player-demo');
+      if (!hasDemoTimeline) {
+        const categories = ['Adição', 'Subtração', 'Multiplicação', 'Divisão', 'Olimpíadas'];
+        for (let dayOffset = 15; dayOffset >= 0; dayOffset--) {
+          const date = new Date();
+          date.setDate(date.getDate() - dayOffset);
+          const isoDate = date.toISOString();
+
+          // Generate 10 to 15 responses per day
+          const numQuestions = 10 + Math.floor(Math.random() * 6);
+          for (let i = 0; i < numQuestions; i++) {
+            const category = categories[Math.floor(Math.random() * categories.length)];
+            const progressRatio = (15 - dayOffset) / 15; // 0 to 1 (evolution progress)
+            
+            // Evolution: accuracy improves from ~40% to ~92%
+            const correctChance = 0.40 + (progressRatio * 0.52) + (Math.random() * 0.1 - 0.05);
+            const correct = Math.random() < Math.max(0.1, Math.min(0.98, correctChance));
+
+            // Evolution: response speed improves from ~9s (9000ms) to ~2.4s (2400ms)
+            const baseTime = 9000 - (progressRatio * 6600);
+            const timeMs = Math.round(baseTime + (Math.random() * 1500 - 750));
+
+            timelineList.push({
+              userId: 'player-demo',
+              timestamp: isoDate,
+              category,
+              questionKey: `${2 + Math.floor(Math.random() * 8)}x${2 + Math.floor(Math.random() * 8)}`,
+              correct,
+              timeMs: Math.max(1000, timeMs)
+            });
+          }
+        }
+        localStorage.setItem('amq_timeline', JSON.stringify(timelineList));
+      }
+    }
+  } catch (err) {
+    console.error('[mockDb] Error seeding demonstration user data:', err);
+  }
 }
 
 // Helper methods to read/write JSON
@@ -1249,7 +1349,7 @@ export const mockDb = {
     return null;
   },
 
-  createUser(username: string, passwordHash: string, role: 'admin' | 'player'): User | null {
+  createUser(username: string, passwordHash: string, role: 'admin' | 'player', isActive: boolean = true): User | null {
     const users = this.getUsers();
     const cleanUser = username.trim();
     if (users.some(u => u.username.toLowerCase() === cleanUser.toLowerCase())) {
@@ -1262,6 +1362,7 @@ export const mockDb = {
       role,
       passwordHash,
       createdAt: new Date().toISOString(),
+      isActive,
     };
 
     users.push(newUser);
@@ -1314,6 +1415,7 @@ export const mockDb = {
           username: newUser.username,
           password: newUser.passwordHash,
           role: newUser.role,
+          is_active: newUser.isActive,
         })
         .then(({ error: uError }) => {
           if (uError) {
@@ -1336,7 +1438,7 @@ export const mockDb = {
     return newUser;
   },
 
-  updateUser(id: string, updates: Partial<Pick<User, 'username' | 'passwordHash'>>): boolean {
+  updateUser(id: string, updates: Partial<Pick<User, 'username' | 'passwordHash' | 'isActive'>>): boolean {
     const users = this.getUsers();
     const index = users.findIndex(u => u.id === id);
     if (index === -1) return false;
@@ -1351,6 +1453,9 @@ export const mockDb = {
     if (updates.passwordHash) {
       users[index].passwordHash = updates.passwordHash;
     }
+    if (updates.isActive !== undefined) {
+      users[index].isActive = updates.isActive;
+    }
 
     setStorageItem(STORAGE_KEYS.USERS, users);
 
@@ -1359,6 +1464,7 @@ export const mockDb = {
       const dbUpdates: any = {};
       if (updates.username !== undefined) dbUpdates.username = updates.username;
       if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
       supabase.from('users')
         .update(dbUpdates)
         .eq('id', id)
@@ -1899,7 +2005,7 @@ export const mockDb = {
     selectedOperation?: string;
     unlockedSkillsCount?: number;
   }[] {
-    const users = this.getUsers().filter(u => u.role === 'player');
+    const users = this.getUsers().filter(u => u.role === 'player' && u.isActive !== false);
     const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
     const clans = getStorageItem<any>(STORAGE_KEYS.CLANS);

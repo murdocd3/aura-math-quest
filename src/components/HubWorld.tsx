@@ -363,7 +363,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   useEffect(() => {
     const simulatorInterval = setInterval(() => {
       const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
-      const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.id !== playerUser.id && !fictitiousUserIds.includes(u.id));
+      const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.isActive !== false && u.id !== playerUser.id && !fictitiousUserIds.includes(u.id));
       if (activePlayers.length === 0) return;
 
       const randomPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];

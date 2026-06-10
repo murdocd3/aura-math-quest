@@ -252,7 +252,7 @@ export const backendService = {
     return mockDb.getUsers();
   },
 
-  async createUser(username: string, passwordPlain: string, role: 'admin' | 'player'): Promise<User | null> {
+  async createUser(username: string, passwordPlain: string, role: 'admin' | 'player', isActive: boolean = true): Promise<User | null> {
     if (isSupabaseEnabled && supabase) {
       try {
         console.log(`[BackendService] Creating user: ${username} in Supabase...`);
@@ -261,7 +261,8 @@ export const backendService = {
           id: userId,
           username: username.trim(),
           password: passwordPlain,
-          role
+          role,
+          is_active: isActive
         });
         if (userError) throw userError;
 
@@ -302,18 +303,19 @@ export const backendService = {
           username: username.trim(),
           role,
           passwordHash: passwordPlain,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          isActive
         };
 
         // Mirror locally just in case
-        mockDb.createUser(username, passwordPlain, role);
+        mockDb.createUser(username, passwordPlain, role, isActive);
         return newUser;
       } catch (err) {
         console.error('[BackendService] Supabase error in createUser:', err);
         return null;
       }
     }
-    return mockDb.createUser(username, passwordPlain, role);
+    return mockDb.createUser(username, passwordPlain, role, isActive);
   },
 
   async updateUser(userId: string, updates: Partial<User>): Promise<boolean> {
@@ -324,6 +326,7 @@ export const backendService = {
         if (updates.username !== undefined) dbUpdates.username = updates.username;
         if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
         if (updates.role !== undefined) dbUpdates.role = updates.role;
+        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
         const { error } = await supabase.from('users').update(dbUpdates).eq('id', userId);
         if (error) throw error;
@@ -366,12 +369,14 @@ export const backendService = {
         if (data && data.length > 0) {
           const u = data[0];
           if (u.password === passwordPlain) {
+            if (u.is_active === false) return null;
             return {
               id: u.id,
               username: u.username,
               role: u.role as 'admin' | 'player',
               passwordHash: u.password,
-              createdAt: u.created_at || new Date().toISOString()
+              createdAt: u.created_at || new Date().toISOString(),
+              isActive: u.is_active !== false
             };
           }
         }
@@ -384,6 +389,7 @@ export const backendService = {
     // Fallback authentication check
     const user = mockDb.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
     if (user && user.passwordHash === passwordPlain) {
+      if (user.isActive === false) return null;
       return user;
     }
     return null;

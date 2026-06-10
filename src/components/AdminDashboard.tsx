@@ -24,6 +24,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [roleInput, setRoleInput] = useState<'admin' | 'player'>('player');
+  const [isActiveInput, setIsActiveInput] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
@@ -462,6 +463,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       const success = await backendService.updateUser(editId, {
         username: usernameInput,
         passwordHash: passwordInput || undefined,
+        isActive: isActiveInput,
       });
 
       if (success) {
@@ -474,7 +476,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         audioEngine.playError();
       }
     } else {
-      const newUser = await backendService.createUser(usernameInput, passwordInput, roleInput);
+      const newUser = await backendService.createUser(usernameInput, passwordInput, roleInput, isActiveInput);
       if (newUser) {
         setFormSuccess(`Usuário ${usernameInput} criado com sucesso!`);
         audioEngine.playCorrect();
@@ -507,12 +509,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     }
   };
 
+  const handleToggleUserActive = async (id: string, currentActive: boolean) => {
+    const success = await backendService.updateUser(id, { isActive: !currentActive });
+    if (success) {
+      audioEngine.playCorrect();
+      await loadUsers();
+    }
+  };
+
   const startEdit = (user: User) => {
     setIsEditing(true);
     setEditId(user.id);
     setUsernameInput(user.username);
     setPasswordInput('');
     setRoleInput(user.role);
+    setIsActiveInput(user.isActive !== false);
     setFormError(null);
     setFormSuccess(null);
     audioEngine.playHatchRoll();
@@ -524,6 +535,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     setUsernameInput('');
     setPasswordInput('');
     setRoleInput('player');
+    setIsActiveInput(true);
   };
 
   // Stats formatting helpers
@@ -609,6 +621,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                   <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
                     <th style={{ padding: '12px 8px' }}>Usuário</th>
                     <th style={{ padding: '12px 8px' }}>Tipo</th>
+                    <th style={{ padding: '12px 8px' }}>Status</th>
                     <th style={{ padding: '12px 8px' }}>Criação</th>
                     <th style={{ padding: '12px 8px', textAlign: 'right' }}>Ações</th>
                   </tr>
@@ -641,10 +654,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                           {u.role === 'admin' ? 'ADMIN' : 'PLAYER'}
                         </span>
                       </td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <span
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            backgroundColor: u.isActive !== false ? 'rgba(34, 197, 94, 0.2)' : 'rgba(244, 63, 94, 0.2)',
+                            color: u.isActive !== false ? '#22c55e' : '#f43f5e',
+                          }}
+                        >
+                          {u.isActive !== false ? 'ATIVO' : 'INATIVO'}
+                        </span>
+                      </td>
                       <td style={{ padding: '12px 8px', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
                         {new Date(u.createdAt).toLocaleDateString('pt-BR')}
                       </td>
                       <td style={{ padding: '12px 8px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                        {u.id !== adminUser.id && (
+                          <button
+                            onClick={() => handleToggleUserActive(u.id, u.isActive !== false)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: u.isActive !== false ? 'var(--neon-yellow)' : 'var(--neon-cyan)',
+                              marginRight: '12px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {u.isActive !== false ? 'Inativar' : 'Ativar'}
+                          </button>
+                        )}
                         <button
                           onClick={() => startEdit(u)}
                           style={{
@@ -744,6 +786,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                   </select>
                 </div>
               )}
+
+              <div style={{ margin: '8px 0' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>
+                  <input
+                    type="checkbox"
+                    checked={isActiveInput}
+                    onChange={(e) => setIsActiveInput(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  Conta Ativa (Permite login e visibilidade)
+                </label>
+              </div>
 
               {formError && (
                 <div style={{ color: 'var(--neon-pink)', fontSize: '0.85rem', fontWeight: 600 }}>
