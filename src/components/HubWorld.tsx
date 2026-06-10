@@ -147,6 +147,7 @@ interface HubWorldProps {
   onNavigateToPetShop: () => void;
   onNavigateToRunner: () => void;
   onNavigateToOlympics: () => void;
+  onNavigateToSanctum: () => void;
   onLogout: () => void;
   gameState: GameState;
   onStateUpdate: (newState: GameState) => void;
@@ -159,6 +160,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   onNavigateToPetShop,
   onNavigateToRunner,
   onNavigateToOlympics,
+  onNavigateToSanctum,
   onLogout,
   gameState,
   onStateUpdate,
@@ -601,6 +603,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="cyber-btn" onClick={onNavigateToPetShop} style={{ padding: '10px 18px', borderColor: 'var(--neon-yellow)' }}>
               🏪 Ir para Loja de Pets
+            </button>
+            <button className="cyber-btn" onClick={onNavigateToSanctum} style={{ padding: '10px 18px', borderColor: 'var(--neon-purple)' }}>
+              🏠 Meu Santuário
             </button>
             <button className="cyber-btn cyber-btn-pink" onClick={onLogout} style={{ padding: '10px 18px' }}>
               Sair do Jogo ➔

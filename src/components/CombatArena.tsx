@@ -397,6 +397,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const [monsterShake, setMonsterShake] = useState(false);
   const [playerShake, setPlayerShake] = useState(false);
 
+  // Class Special Abilities States
+  const [timeFreezeUsed, setTimeFreezeUsed] = useState(false);
+  const [warriorShieldActive, setWarriorShieldActive] = useState(gameState.classId === 'warrior');
+
   // Simulated PvP Opponent AI Loop
   useEffect(() => {
     if (battleState !== 'fighting' || battleMode !== 'pvp') return;
@@ -794,6 +798,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setBattleCriticals(0);
     setCurrentStreak(0);
     setMaxStreak(0);
+    setTimeFreezeUsed(false);
+    setWarriorShieldActive(gameState.classId === 'warrior');
     totalQuestionsRef.current = 0;
     masteredQuestionsRef.current = 0;
     isBattleDominatedRef.current = false;
@@ -874,6 +880,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setBattleCriticals(0);
     setCurrentStreak(0);
     setMaxStreak(0);
+    setTimeFreezeUsed(false);
+    setWarriorShieldActive(gameState.classId === 'warrior');
     setVictoryDialogueIndex(null);
     totalQuestionsRef.current = 0;
     masteredQuestionsRef.current = 0;
@@ -930,25 +938,35 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     mockDb.recordMathAnswer(userId, currentQuestion.key, false, timeLimit * 1000);
 
     setCurrentStreak(0);
+    const willBlock = warriorShieldActive;
     vfxCanvasRef.current?.fireProjectile('monster', () => {
-      vfxCanvasRef.current?.triggerExplosion('player', 'error');
-      audioEngine.playError();
-      setPerfectBattle(false);
-      spawnHitSplat('ESCUDO DANO! -1 🛡️', true, 'error');
-      setPlayerHp(prev => {
-        const next = prev - 1;
-        if (next <= 0) {
-          handleDefeat();
-        }
-        return next;
-      });
+      if (willBlock) {
+        setWarriorShieldActive(false);
+        spawnHitSplat('🛡️ BLOQUEADO!', true, 'normal');
+        nextTurnLog(`🛡️ ESCUDO DE FERRO: A classe Guerreiro bloqueou o ataque do tempo expirado!`);
+      } else {
+        vfxCanvasRef.current?.triggerExplosion('player', 'error');
+        audioEngine.playError();
+        setPerfectBattle(false);
+        spawnHitSplat('ESCUDO DANO! -1 🛡️', true, 'error');
+        setPlayerHp(prev => {
+          const next = prev - 1;
+          if (next <= 0) {
+            handleDefeat();
+          }
+          return next;
+        });
+      }
       triggerFlashEffect('incorrect');
       triggerPlayerShake();
     });
 
-    nextTurnLog(`O tempo acabou! O monstro te atacou. Perdemos 1 Escudo.`);
+    if (!willBlock) {
+      nextTurnLog(`O tempo acabou! O monstro te atacou. Perdemos 1 Escudo.`);
+    }
     
-    if (playerHp - 1 > 0) {
+    const nextHpRemaining = willBlock ? playerHp : (playerHp - 1);
+    if (nextHpRemaining > 0) {
       setIsFeedbackActive(true);
       setTimeout(() => {
         setIsFeedbackActive(false);
@@ -1060,25 +1078,35 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     } else {
       setScreenReaderAnnouncement(`Incorreto! A resposta correta era ${currentQuestion.answer}. Você levou um de dano.`);
       setCurrentStreak(0);
+      const willBlock = warriorShieldActive;
       vfxCanvasRef.current?.fireProjectile('monster', () => {
-        vfxCanvasRef.current?.triggerExplosion('player', 'error');
-        audioEngine.playError();
-        setPerfectBattle(false);
-        spawnHitSplat('ERRO! -1 🛡️', true, 'error');
-        setPlayerHp(prev => {
-          const next = prev - 1;
-          if (next <= 0) {
-            handleDefeat();
-          }
-          return next;
-        });
+        if (willBlock) {
+          setWarriorShieldActive(false);
+          spawnHitSplat('🛡️ BLOQUEADO!', true, 'normal');
+          nextTurnLog(`🛡️ ESCUDO DE FERRO: A classe Guerreiro bloqueou o dano do erro!`);
+        } else {
+          vfxCanvasRef.current?.triggerExplosion('player', 'error');
+          audioEngine.playError();
+          setPerfectBattle(false);
+          spawnHitSplat('ERRO! -1 🛡️', true, 'error');
+          setPlayerHp(prev => {
+            const next = prev - 1;
+            if (next <= 0) {
+              handleDefeat();
+            }
+            return next;
+          });
+        }
         triggerFlashEffect('incorrect');
         triggerPlayerShake();
       });
 
-      nextTurnLog(`Erro! A resposta de ${currentQuestion.num1}${opSym}${currentQuestion.num2} era ${currentQuestion.answer}. Perdemos 1 Escudo.`);
+      if (!willBlock) {
+        nextTurnLog(`Erro! A resposta de ${currentQuestion.num1}${opSym}${currentQuestion.num2} era ${currentQuestion.answer}. Perdemos 1 Escudo.`);
+      }
 
-      if (playerHp - 1 > 0) {
+      const nextHpRemaining = willBlock ? playerHp : (playerHp - 1);
+      if (nextHpRemaining > 0) {
         setIsFeedbackActive(true);
         setTimeout(() => {
           setIsFeedbackActive(false);
@@ -1197,6 +1225,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     } else if (battleMode === 'coop') {
       xpGained = Math.round(xpGained * 2.0);
       gemsGained = Math.round(gemsGained * 2.0);
+    }
+
+    if (gameState.classId === 'alchemist') {
+      gemsGained = Math.round(gemsGained * 1.5);
+      nextTurnLog("🧪 BÔNUS DE ALQUIMISTA: Transmutação de Riqueza concedeu +50% Gemas!");
     }
 
     setVictoryRewards({ xp: xpGained, gems: gemsGained });
@@ -1929,9 +1962,34 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
               {/* Answering Timer Bar (Fiber Optic Design) */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
                   <span>Cabo de Fibra Óptica (Tempo Restante)</span>
-                  <span style={{ color: getTimerColor(), fontWeight: 'bold' }}>{timeLeft.toFixed(1)}s</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {gameState.classId === 'chronomancer' && !timeFreezeUsed && (
+                      <button
+                        onClick={() => {
+                          setTimeLeft(prev => Math.min(timeLimit, prev + 5));
+                          setTimeFreezeUsed(true);
+                          audioEngine.playHatchSuccess();
+                          nextTurnLog("⏱️ DICA DO MAGO DO TEMPO: Cronômetro estendido em 5 segundos!");
+                        }}
+                        style={{
+                          background: 'rgba(168, 85, 247, 0.2)',
+                          border: '1px solid var(--neon-purple)',
+                          color: '#fff',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          boxShadow: '0 0 6px var(--neon-purple)',
+                        }}
+                      >
+                        ⏱️ Congelar Tempo (+5s)
+                      </button>
+                    )}
+                    <span style={{ color: getTimerColor(), fontWeight: 'bold' }}>{timeLeft.toFixed(1)}s</span>
+                  </div>
                 </div>
                 <div
                   style={{

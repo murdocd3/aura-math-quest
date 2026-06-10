@@ -6,6 +6,7 @@ import { PetShop } from './components/PetShop';
 import { CombatArena } from './components/CombatArena';
 import { CyberRunner } from './components/CyberRunner';
 import { Olympics } from './components/Olympics';
+import { MySanctum } from './components/MySanctum';
 import { seedDatabase } from './services/mockDb';
 import { backendService } from './services/backendService';
 import type { User, GameState } from './services/mockDb';
@@ -14,7 +15,7 @@ import { audioEngine } from './components/AudioEngine';
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [screen, setScreen] = useState<'login' | 'hub' | 'admin' | 'pet_shop' | 'combat' | 'runner' | 'olympics'>('login');
+  const [screen, setScreen] = useState<'login' | 'hub' | 'admin' | 'pet_shop' | 'combat' | 'runner' | 'olympics' | 'sanctum'>('login');
   const [selectedZone, setSelectedZone] = useState<'forest' | 'volcano' | 'unified'>('unified');
   const [isAudioMuted, setIsAudioMuted] = useState(false);
 
@@ -200,6 +201,7 @@ function App() {
             onNavigateToPetShop={() => setScreen('pet_shop')}
             onNavigateToRunner={() => setScreen('runner')}
             onNavigateToOlympics={() => setScreen('olympics')}
+            onNavigateToSanctum={() => setScreen('sanctum')}
             onLogout={handleLogout}
           />
         )}
@@ -241,6 +243,15 @@ function App() {
             gameState={gameState}
             onBack={() => setScreen('hub')}
             onStateUpdate={setGameState}
+          />
+        )}
+
+        {screen === 'sanctum' && user && gameState && (
+          <MySanctum
+            playerUser={user}
+            gameState={gameState}
+            onStateUpdate={setGameState}
+            onBack={() => setScreen('hub')}
           />
         )}
       </main>
