@@ -396,7 +396,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const [matchedOpponent, setMatchedOpponent] = useState<{ username: string; level: number; rebirths: number; emoji: string } | null>(null);
   const [victoryRewards, setVictoryRewards] = useState<{ xp: number; gems: number }>({ xp: 0, gems: 0 });
 
-  const [monster, setMonster] = useState({ name: '', emoji: '', maxHp: 3, hp: 3 });
+  const [monster, setMonster] = useState<{ name: string; emoji: string; maxHp: number; hp: number; element?: string; introDialogue?: string }>({ name: '', emoji: '', maxHp: 3, hp: 3 });
   const [playerHp, setPlayerHp] = useState(3); // 3 shields
   const [maxPlayerHp] = useState(3);
   const [battleState, setBattleState] = useState<'intro' | 'fighting' | 'won' | 'lost'>('intro');
@@ -429,6 +429,13 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   // Class Special Abilities States
   const [timeFreezeUsed, setTimeFreezeUsed] = useState(false);
   const [warriorShieldActive, setWarriorShieldActive] = useState(gameState.classId === 'warrior');
+  const [abilityMeter, setAbilityMeter] = useState<number>(0);
+  const [abilityHighlightActive, setAbilityHighlightActive] = useState<boolean>(false);
+  const [scrambledChoices, setScrambledChoices] = useState<number[]>([]);
+  const [bossOp, setBossOp] = useState<'addition' | 'subtraction' | 'multiplication' | 'division' | ''>('');
+  const [glitchDialogueActive, setGlitchDialogueActive] = useState<boolean>(false);
+  const [glitchDialogueText, setGlitchDialogueText] = useState<string>('');
+  const [rogueDoubleRewardsActive, setRogueDoubleRewardsActive] = useState<boolean>(false);
 
   // Simulated PvP Opponent AI Loop
   useEffect(() => {
@@ -539,9 +546,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     let num1 = 2;
     let num2 = 2;
     let isWeakPoint = false;
-    let op = gameState.selectedOperation || 'multiplication';
-    if (campaignStageId) {
-      op = getCampaignOp(campaignStageId);
+    let op: 'addition' | 'subtraction' | 'multiplication' | 'division' = (bossOp || gameState.selectedOperation || 'multiplication') as any;
+    if (campaignStageId && !bossOp) {
+      op = getCampaignOp(campaignStageId) as any;
     }
     const opSym = getOperationSymbol(op);
 
@@ -806,7 +813,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       baseMaxHp = 4;
     } else {
       const list = MONSTERS[zone];
-      const template = list[Math.floor(Math.random() * list.length)];
+      const template = list[Math.floor(Math.random() * list.length)] as any;
       monsterName = template.name;
       monsterEmoji = template.emoji;
       baseMaxHp = template.maxHp;
@@ -814,12 +821,18 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
     const scaledMaxHp = scaleMonsterHp(baseMaxHp, mode);
 
+    const matchedUnified = (MONSTERS.unified || []).find(m => m.name === monsterName) as any;
+    const resolvedElement = matchedUnified?.element || getMonsterElement(monsterName, monsterEmoji) || 'cosmic';
+    const resolvedDialogue = matchedUnified?.introDialogue || (mode === 'pvp' ? "Você me desafiou! Vamos ver quem domina a matemática mais rápido!" : mode === 'coop' ? "Raid Boss detectado! União e precisão pedagógica são necessárias!" : "Vou corromper o banco de dados da tabuada!");
+
     setMonster({
       name: monsterName,
       emoji: monsterEmoji,
       maxHp: scaledMaxHp,
       hp: scaledMaxHp,
-    });
+      element: resolvedElement,
+      introDialogue: resolvedDialogue
+    } as any);
 
     setPlayerHp(maxPlayerHp);
     setPerfectBattle(true);
@@ -829,6 +842,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setMaxStreak(0);
     setTimeFreezeUsed(false);
     setWarriorShieldActive(gameState.classId === 'warrior');
+    setAbilityMeter(0);
+    setAbilityHighlightActive(false);
+    setScrambledChoices([]);
+    setBossOp('');
+    setRogueDoubleRewardsActive(false);
     totalQuestionsRef.current = 0;
     masteredQuestionsRef.current = 0;
     isBattleDominatedRef.current = false;
@@ -848,7 +866,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setCurrentQuestion(q);
     setTextAnswer('');
     setTimeLeft(timeLimit);
-    setTimerActive(true);
+    setGlitchDialogueActive(true);
+    setGlitchDialogueText(resolvedDialogue);
+    setTimerActive(false);
   };
 
   const startCampaignBattle = (stageId: number) => {
@@ -896,12 +916,25 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
     const scaledMaxHp = scaleMonsterHp(baseMaxHp, 'campaign');
 
+    const elementsList = ['fire', 'ice', 'electric', 'cosmic', 'cosmic'];
+    const activeElement = elementsList[stageIndex];
+    const introDialogues = [
+      "Sinto o calor do processador! O tempo está derretendo rápido!",
+      "Bzzzt... Temperatura caindo... Suas escolhas vão congelar!",
+      "Zzzap! Um erro e sua fiação será frita com sobrecarga elétrica!",
+      "Conexão cósmica estabelecida. Meus escudos estelares desviam ataques comuns!",
+      "Eu sou o núcleo do Nexo Dimensional. Todos os elementos se curvam a mim!"
+    ];
+    const resolvedDialogue = introDialogues[stageIndex];
+
     setMonster({
       name: monsterName,
       emoji: monsterEmoji,
       maxHp: scaledMaxHp,
       hp: scaledMaxHp,
-    });
+      element: activeElement,
+      introDialogue: resolvedDialogue
+    } as any);
 
     setPlayerHp(maxPlayerHp);
     setPerfectBattle(true);
@@ -912,6 +945,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setTimeFreezeUsed(false);
     setWarriorShieldActive(gameState.classId === 'warrior');
     setVictoryDialogueIndex(null);
+    setAbilityMeter(0);
+    setAbilityHighlightActive(false);
+    setScrambledChoices([]);
+    setBossOp('');
+    setRogueDoubleRewardsActive(false);
     totalQuestionsRef.current = 0;
     masteredQuestionsRef.current = 0;
     isBattleDominatedRef.current = false;
@@ -925,7 +963,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setCurrentQuestion(q);
     setTextAnswer('');
     setTimeLeft(timeLimit);
-    setTimerActive(true);
+    setGlitchDialogueActive(true);
+    setGlitchDialogueText(resolvedDialogue);
+    setTimerActive(false);
   };
 
   // Initialize
@@ -940,6 +980,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   useEffect(() => {
     if (!timerActive || battleState !== 'fighting') return;
 
+    const isFire = (monster.element || getMonsterElement(monster.name, monster.emoji)) === 'fire';
+    const tickMs = isFire ? 77 : 100;
+
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0.1) {
@@ -949,10 +992,38 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         }
         return Math.round((prev - 0.1) * 10) / 10;
       });
-    }, 100);
+    }, tickMs);
 
     return () => stopTimer();
-  }, [timerActive, battleState, currentQuestion]);
+  }, [timerActive, battleState, currentQuestion, monster]);
+
+  // Ice glitch scramble effect
+  useEffect(() => {
+    const isIce = (monster.element || getMonsterElement(monster.name, monster.emoji)) === 'ice';
+    if (battleState !== 'fighting' || !isIce || !currentQuestion) {
+      setScrambledChoices([]);
+      return;
+    }
+
+    const scrambleInterval = setInterval(() => {
+      setScrambledChoices(prev => {
+        const choices = prev.length > 0 ? [...prev] : [...currentQuestion.choices];
+        for (let i = choices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [choices[i], choices[j]] = [choices[j], choices[i]];
+        }
+        return choices;
+      });
+      nextTurnLog("❄️ GLITCH DE GELO: As alternativas foram embaralhadas!");
+      spawnHitSplat("EMBARALHADO! ❄️", true, 'error');
+    }, 4000);
+
+    return () => clearInterval(scrambleInterval);
+  }, [battleState, monster, currentQuestion]);
+
+  useEffect(() => {
+    setScrambledChoices([]);
+  }, [currentQuestion]);
 
   const stopTimer = () => {
     if (timerRef.current) {
@@ -967,6 +1038,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     mockDb.recordMathAnswer(userId, currentQuestion.key, false, timeLimit * 1000);
 
     setCurrentStreak(0);
+    const isElectric = (monster.element || getMonsterElement(monster.name, monster.emoji)) === 'electric';
+    const damageAmount = isElectric ? 2 : 1;
     const willBlock = warriorShieldActive;
     vfxCanvasRef.current?.fireProjectile('monster', () => {
       if (willBlock) {
@@ -977,9 +1050,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         vfxCanvasRef.current?.triggerExplosion('player', 'error');
         audioEngine.playError();
         setPerfectBattle(false);
-        spawnHitSplat('ESCUDO DANO! -1 🛡️', true, 'error');
+        spawnHitSplat(`ESCUDO DANO! -${damageAmount} 🛡️`, true, 'error');
         setPlayerHp(prev => {
-          const next = prev - 1;
+          const next = prev - damageAmount;
           if (next <= 0) {
             handleDefeat();
           }
@@ -991,10 +1064,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     });
 
     if (!willBlock) {
-      nextTurnLog(`O tempo acabou! O monstro te atacou. Perdemos 1 Escudo.`);
+      nextTurnLog(`O tempo acabou! O monstro te atacou. Perdemos ${damageAmount} Escudo${damageAmount > 1 ? 's' : ''}.`);
     }
     
-    const nextHpRemaining = willBlock ? playerHp : (playerHp - 1);
+    const nextHpRemaining = willBlock ? playerHp : (playerHp - damageAmount);
     if (nextHpRemaining > 0) {
       setIsFeedbackActive(true);
       setTimeout(() => {
@@ -1055,7 +1128,22 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       }
 
       const baseDamage = isCritical ? 2 : 1;
-      const damageDealt = isElementAdvantage ? baseDamage + 1 : baseDamage;
+      let damageDealt = isElementAdvantage ? baseDamage + 1 : baseDamage;
+
+      if (monsterElem === 'cosmic') {
+        if (currentQuestion.isWeakPoint) {
+          damageDealt = damageDealt * 3;
+          nextTurnLog("🌌 CORES CÓSMICOS: Ponto Fraco atingido! Escudo quebrado e 3x de dano causado!");
+          spawnHitSplat("PONTO FRACO! 🌌", false, 'critical');
+        } else {
+          damageDealt = 0;
+          nextTurnLog("🌌 CORES CÓSMICOS: Escudo estelar desvia seu ataque normal! Procure por pontos fracos!");
+          spawnHitSplat("BLOQUEADO! 🌌", false, 'normal');
+        }
+      }
+
+      // Charge special ability meter
+      setAbilityMeter(prev => Math.min(100, prev + (isCritical ? 35 : 20)));
 
       const op = currentQuestion.op || gameState.selectedOperation || 'multiplication';
       vfxCanvasRef.current?.fireProjectile('player', () => {
@@ -1107,6 +1195,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     } else {
       setScreenReaderAnnouncement(`Incorreto! A resposta correta era ${currentQuestion.answer}. Você levou um de dano.`);
       setCurrentStreak(0);
+      const isElectric = (monster.element || getMonsterElement(monster.name, monster.emoji)) === 'electric';
+      const damageAmount = isElectric ? 2 : 1;
       const willBlock = warriorShieldActive;
       vfxCanvasRef.current?.fireProjectile('monster', () => {
         if (willBlock) {
@@ -1117,9 +1207,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
           vfxCanvasRef.current?.triggerExplosion('player', 'error');
           audioEngine.playError();
           setPerfectBattle(false);
-          spawnHitSplat('ERRO! -1 🛡️', true, 'error');
+          spawnHitSplat(`ERRO! -${damageAmount} 🛡️`, true, 'error');
           setPlayerHp(prev => {
-            const next = prev - 1;
+            const next = prev - damageAmount;
             if (next <= 0) {
               handleDefeat();
             }
@@ -1131,10 +1221,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       });
 
       if (!willBlock) {
-        nextTurnLog(`Erro! A resposta de ${currentQuestion.num1}${opSym}${currentQuestion.num2} era ${currentQuestion.answer}. Perdemos 1 Escudo.`);
+        nextTurnLog(`Erro! A resposta de ${currentQuestion.num1}${opSym}${currentQuestion.num2} era ${currentQuestion.answer}. Perdemos ${damageAmount} Escudo${damageAmount > 1 ? 's' : ''}.`);
       }
 
-      const nextHpRemaining = willBlock ? playerHp : (playerHp - 1);
+      const nextHpRemaining = willBlock ? playerHp : (playerHp - damageAmount);
       if (nextHpRemaining > 0) {
         setIsFeedbackActive(true);
         setTimeout(() => {
@@ -1145,8 +1235,70 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     }
   };
 
+  const handleDismissIntroDialogue = () => {
+    setGlitchDialogueActive(false);
+    setTimerActive(true);
+    setTimeLeft(timeLimit);
+  };
+
+  const activateSpecialAbility = () => {
+    if (abilityMeter < 100) return;
+    setAbilityMeter(0);
+    audioEngine.playHatchSuccess();
+
+    const classId = gameState.classId;
+
+    if (classId === 'warrior') {
+      setPlayerHp(prev => Math.min(maxPlayerHp, prev + 1));
+      setWarriorShieldActive(true);
+      nextTurnLog("🛡️ HABILIDADE SUPREMA: Escudo Absoluto! Barreira reativada e +1 Escudo!");
+      spawnHitSplat("+1 Escudo 🛡️", true, 'critical');
+    } else if (classId === 'chronomancer') {
+      setTimerActive(false);
+      nextTurnLog("🧙‍♂️ HABILIDADE SUPREMA: Congelamento Temporal! O cronômetro parou!");
+      spawnHitSplat("TEMPO CONGELADO ⏱️", true, 'critical');
+    } else if (classId === 'alchemist') {
+      setRogueDoubleRewardsActive(true);
+      nextTurnLog("🗡️ HABILIDADE SUPREMA: Ataque Sombrio! 4 de Dano imediato e Recompensas Duplicadas!");
+      spawnHitSplat("4 DANO 🗡️", false, 'critical');
+      
+      setMonster(prev => {
+        const nextHp = prev.hp - 4;
+        if (nextHp <= 0) {
+          setTimeout(() => handleVictory(), 1000);
+        }
+        return { ...prev, hp: Math.max(0, nextHp) };
+      });
+      triggerMonsterShake();
+    } else {
+      // Cleric / General
+      setPlayerHp(prev => Math.min(maxPlayerHp, prev + 1));
+      setAbilityHighlightActive(true);
+      nextTurnLog("✨ HABILIDADE SUPREMA: Purificação! Resposta correta destacada e +1 Escudo!");
+      spawnHitSplat("+1 Escudo ✨", true, 'critical');
+    }
+  };
+
   const nextQuestion = () => {
-    setQuestionsAnswered(prev => prev + 1);
+    const nextCount = questionsAnswered + 1;
+    setQuestionsAnswered(nextCount);
+
+    const isBoss = battleMode === 'coop' || (battleMode === 'campaign' && !!campaignStageId && (campaignStageId - 1) % 5 === 4);
+    if (isBoss) {
+      const elementsList = ['fire', 'ice', 'electric', 'cosmic'];
+      const elementIndex = Math.floor(nextCount / 2) % elementsList.length;
+      const nextElement = elementsList[elementIndex];
+      
+      const opsList: Array<'addition' | 'subtraction' | 'multiplication' | 'division'> = ['multiplication', 'addition', 'division', 'subtraction'];
+      const opIndex = Math.floor(nextCount / 2) % opsList.length;
+      const nextOp = opsList[opIndex];
+
+      setMonster(prev => ({ ...prev, element: nextElement } as any));
+      setBossOp(nextOp);
+
+      nextTurnLog(`⚡ CHEFE TRANSFEITO: Elemento mutado para ${nextElement.toUpperCase()} e Operação para ${nextOp.toUpperCase()}!`);
+    }
+
     const q = generateQuestion();
     const opSym = getOperationSymbol(q.op || gameState.selectedOperation || 'multiplication');
     if (q.isWeakPoint) {
@@ -1246,6 +1398,11 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
     let xpGained = Math.round(finalXP * xpMultiplier * rebirthXpMult);
     let gemsGained = Math.round(finalGems * gemMultiplier);
+
+    if (rogueDoubleRewardsActive) {
+      xpGained = xpGained * 2;
+      gemsGained = gemsGained * 2;
+    }
 
     // Apply PvP or Co-op mode multipliers
     if (battleMode === 'pvp') {
@@ -1458,6 +1615,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     );
   }
 
+  const isBoss = battleMode === 'coop' || (battleMode === 'campaign' && !!campaignStageId && (campaignStageId - 1) % 5 === 4);
+
   return (
     <div
       style={{
@@ -1669,6 +1828,45 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                       );
                     })}
                   </div>
+                  
+                  {/* Special Ability Meter & Button */}
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                      <span style={{ color: 'var(--neon-purple)', fontWeight: 'bold' }}>⚡ ESPECIAL: {abilityMeter}%</span>
+                      {abilityMeter >= 100 && (
+                        <span className="text-glow-yellow" style={{ fontSize: '0.65rem', background: 'rgba(234, 179, 8, 0.2)', color: '#facc15', border: '1px solid #facc15', padding: '1px 4px', borderRadius: '3px', fontWeight: 'bold' }}>PRONTO!</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ flex: 1, height: '8px', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                        <div
+                          style={{
+                            width: `${abilityMeter}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #a855f7 0%, #d946ef 100%)',
+                            boxShadow: '0 0 8px #d946ef',
+                            transition: 'width 0.3s ease'
+                          }}
+                        />
+                      </div>
+                      <button
+                        className="cyber-btn"
+                        disabled={abilityMeter < 100}
+                        onClick={activateSpecialAbility}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '0.75rem',
+                          fontFamily: 'Share Tech Mono',
+                          cursor: abilityMeter >= 100 ? 'pointer' : 'not-allowed',
+                          opacity: abilityMeter >= 100 ? 1 : 0.5,
+                          background: abilityMeter >= 100 ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)',
+                          borderColor: abilityMeter >= 100 ? 'var(--neon-purple)' : 'rgba(255,255,255,0.1)'
+                        }}
+                      >
+                        ⚡ ATIVAR
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1735,6 +1933,31 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
               <span>🌌 Cósmico Ganha de Todos! (+1 Dano)</span>
             </div>
 
+            {isBoss && (
+              <div
+                style={{
+                  width: '100%',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1.5px solid var(--neon-pink)',
+                  boxShadow: '0 0 10px rgba(239, 68, 68, 0.3)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  color: 'var(--neon-pink)',
+                  fontFamily: 'Share Tech Mono',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '10px'
+                }}
+              >
+                ⚠️ DETECTADA AMEAÇA CLASSE TITAN: CHEFE {bossOp && `[OP: ${bossOp.toUpperCase()}]`}
+              </div>
+            )}
+
             {/* Core Arena Canvas Area */}
             <div
               className="cyber-card"
@@ -1744,7 +1967,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-around',
                 background: 'radial-gradient(circle at center, #0f172a 0%, #030712 100%)',
-                borderColor: 'rgba(168, 85, 247, 0.2)',
+                borderColor: isBoss ? 'var(--neon-pink)' : 'rgba(168, 85, 247, 0.2)',
+                boxShadow: isBoss ? '0 0 20px rgba(244, 63, 94, 0.3), inset 0 0 15px rgba(244, 63, 94, 0.2)' : 'none',
                 overflow: 'hidden',
                 position: 'relative',
               }}
@@ -1939,232 +2163,302 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
             {/* Equation & Answering Section */}
             <div className="cyber-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-              
-              {/* Equation Header */}
-              <div style={{ textAlign: 'center' }}>
-                <div
-                  style={{
-                    fontSize: '1.1rem',
-                    color: 'rgba(255,255,255,0.5)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
-                  Resolva para atacar! {currentStreak > 0 && <span style={{ color: 'var(--neon-pink)', marginLeft: '8px' }}>🔥 {currentStreak}</span>}
-                </div>
-                <div
-                  style={{
-                    fontFamily: 'Share Tech Mono',
-                    fontSize: '3.5rem',
-                    fontWeight: 'bold',
-                    color: isFeedbackActive ? 'var(--neon-pink)' : 'var(--neon-cyan)',
-                    textShadow: isFeedbackActive ? '0 0 15px rgba(244, 63, 94, 0.4)' : '0 0 15px rgba(0, 255, 204, 0.4)',
-                    marginTop: '6px',
-                  }}
-                >
-                  {currentQuestion.num1} {getOperationSymbol(currentQuestion.op || gameState.selectedOperation || 'multiplication')} {currentQuestion.num2} = {isFeedbackActive ? currentQuestion.answer : (textAnswer || '?')}
-                </div>
-
-                {isFeedbackActive && (
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      background: 'rgba(239, 68, 68, 0.15)',
-                      border: '1.5px solid var(--neon-pink)',
-                      color: '#fff',
-                      textAlign: 'center',
-                      boxShadow: '0 0 10px rgba(244, 63, 94, 0.2)'
-                    }}
-                  >
-                    <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '8px' }}>
-                      ❌ Resposta Incorreta! A resposta correta é: <span style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontFamily: 'Share Tech Mono' }}>{currentQuestion.answer}</span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', paddingTop: '8px', fontStyle: 'italic', lineHeight: '1.35rem' }}>
-                      {getPedagogicalExplanation(currentQuestion)}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 'bold', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', marginTop: '8px', paddingTop: '8px', lineHeight: '1.35rem' }}>
-                      {getPedagogicalHint(currentQuestion)}
-                    </div>
-                    {renderVisualHelper(currentQuestion, gameState.selectedOperation)}
-                  </div>
-                )}
-              </div>
-
-              {/* Answering Timer Bar (Fiber Optic Design) */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
-                  <span>Cabo de Fibra Óptica (Tempo Restante)</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {gameState.classId === 'chronomancer' && !timeFreezeUsed && (
-                      <button
-                        onClick={() => {
-                          setTimeLeft(prev => Math.min(timeLimit, prev + 5));
-                          setTimeFreezeUsed(true);
-                          audioEngine.playHatchSuccess();
-                          nextTurnLog("⏱️ DICA DO MAGO DO TEMPO: Cronômetro estendido em 5 segundos!");
-                        }}
-                        style={{
-                          background: 'rgba(168, 85, 247, 0.2)',
-                          border: '1px solid var(--neon-purple)',
-                          color: '#fff',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          fontWeight: 'bold',
-                          boxShadow: '0 0 6px var(--neon-purple)',
-                        }}
-                      >
-                        ⏱️ Congelar Tempo (+5s)
-                      </button>
-                    )}
-                    <span style={{ color: getTimerColor(), fontWeight: 'bold' }}>{timeLeft.toFixed(1)}s</span>
-                  </div>
-                </div>
+              {glitchDialogueActive ? (
                 <div
                   style={{
                     width: '100%',
-                    height: '14px',
-                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                    border: '1.5px solid rgba(255, 255, 255, 0.15)',
-                    borderRadius: '7px',
-                    position: 'relative',
-                    overflow: 'visible',
-                    boxShadow: 'inset 0 0 6px rgba(0,0,0,0.8)',
+                    padding: '10px 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '16px'
                   }}
                 >
-                  {/* Fiber core back shadow */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '4px',
-                      left: '6px',
-                      right: '6px',
-                      bottom: '4px',
-                      borderRadius: '3px',
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                    }}
-                  />
-                  
-                  {/* Glowing fiber signal */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '4px',
-                      left: '6px',
-                      height: '6px',
-                      width: `calc(${(timeLeft / timeLimit) * 100}% - 12px)`,
-                      minWidth: '2px',
-                      borderRadius: '3px',
-                      background: `linear-gradient(90deg, transparent, ${getTimerColor()})`,
-                      boxShadow: `0 0 10px ${getTimerColor()}, 0 0 4px #fff`,
-                      transition: 'width 0.1s linear',
-                    }}
-                  />
-
-                  {/* Short-circuit optical spark at the tip of the light */}
-                  {timeLeft > 0 && (
+                  <div style={{ display: 'flex', gap: '16px', width: '100%', alignItems: 'center' }}>
                     <div
                       style={{
-                        position: 'absolute',
-                        top: '-6px',
-                        left: `calc(${(timeLeft / timeLimit) * 100}% - 14px)`,
-                        fontSize: '1.2rem',
-                        textShadow: '0 0 8px #facc15',
-                        animation: timeLeft / timeLimit < 0.3 ? 'animate-shake 0.15s infinite' : 'none',
-                        transition: 'left 0.1s linear',
-                        pointerEvents: 'none',
-                        zIndex: 10,
+                        fontSize: '3rem',
+                        width: '70px',
+                        height: '70px',
+                        background: 'rgba(0, 255, 204, 0.1)',
+                        border: '1.5px solid var(--neon-cyan)',
+                        boxShadow: '0 0 10px rgba(0, 255, 204, 0.2)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
                       }}
                     >
-                      {timeLeft / timeLimit < 0.3 ? (Math.random() < 0.5 ? '⚡' : '🔥') : '✨'}
+                      {monster.emoji}
                     </div>
-                  )}
-                </div>
-              </div>
-
-            {/* Answer Control Modes: Multiple Choice (L) vs Numerical Keyboard (R) */}
-             <div className="main-layout-grid" style={{ width: '100%' }}>
-              
-              {/* Multiple Choice Card */}
-              <div>
-                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '10px' }}>
-                  Opções Rápidas (Escolha uma)
-                </div>
-                <div className="grid-cols-2">
-                  {currentQuestion.choices.map((choice) => (
-                    <button
-                      key={choice}
-                      className="cyber-btn"
-                      disabled={isFeedbackActive}
-                      onClick={() => handleAnswerSubmit(choice)}
-                      style={{
-                        padding: '14px',
-                        fontSize: '1.4rem',
-                        fontFamily: 'Share Tech Mono',
-                        opacity: isFeedbackActive ? 0.6 : 1,
-                        cursor: isFeedbackActive ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      {choice}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Physical/On-Screen Typing Card */}
-              <div>
-                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '10px' }}>
-                  Teclado Numérico (Ou digite no teclado)
-                </div>
-                
-                {/* Micro Numpad grid */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(num => (
-                      <button
-                        key={num}
-                        className="cyber-btn cyber-btn-cyan"
-                        disabled={isFeedbackActive}
-                        onClick={() => handleNumpadClick(num)}
-                        style={{ padding: '8px', fontSize: '1rem', fontFamily: 'Share Tech Mono', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
-                      >
-                        {num}
-                      </button>
-                    ))}
-                    <button
-                      className="cyber-btn cyber-btn-pink"
-                      disabled={isFeedbackActive}
-                      onClick={handleNumpadClear}
-                      style={{ padding: '8px', fontSize: '0.9rem', gridColumn: 'span 2', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
-                    >
-                      Limpar
-                    </button>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <strong style={{ color: 'var(--neon-pink)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {monster.name}
+                      </strong>
+                      <div style={{ color: '#fff', fontSize: '1rem', lineHeight: '1.4rem', fontFamily: 'Share Tech Mono' }}>
+                        {glitchDialogueText}
+                      </div>
+                    </div>
                   </div>
                   <button
                     className="cyber-btn"
-                    onClick={handleNumpadSend}
-                    disabled={!textAnswer || isFeedbackActive}
+                    onClick={handleDismissIntroDialogue}
                     style={{
+                      padding: '12px 24px',
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
                       width: '100%',
-                      padding: '10px',
-                      fontSize: '0.95rem',
-                      fontWeight: 800,
-                      borderColor: isFeedbackActive ? 'rgba(255,255,255,0.1)' : 'var(--neon-cyan)',
-                      background: isFeedbackActive ? 'rgba(255,255,255,0.05)' : 'rgba(0, 255, 204, 0.1)',
-                      opacity: (textAnswer && !isFeedbackActive) ? 1 : 0.5,
-                      cursor: isFeedbackActive ? 'not-allowed' : 'pointer'
+                      marginTop: '10px',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      background: 'rgba(0, 255, 204, 0.15)',
+                      borderColor: 'var(--neon-cyan)',
+                      color: '#fff',
+                      boxShadow: '0 0 15px rgba(0, 255, 204, 0.3)'
                     }}
                   >
-                    Enviar ➔
+                    ⚔️ Iniciar Combate
                   </button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Equation Header */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div
+                      style={{
+                        fontSize: '1.1rem',
+                        color: 'rgba(255,255,255,0.5)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                      }}
+                    >
+                      Resolva para atacar! {currentStreak > 0 && <span style={{ color: 'var(--neon-pink)', marginLeft: '8px' }}>🔥 {currentStreak}</span>}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: 'Share Tech Mono',
+                        fontSize: '3.5rem',
+                        fontWeight: 'bold',
+                        color: isFeedbackActive ? 'var(--neon-pink)' : 'var(--neon-cyan)',
+                        textShadow: isFeedbackActive ? '0 0 15px rgba(244, 63, 94, 0.4)' : '0 0 15px rgba(0, 255, 204, 0.4)',
+                        marginTop: '6px',
+                      }}
+                    >
+                      {currentQuestion.num1} {getOperationSymbol(currentQuestion.op || gameState.selectedOperation || 'multiplication')} {currentQuestion.num2} = {isFeedbackActive ? currentQuestion.answer : (textAnswer || '?')}
+                    </div>
 
-            </div>
+                    {isFeedbackActive && (
+                      <div
+                        style={{
+                          marginTop: '12px',
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1.5px solid var(--neon-pink)',
+                          color: '#fff',
+                          textAlign: 'center',
+                          boxShadow: '0 0 10px rgba(244, 63, 94, 0.2)'
+                        }}
+                      >
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '8px' }}>
+                          ❌ Resposta Incorreta! A resposta correta é: <span style={{ color: 'var(--neon-cyan)', fontSize: '1.4rem', fontFamily: 'Share Tech Mono' }}>{currentQuestion.answer}</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', paddingTop: '8px', fontStyle: 'italic', lineHeight: '1.35rem' }}>
+                          {getPedagogicalExplanation(currentQuestion)}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 'bold', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', marginTop: '8px', paddingTop: '8px', lineHeight: '1.35rem' }}>
+                          {getPedagogicalHint(currentQuestion)}
+                        </div>
+                        {renderVisualHelper(currentQuestion, gameState.selectedOperation)}
+                      </div>
+                    )}
+                  </div>
 
+                  {/* Answering Timer Bar (Fiber Optic Design) */}
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                      <span>Cabo de Fibra Óptica (Tempo Restante)</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {gameState.classId === 'chronomancer' && !timeFreezeUsed && (
+                          <button
+                            onClick={() => {
+                              setTimeLeft(prev => Math.min(timeLimit, prev + 5));
+                              setTimeFreezeUsed(true);
+                              audioEngine.playHatchSuccess();
+                              nextTurnLog("⏱️ DICA DO MAGO DO TEMPO: Cronômetro estendido em 5 segundos!");
+                            }}
+                            style={{
+                              background: 'rgba(168, 85, 247, 0.2)',
+                              border: '1px solid var(--neon-purple)',
+                              color: '#fff',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              boxShadow: '0 0 6px var(--neon-purple)',
+                            }}
+                          >
+                            ⏱️ Congelar Tempo (+5s)
+                          </button>
+                        )}
+                        <span style={{ color: getTimerColor(), fontWeight: 'bold' }}>{timeLeft.toFixed(1)}s</span>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '14px',
+                        backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                        border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '7px',
+                        position: 'relative',
+                        overflow: 'visible',
+                        boxShadow: 'inset 0 0 6px rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      {/* Fiber core back shadow */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          left: '6px',
+                          right: '6px',
+                          bottom: '4px',
+                          borderRadius: '3px',
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                        }}
+                      />
+                      
+                      {/* Glowing fiber signal */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          left: '6px',
+                          height: '6px',
+                          width: `calc(${(timeLeft / timeLimit) * 100}% - 12px)`,
+                          minWidth: '2px',
+                          borderRadius: '3px',
+                          background: `linear-gradient(90deg, transparent, ${getTimerColor()})`,
+                          boxShadow: `0 0 10px ${getTimerColor()}, 0 0 4px #fff`,
+                          transition: 'width 0.1s linear',
+                        }}
+                      />
+
+                      {/* Short-circuit optical spark at the tip of the light */}
+                      {timeLeft > 0 && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '-6px',
+                            left: `calc(${(timeLeft / timeLimit) * 100}% - 14px)`,
+                            fontSize: '1.2rem',
+                            textShadow: '0 0 8px #facc15',
+                            animation: timeLeft / timeLimit < 0.3 ? 'animate-shake 0.15s infinite' : 'none',
+                            transition: 'left 0.1s linear',
+                            pointerEvents: 'none',
+                            zIndex: 10,
+                          }}
+                        >
+                          {timeLeft / timeLimit < 0.3 ? (Math.random() < 0.5 ? '⚡' : '🔥') : '✨'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Answer Control Modes: Multiple Choice (L) vs Numerical Keyboard (R) */}
+                  <div className="main-layout-grid" style={{ width: '100%' }}>
+                    
+                    {/* Multiple Choice Card */}
+                    <div>
+                      <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '10px' }}>
+                        Opções Rápidas (Escolha uma)
+                      </div>
+                      <div className="grid-cols-2">
+                        {(scrambledChoices.length > 0 ? scrambledChoices : currentQuestion.choices).map((choice) => {
+                          const isCorrectChoice = choice === currentQuestion.answer;
+                          const glowBorderColor = abilityHighlightActive && isCorrectChoice ? '#22c55e' : undefined;
+                          const glowBgColor = abilityHighlightActive && isCorrectChoice ? 'rgba(34, 197, 94, 0.2)' : undefined;
+                          const glowShadow = abilityHighlightActive && isCorrectChoice ? '0 0 15px #22c55e' : undefined;
+
+                          return (
+                            <button
+                              key={choice}
+                              className="cyber-btn"
+                              disabled={isFeedbackActive}
+                              onClick={() => handleAnswerSubmit(choice)}
+                              style={{
+                                padding: '14px',
+                                fontSize: '1.4rem',
+                                fontFamily: 'Share Tech Mono',
+                                opacity: isFeedbackActive ? 0.6 : 1,
+                                cursor: isFeedbackActive ? 'not-allowed' : 'pointer',
+                                borderColor: glowBorderColor,
+                                backgroundColor: glowBgColor,
+                                boxShadow: glowShadow
+                              }}
+                            >
+                              {choice}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Physical/On-Screen Typing Card */}
+                    <div>
+                      <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '10px' }}>
+                        Teclado Numérico (Ou digite no teclado)
+                      </div>
+                      
+                      {/* Micro Numpad grid */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(num => (
+                            <button
+                              key={num}
+                              className="cyber-btn cyber-btn-cyan"
+                              disabled={isFeedbackActive}
+                              onClick={() => handleNumpadClick(num)}
+                              style={{ padding: '8px', fontSize: '1rem', fontFamily: 'Share Tech Mono', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                          <button
+                            className="cyber-btn cyber-btn-pink"
+                            disabled={isFeedbackActive}
+                            onClick={handleNumpadClear}
+                            style={{ padding: '8px', fontSize: '0.9rem', gridColumn: 'span 2', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
+                          >
+                            Limpar
+                          </button>
+                        </div>
+                        <button
+                          className="cyber-btn"
+                          onClick={handleNumpadSend}
+                          disabled={!textAnswer || isFeedbackActive}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            fontSize: '0.95rem',
+                            fontWeight: 800,
+                            borderColor: isFeedbackActive ? 'rgba(255,255,255,0.1)' : 'var(--neon-cyan)',
+                            background: isFeedbackActive ? 'rgba(255,255,255,0.05)' : 'rgba(0, 255, 204, 0.1)',
+                            opacity: (textAnswer && !isFeedbackActive) ? 1 : 0.5,
+                            cursor: isFeedbackActive ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Enviar ➔
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                </>
+              )}
           </div>
 
           {/* Live Battle Log */}
@@ -2278,6 +2572,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                       onClick={() => {
                         audioEngine.playHatchSuccess();
                         let rewards = getCampaignRewards(campaignStageId, gameState.campaignStage || 1);
+                        if (rogueDoubleRewardsActive) {
+                          rewards = { xp: rewards.xp * 2, gems: rewards.gems * 2 };
+                        }
                         if (isBattleDominatedRef.current) {
                           rewards = { xp: Math.round(rewards.xp * 0.5), gems: 0 };
                         } else {
