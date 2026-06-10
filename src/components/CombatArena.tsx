@@ -45,6 +45,35 @@ const getPedagogicalExplanation = (q: Question) => {
   return '';
 };
 
+const getPedagogicalHint = (q: Question) => {
+  const op = q.op || 'multiplication';
+  if (op === 'addition') {
+    if (q.num1 % 10 === 9 || q.num2 % 10 === 9 || q.num1 % 10 === 8 || q.num2 % 10 === 8) {
+      return `💡 Dica de Raciocínio: Um dos números está quase terminando em 10! Tente arredondar ele para a dezena mais próxima somando 1 ou 2, some os números, e depois subtraia essa mesma quantidade no final.`;
+    }
+    return `💡 Dica de Raciocínio: Use a decomposição! Some primeiro as dezenas de cada número (ex: ${Math.floor(q.num1/10)*10} + ${Math.floor(q.num2/10)*10}) e depois as unidades (${q.num1 % 10} + ${q.num2 % 10}). Depois, junte as duas somas!`;
+  }
+  if (op === 'subtraction') {
+    return `💡 Dica de Raciocínio: Pense de trás para frente! Comece no número menor (${q.num2}) e conte quanto falta para chegar no número maior (${q.num1}). Primeiro vá até a dezena mais próxima, depois até o valor final.`;
+  }
+  if (op === 'multiplication') {
+    if (q.num1 === 9 || q.num2 === 9) {
+      return `💡 Dica de Raciocínio: Multiplicar por 9 é o mesmo que multiplicar por 10 e depois tirar o outro número uma vez! Exemplo: para 9 x X, pense em (10 x X) - X.`;
+    }
+    if (q.num1 % 2 === 0) {
+      return `💡 Dica de Raciocínio: Truque da metade! Se você achar difícil multiplicar ${q.num1} por ${q.num2}, pense em multiplicar a metade de ${q.num1} (que é ${q.num1 / 2}) por ${q.num2}, e depois dobre o resultado!`;
+    }
+    if (q.num2 % 2 === 0) {
+      return `💡 Dica de Raciocínio: Truque da metade! Se você achar difícil multiplicar ${q.num1} por ${q.num2}, pense em multiplicar ${q.num1} pela metade de ${q.num2} (que é ${q.num2 / 2}), e depois dobre o resultado!`;
+    }
+    return `💡 Dica de Raciocínio: Use um ponto de partida conhecido. Por exemplo, use a tabuada do 5 (que é mais fácil) e depois adicione as partes que faltam!`;
+  }
+  if (op === 'division') {
+    return `💡 Dica de Raciocínio: Use a operação inversa! Pergunte a si mesmo: qual número que, se multiplicado por ${q.num2}, resulta exatamente em ${q.num1}? (Pense na tabuada de multiplicação de ${q.num2}!)`;
+  }
+  return '';
+};
+
 const renderVisualHelper = (q: Question, defaultOp: string) => {
   const op = q.op || defaultOp || 'multiplication';
   const num1 = q.num1;
@@ -1954,6 +1983,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', paddingTop: '8px', fontStyle: 'italic', lineHeight: '1.35rem' }}>
                       {getPedagogicalExplanation(currentQuestion)}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 'bold', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', marginTop: '8px', paddingTop: '8px', lineHeight: '1.35rem' }}>
+                      {getPedagogicalHint(currentQuestion)}
                     </div>
                     {renderVisualHelper(currentQuestion, gameState.selectedOperation)}
                   </div>

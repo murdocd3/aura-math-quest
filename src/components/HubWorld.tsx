@@ -384,11 +384,17 @@ export const HubWorld: React.FC<HubWorldProps> = ({
         mockDb.updateGameState(randomPlayer.id, { auraLevel: 1, rebirths: nextRebirth });
         alertMsg = `🌌 ${randomPlayer.username} realizou um REBIRTH e alcançou ★ ${nextRebirth}!`;
       } else if (roll < 0.8) {
-        const pets = mockDb.getPets(randomPlayer.id);
-        if (pets.length > 0) {
-          const randPet = pets[Math.floor(Math.random() * pets.length)];
-          mockDb.equipPet(randomPlayer.id, randPet.id);
-          alertMsg = `${randomPlayer.username} equipou o Pet: ${randPet.nickname}!`;
+        if (Math.random() < 0.5) {
+          const rarities = ['Raro 🌟', 'Épico 💎', 'Lendário 👑'];
+          const randomRarity = rarities[Math.floor(Math.random() * rarities.length)];
+          alertMsg = `🎉 ${randomPlayer.username} chocou um Pet ${randomRarity} no Gacha!`;
+        } else {
+          const pets = mockDb.getPets(randomPlayer.id);
+          if (pets.length > 0) {
+            const randPet = pets[Math.floor(Math.random() * pets.length)];
+            mockDb.equipPet(randomPlayer.id, randPet.id);
+            alertMsg = `${randomPlayer.username} equipou o Pet: ${randPet.nickname}!`;
+          }
         }
       } else {
         const nextGems = pState.gems + 5;

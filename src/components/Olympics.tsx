@@ -798,6 +798,36 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
   }
 ];
 
+const WEEKLY_CHALLENGE_QUESTION: OlympicQuestion = {
+  level: 99,
+  question: "Desafio Semanal: No labirinto dos deuses, existem 3 portões: Alfa, Beta e Gama. O portão Alfa diz 'Beta é seguro'. O portão Beta diz 'Gama está quebrado'. O portão Gama diz 'Eu sou o caminho real'. Sabendo que apenas um portão fala a verdade e apenas um portão é realmente seguro, qual portão é o seguro?",
+  options: ["Portão Alfa", "Portão Beta", "Portão Gama", "Nenhum dos três"],
+  answer: "Portão Beta",
+  category: "Pensamento Estratégico",
+  origin: "⚡ Olimpíada Especial de Lógica (2026)",
+  explanation: "Se Alfa fala a verdade ('Beta é seguro'), então Gama também fala a verdade ('Eu sou o caminho real' é mentira, mas Beta é seguro, etc.). Analisando as contradições, descobrimos que Beta é o único seguro!"
+};
+
+const WEEKLY_LEADERBOARD = [
+  { username: "sofia", time: "14.2s" },
+  { username: "lucas", time: "18.5s" },
+  { username: "gabriel", time: "24.1s" },
+  { username: "beatriz", time: "29.8s" },
+];
+
+const getMiniTutorialText = (category: string) => {
+  switch (category) {
+    case 'Lógica Matemática':
+      return "💡 Mini-Tutorial de Lógica:\n1. Escreva todas as condições fornecidas no problema.\n2. Procure por contradições: se A diz algo e B contradiz A, um deles necessariamente mente.\n3. Faça suposições temporárias e teste-as contra as regras do problema.";
+    case 'Geometria Visual':
+      return "💡 Mini-Tutorial de Geometria:\n1. Lembre-se de calcular áreas decompondo figuras complexas em quadrados ou triângulos simples.\n2. Conte as faces ou cubos por camadas (ex: camadas inferior, média e superior) para não errar em contagens visuais.";
+    case 'Cálculo Mental':
+      return "💡 Mini-Tutorial de Cálculo:\n1. Agrupe os números em dezenas (ex: 27 + 58 = 20 + 50 + 7 + 8).\n2. Para multiplicar por números grandes, quebre o multiplicador (ex: x15 é x10 mais a metade de x10).";
+    default:
+      return "💡 Mini-Tutorial de Resolução:\n1. Leia a pergunta com atenção identificando os dados e a pergunta principal.\n2. Tente fazer um rascunho visual ou uma lista dos valores possíveis.\n3. Elimine as alternativas absurdas para aumentar suas chances.";
+  }
+};
+
 const getWrongQuestions = (userId: string): OlympicQuestion[] => {
   const saved = localStorage.getItem(`amq_olympics_wrong_questions_${userId}`);
   return saved ? JSON.parse(saved) : [];
@@ -836,6 +866,10 @@ export const Olympics: React.FC<OlympicsProps> = ({
   const [answerSubmitted, setAnswerSubmitted] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [isReTrainingMode, setIsReTrainingMode] = useState<boolean>(false);
+  const [isWeeklyMode, setIsWeeklyMode] = useState<boolean>(false);
+  const [showMiniTutorial, setShowMiniTutorial] = useState<boolean>(false);
+  const [showExtraExercise, setShowExtraExercise] = useState<boolean>(false);
+  const [extraQuestion, setExtraQuestion] = useState<{ question: string; options: string[]; answer: string; selected: string | null; submitted: boolean; isCorrect: boolean } | null>(null);
   const [reTrainingIndex, setReTrainingIndex] = useState<number>(0);
   const [screenReaderAnnouncement, setScreenReaderAnnouncement] = useState<string>('');
   
@@ -877,9 +911,56 @@ export const Olympics: React.FC<OlympicsProps> = ({
   );
 
   const wrongQuestionsList = getWrongQuestions(gameState.userId);
-  const activeQuestion = isReTrainingMode
-    ? (wrongQuestionsList[reTrainingIndex] || wrongQuestionsList[0] || OLYMPIC_DATABASE[0])
-    : (shuffledQuestions[Math.min(currentLevel - 1, shuffledQuestions.length - 1)] || OLYMPIC_DATABASE[0]);
+  const activeQuestion = isWeeklyMode
+    ? WEEKLY_CHALLENGE_QUESTION
+    : isReTrainingMode
+      ? (wrongQuestionsList[reTrainingIndex] || wrongQuestionsList[0] || OLYMPIC_DATABASE[0])
+      : (shuffledQuestions[Math.min(currentLevel - 1, shuffledQuestions.length - 1)] || OLYMPIC_DATABASE[0]);
+
+  const generateExtraExercise = (q: OlympicQuestion) => {
+    let questionText = "";
+    let options: string[] = [];
+    let answer = "";
+    
+    if (q.category === "Cálculo Mental") {
+      questionText = "Exercício Extra: Se um trem se move a 80 km/h por 3 horas e depois a 100 km/h por 2 horas, qual a distância total percorrida?";
+      options = ["380 km", "440 km", "340 km", "400 km"];
+      answer = "440 km";
+    } else if (q.category === "Geometria Visual") {
+      questionText = "Exercício Extra: Um quadrado com lados de 6 cm é dividido em 9 quadradinhos idênticos. Qual a área de cada quadradinho?";
+      options = ["4 cm²", "6 cm²", "9 cm²", "3 cm²"];
+      answer = "4 cm²";
+    } else {
+      questionText = `Exercício Extra: Em um torneio, 6 jogadores jogam todos contra todos uma única vez. Quantas partidas são disputadas no total?`;
+      options = ["12 partidas", "15 partidas", "18 partidas", "30 partidas"];
+      answer = "15 partidas";
+    }
+    
+    setExtraQuestion({
+      question: questionText,
+      options,
+      answer,
+      selected: null,
+      submitted: false,
+      isCorrect: false
+    });
+  };
+
+  const handleExtraCorrect = () => {
+    audioEngine.playHatchSuccess();
+    removeWrongQuestion(gameState.userId, activeQuestion.question);
+    
+    setShowExtraExercise(false);
+    setExtraQuestion(null);
+    
+    const updatedList = getWrongQuestions(gameState.userId);
+    if (updatedList.length === 0) {
+      setIsReTrainingMode(false);
+      setReTrainingIndex(0);
+    } else {
+      setReTrainingIndex(prev => prev % updatedList.length);
+    }
+  };
 
   const handleOptionSelect = (opt: string) => {
     if (answerSubmitted) return;
@@ -945,6 +1026,19 @@ export const Olympics: React.FC<OlympicsProps> = ({
       // 4. Atenção aos Detalhes update
       if (correct && timeTakenSec > 6) {
         updated['Atenção aos Detalhes'] = Math.min(100, updated['Atenção aos Detalhes'] + 4);
+      }
+
+      // Calculate and award medals based on category score
+      let nextMedal: 'gold' | 'silver' | 'bronze' | null = null;
+      if (updated[category] >= 100) nextMedal = 'gold';
+      else if (updated[category] >= 80) nextMedal = 'silver';
+      else if (updated[category] >= 60) nextMedal = 'bronze';
+
+      if (nextMedal) {
+        const updatedState = mockDb.recordOlympicMedal(gameState.userId, category, nextMedal);
+        if (updatedState) {
+          setTimeout(() => onStateUpdate(updatedState), 0);
+        }
       }
 
       return updated;
@@ -1160,19 +1254,22 @@ export const Olympics: React.FC<OlympicsProps> = ({
       </header>
 
       {/* Mode Selection Toggle for Re-Treino */}
-      <nav aria-label="Modo de Jogo das Olimpíadas" style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+      <nav aria-label="Modo de Jogo das Olimpíadas" style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button
           className="cyber-btn"
           onClick={() => {
             setIsReTrainingMode(false);
+            setIsWeeklyMode(false);
+            setShowMiniTutorial(false);
+            setShowExtraExercise(false);
             setSelectedOption(null);
             setAnswerSubmitted(false);
           }}
-          aria-pressed={!isReTrainingMode}
+          aria-pressed={!isReTrainingMode && !isWeeklyMode}
           style={{
             padding: '8px 16px',
-            borderColor: !isReTrainingMode ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
-            backgroundColor: !isReTrainingMode ? 'rgba(234, 179, 8, 0.15)' : 'rgba(15, 23, 42, 0.4)',
+            borderColor: !isReTrainingMode && !isWeeklyMode ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
+            backgroundColor: !isReTrainingMode && !isWeeklyMode ? 'rgba(234, 179, 8, 0.15)' : 'rgba(15, 23, 42, 0.4)',
             color: '#fff',
             fontWeight: 'bold',
             fontSize: '0.85rem'
@@ -1180,6 +1277,31 @@ export const Olympics: React.FC<OlympicsProps> = ({
         >
           🏆 Desafios do Templo
         </button>
+
+        <button
+          className="cyber-btn"
+          onClick={() => {
+            setIsReTrainingMode(false);
+            setIsWeeklyMode(true);
+            setShowMiniTutorial(false);
+            setShowExtraExercise(false);
+            setSelectedOption(null);
+            setAnswerSubmitted(false);
+          }}
+          aria-pressed={isWeeklyMode}
+          style={{
+            padding: '8px 16px',
+            borderColor: isWeeklyMode ? 'var(--neon-cyan)' : 'rgba(255,255,255,0.1)',
+            backgroundColor: isWeeklyMode ? 'rgba(6, 182, 212, 0.15)' : 'rgba(15, 23, 42, 0.4)',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '0.85rem',
+            boxShadow: isWeeklyMode ? '0 0 10px rgba(6, 182, 212, 0.3)' : 'none'
+          }}
+        >
+          ⚡ Desafio Semanal
+        </button>
+
         <button
           className="cyber-btn"
           onClick={() => {
@@ -1189,7 +1311,10 @@ export const Olympics: React.FC<OlympicsProps> = ({
               return;
             }
             setIsReTrainingMode(true);
+            setIsWeeklyMode(false);
             setReTrainingIndex(0);
+            setShowMiniTutorial(false);
+            setShowExtraExercise(false);
             setSelectedOption(null);
             setAnswerSubmitted(false);
           }}
@@ -1214,148 +1339,326 @@ export const Olympics: React.FC<OlympicsProps> = ({
         <section aria-label="Questão de Teste" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           <div className="cyber-card" style={{ borderColor: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', minHeight: '430px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: isReTrainingMode ? '0 0 15px rgba(168, 85, 247, 0.15)' : 'none' }}>
-            
-            <div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: 800, 
-                    color: isReTrainingMode ? 'var(--neon-purple)' : 'var(--neon-yellow)', 
-                    background: isReTrainingMode ? 'rgba(168, 85, 247, 0.1)' : 'rgba(234, 179, 8, 0.1)', 
-                    padding: '2px 8px', 
-                    borderRadius: '4px',
-                    textShadow: isReTrainingMode ? '0 0 6px rgba(168, 85, 247, 0.4)' : '0 0 6px rgba(234, 179, 8, 0.4)'
-                  }}>
-                    {isReTrainingMode ? '📖 RE-TREINO: ' : ''}{activeQuestion.category.toUpperCase()}
-                  </span>
-                  {activeQuestion.origin && (
-                    <span style={{
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold',
-                      color: 'var(--neon-cyan)',
-                      background: 'rgba(6, 182, 212, 0.15)',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      border: '1px solid rgba(6, 182, 212, 0.3)',
-                      textShadow: '0 0 5px rgba(6, 182, 212, 0.5)'
-                    }}>
-                      ⭐ {activeQuestion.origin}
+            {showExtraExercise && extraQuestion ? (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--neon-purple)', background: 'rgba(168, 85, 247, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                      ⚡ EXERCÍCIO EXTRA: {activeQuestion.category.toUpperCase()}
                     </span>
-                  )}
-                </div>
-                <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
-                  {isReTrainingMode ? `Revisando Questão ${reTrainingIndex + 1}/${wrongQuestionsList.length}` : `Questão do Templo #${currentLevel}`}
-                </span>
-              </div>
-
-              <h2 style={{ fontSize: '1.15rem', lineHeight: '1.6rem', color: '#fff', marginBottom: '20px' }}>
-                {activeQuestion.question}
-              </h2>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} role="group" aria-label="Opções de Resposta">
-                {activeQuestion.options.map((option, idx) => {
-                  const isSelected = selectedOption === option;
-                  let optionColor = 'rgba(255, 255, 255, 0.05)';
-                  let borderColor = 'rgba(255,255,255,0.1)';
-                  
-                  if (isSelected) {
-                    optionColor = 'rgba(234, 179, 8, 0.15)';
-                    borderColor = 'var(--neon-yellow)';
-                  }
-                  if (answerSubmitted) {
-                    if (option === activeQuestion.answer) {
-                      optionColor = 'rgba(34, 197, 94, 0.2)';
-                      borderColor = '#22c55e';
-                    } else if (isSelected) {
-                      optionColor = 'rgba(244, 63, 94, 0.2)';
-                      borderColor = '#f43f5e';
-                    }
-                  }
-
-                  return (
                     <button
-                      key={idx}
-                      disabled={answerSubmitted}
-                      onClick={() => handleOptionSelect(option)}
-                      aria-label={`Opção ${idx + 1}: ${option}`}
-                      aria-pressed={isSelected}
+                      className="cyber-btn"
+                      onClick={() => {
+                        audioEngine.playHatchRoll();
+                        setShowExtraExercise(false);
+                        setExtraQuestion(null);
+                      }}
+                      style={{ padding: '4px 10px', fontSize: '0.7rem', borderColor: 'rgba(255,255,255,0.3)' }}
+                    >
+                      Voltar à Questão ✕
+                    </button>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.15rem', color: '#fff', marginBottom: '16px', lineHeight: '1.5rem' }}>
+                    {extraQuestion.question}
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} role="group" aria-label="Opções do Exercício Extra">
+                    {extraQuestion.options.map((opt, idx) => {
+                      const isSel = extraQuestion.selected === opt;
+                      let bg = 'rgba(255,255,255,0.04)';
+                      let border = 'rgba(255,255,255,0.1)';
+                      if (isSel) {
+                        bg = 'rgba(168,85,247,0.15)';
+                        border = 'var(--neon-purple)';
+                      }
+                      if (extraQuestion.submitted) {
+                        if (opt === extraQuestion.answer) {
+                          bg = 'rgba(34,197,94,0.18)';
+                          border = '#22c55e';
+                        } else if (isSel) {
+                          bg = 'rgba(244,63,94,0.18)';
+                          border = '#f43f5e';
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={idx}
+                          disabled={extraQuestion.submitted}
+                          onClick={() => setExtraQuestion(prev => prev ? { ...prev, selected: opt } : null)}
+                          style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            border: `1.5px solid ${border}`,
+                            backgroundColor: bg,
+                            color: '#fff',
+                            fontSize: '0.9rem',
+                            cursor: extraQuestion.submitted ? 'default' : 'pointer'
+                          }}
+                        >
+                          <span style={{ marginRight: '8px', opacity: 0.5 }}>[{idx + 1}]</span>
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                  {extraQuestion.submitted ? (
+                    <div>
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '6px',
+                        backgroundColor: extraQuestion.isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(244,63,94,0.1)',
+                        border: `1px solid ${extraQuestion.isCorrect ? '#22c55e' : '#f43f5e'}`,
+                        color: extraQuestion.isCorrect ? '#22c55e' : '#f43f5e',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        marginBottom: '12px'
+                      }}>
+                        {extraQuestion.isCorrect ? '✔️ Excelente! Você acertou e dominou o conceito!' : '❌ Incorreto. Tente novamente!'}
+                      </div>
+                      <button
+                        className="cyber-btn"
+                        onClick={() => {
+                          if (extraQuestion.isCorrect) {
+                            handleExtraCorrect();
+                          } else {
+                            setExtraQuestion(prev => prev ? { ...prev, submitted: false, selected: null } : null);
+                          }
+                        }}
+                        style={{ padding: '8px 16px', fontSize: '0.85rem', width: '100%' }}
+                      >
+                        {extraQuestion.isCorrect ? 'Remover do Caderno & Continuar ➔' : 'Tentar Novamente ↻'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="cyber-btn"
+                      disabled={!extraQuestion.selected}
+                      onClick={() => {
+                        const correct = extraQuestion.selected === extraQuestion.answer;
+                        if (correct) {
+                          audioEngine.playHatchSuccess();
+                        } else {
+                          audioEngine.playError();
+                        }
+                        setExtraQuestion(prev => prev ? { ...prev, submitted: true, isCorrect: correct } : null);
+                      }}
                       style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '14px',
-                        borderRadius: '8px',
-                        border: `1.5px solid ${borderColor}`,
-                        backgroundColor: optionColor,
-                        color: '#fff',
-                        fontSize: '0.95rem',
-                        cursor: answerSubmitted ? 'default' : 'pointer',
-                        transition: 'all 0.2s',
+                        padding: '10px 20px',
+                        fontSize: '0.9rem',
+                        borderColor: 'var(--neon-purple)',
+                        background: 'rgba(168,85,247,0.1)',
+                        opacity: extraQuestion.selected ? 1 : 0.5,
+                        width: '100%'
                       }}
                     >
-                      <span style={{ marginRight: '8px', opacity: 0.5 }}>[{idx + 1}]</span>
-                      {option}
+                      Enviar Resposta do Exercício ➔
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
-              {answerSubmitted ? (
-                <div>
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '6px',
-                    backgroundColor: isCorrect ? 'rgba(34, 197, 94, 0.12)' : 'rgba(244, 63, 94, 0.12)',
-                    border: `1px solid ${isCorrect ? '#22c55e' : '#f43f5e'}`,
-                    color: isCorrect ? '#22c55e' : '#f43f5e',
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    marginBottom: '12px'
-                  }}>
-                    {isCorrect ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                        <span>✔️ Excelente! Resposta correta!</span>
-                        <span style={{ color: 'var(--neon-cyan)', marginLeft: '4px' }}>+2 💎</span>
-                        <span style={{ color: 'var(--neon-purple)', marginLeft: '4px' }}>
-                          +{isUnderplayedBonusActive ? 40 : 20} XP
-                        </span>
-                        {isUnderplayedBonusActive && (
-                          <span style={{ color: '#f97316', marginLeft: '8px', fontSize: '0.8rem', backgroundColor: 'rgba(249, 115, 22, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
-                            💡 BÔNUS 2x XP!
-                          </span>
-                        )}
-                      </div>
-                    ) : `❌ Resposta incorreta. A resposta certa era: ${activeQuestion.answer}`}
-                  </div>
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginBottom: '16px' }}>
-                    <strong>Explicação Pedagógica:</strong> {activeQuestion.explanation}
-                  </p>
-                  <button className="cyber-btn cyber-btn-cyan" onClick={handleNext} style={{ width: '100%', padding: '12px' }}>
-                    Avançar para a Próxima Habilidade ➔
-                  </button>
+                  )}
                 </div>
-              ) : (
-                <button
-                  className="cyber-btn"
-                  disabled={!selectedOption}
-                  onClick={handleSubmit}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderColor: selectedOption ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
-                    background: selectedOption ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255,255,255,0.05)',
-                    color: selectedOption ? '#fff' : 'rgba(255,255,255,0.3)',
-                    cursor: selectedOption ? 'pointer' : 'not-allowed',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  Confirmar Resposta ➔
-                </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ 
+                        fontSize: '0.85rem', 
+                        fontWeight: 800, 
+                        color: isReTrainingMode ? 'var(--neon-purple)' : isWeeklyMode ? 'var(--neon-cyan)' : 'var(--neon-yellow)', 
+                        background: isReTrainingMode ? 'rgba(168, 85, 247, 0.1)' : isWeeklyMode ? 'rgba(6, 182, 212, 0.1)' : 'rgba(234, 179, 8, 0.1)', 
+                        padding: '2px 8px', 
+                        borderRadius: '4px',
+                        textShadow: isReTrainingMode ? '0 0 6px rgba(168, 85, 247, 0.4)' : isWeeklyMode ? '0 0 6px rgba(6, 182, 212, 0.4)' : '0 0 6px rgba(234, 179, 8, 0.4)'
+                      }}>
+                        {isReTrainingMode ? '📖 RE-TREINO: ' : isWeeklyMode ? '⚡ DESAFIO: ' : ''}{activeQuestion.category.toUpperCase()}
+                      </span>
+                      {activeQuestion.origin && (
+                        <span style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          color: 'var(--neon-cyan)',
+                          background: 'rgba(6, 182, 212, 0.15)',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(6, 182, 212, 0.3)',
+                          textShadow: '0 0 5px rgba(6, 182, 212, 0.5)'
+                        }}>
+                          ⭐ {activeQuestion.origin}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
+                      {isWeeklyMode ? 'Desafio de Lógica Semanal' : isReTrainingMode ? `Revisando Questão ${reTrainingIndex + 1}/${wrongQuestionsList.length}` : `Questão do Templo #${currentLevel}`}
+                    </span>
+                  </div>
 
+                  {isReTrainingMode && (
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                      <button
+                        className="cyber-btn"
+                        onClick={() => {
+                          audioEngine.playHatchRoll();
+                          setShowMiniTutorial(prev => !prev);
+                          setShowExtraExercise(false);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          borderColor: 'var(--neon-cyan)',
+                          background: showMiniTutorial ? 'rgba(6,182,212,0.15)' : 'rgba(6,182,212,0.05)'
+                        }}
+                      >
+                        📖 {showMiniTutorial ? 'Ocultar Tutorial' : 'Ver Mini-Tutorial'}
+                      </button>
+                      <button
+                        className="cyber-btn"
+                        onClick={() => {
+                          audioEngine.playHatchRoll();
+                          setShowExtraExercise(true);
+                          setShowMiniTutorial(false);
+                          generateExtraExercise(activeQuestion);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          borderColor: 'var(--neon-purple)',
+                          background: 'rgba(168,85,247,0.05)'
+                        }}
+                      >
+                        ⚡ Exercício Extra
+                      </button>
+                    </div>
+                  )}
+
+                  {showMiniTutorial && (
+                    <div
+                      className="cyber-card animate-fade-in"
+                      style={{
+                        borderColor: 'var(--neon-cyan)',
+                        background: 'rgba(6,182,212,0.06)',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        color: '#fff',
+                        marginBottom: '16px',
+                        lineHeight: '1.35rem',
+                        whiteSpace: 'pre-line'
+                      }}
+                    >
+                      {getMiniTutorialText(activeQuestion.category)}
+                    </div>
+                  )}
+
+                  <h2 style={{ fontSize: '1.15rem', lineHeight: '1.6rem', color: '#fff', marginBottom: '20px' }}>
+                    {activeQuestion.question}
+                  </h2>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }} role="group" aria-label="Opções de Resposta">
+                    {activeQuestion.options.map((option, idx) => {
+                      const isSelected = selectedOption === option;
+                      let optionColor = 'rgba(255, 255, 255, 0.05)';
+                      let borderColor = 'rgba(255,255,255,0.1)';
+                      
+                      if (isSelected) {
+                        optionColor = 'rgba(234, 179, 8, 0.15)';
+                        borderColor = 'var(--neon-yellow)';
+                      }
+                      if (answerSubmitted) {
+                        if (option === activeQuestion.answer) {
+                          optionColor = 'rgba(34, 197, 94, 0.2)';
+                          borderColor = '#22c55e';
+                        } else if (isSelected) {
+                          optionColor = 'rgba(244, 63, 94, 0.2)';
+                          borderColor = '#f43f5e';
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={idx}
+                          disabled={answerSubmitted}
+                          onClick={() => handleOptionSelect(option)}
+                          aria-label={`Opção ${idx + 1}: ${option}`}
+                          aria-pressed={isSelected}
+                          style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '14px',
+                            borderRadius: '8px',
+                            border: `1.5px solid ${borderColor}`,
+                            backgroundColor: optionColor,
+                            color: '#fff',
+                            fontSize: '0.95rem',
+                            cursor: answerSubmitted ? 'default' : 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <span style={{ marginRight: '8px', opacity: 0.5 }}>[{idx + 1}]</span>
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                  {answerSubmitted ? (
+                    <div>
+                      <div style={{
+                        padding: '12px',
+                        borderRadius: '6px',
+                        backgroundColor: isCorrect ? 'rgba(34, 197, 94, 0.12)' : 'rgba(244, 63, 94, 0.12)',
+                        border: `1px solid ${isCorrect ? '#22c55e' : '#f43f5e'}`,
+                        color: isCorrect ? '#22c55e' : '#f43f5e',
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold',
+                        marginBottom: '12px'
+                      }}>
+                        {isCorrect ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                            <span>✔️ Excelente! Resposta correta!</span>
+                            <span style={{ color: 'var(--neon-cyan)', marginLeft: '4px' }}>+2 💎</span>
+                            <span style={{ color: 'var(--neon-purple)', marginLeft: '4px' }}>
+                              +{isUnderplayedBonusActive ? 40 : 20} XP
+                            </span>
+                          </div>
+                        ) : `❌ Resposta incorreta. A resposta certa era: ${activeQuestion.answer}`}
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginBottom: '16px' }}>
+                        <strong>Explicação Pedagógica:</strong> {activeQuestion.explanation}
+                      </p>
+                      <button className="cyber-btn cyber-btn-cyan" onClick={handleNext} style={{ width: '100%', padding: '12px' }}>
+                        Avançar para a Próxima Habilidade ➔
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="cyber-btn"
+                      disabled={!selectedOption}
+                      onClick={handleSubmit}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        borderColor: selectedOption ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.1)',
+                        background: selectedOption ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255,255,255,0.05)',
+                        color: selectedOption ? '#fff' : 'rgba(255,255,255,0.3)',
+                        cursor: selectedOption ? 'pointer' : 'not-allowed',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Confirmar Resposta ➔
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Historical Progression Line */}
@@ -1380,30 +1683,84 @@ export const Olympics: React.FC<OlympicsProps> = ({
 
         </section>
 
-        {/* Right Column: Radar Chart & RPG Specializations list */}
+        {/* Right Column: Radar Chart & RPG Specializations list OR Weekly Ranking */}
         <section aria-label="Diagnóstico de Habilidades" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Radar Chart Display */}
-          <div className="cyber-card" style={{ borderColor: 'var(--neon-cyan)', textAlign: 'center' }}>
-            <h3 className="text-glow-cyan" style={{ fontSize: '1.1rem', color: 'var(--neon-cyan)', marginBottom: '14px' }}>
-              🕸️ Gráfico de Aranha de Competências
-            </h3>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              {radarChart}
+          {isWeeklyMode ? (
+            <div className="cyber-card" style={{ borderColor: 'var(--neon-cyan)', textAlign: 'center' }}>
+              <h3 className="text-glow-cyan" style={{ fontSize: '1.2rem', color: 'var(--neon-cyan)', marginBottom: '8px' }}>
+                ⚡ Líderes do Desafio Semanal
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
+                Tempo Restante: <span style={{ color: 'var(--neon-yellow)', fontWeight: 'bold' }}>3d 18h</span>
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
+                {WEEKLY_LEADERBOARD.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px', fontSize: '0.9rem' }}>
+                    <span>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🏃'} <strong>{item.username}</strong></span>
+                    <span style={{ color: 'var(--neon-cyan)', fontFamily: 'Share Tech Mono' }}>{item.time}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: '16px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+                Seja o mais rápido a resolver a charada lógica da semana e garanta seu nome no ranking olímpico!
+              </div>
             </div>
-            
-            {/* diagnostic pointers */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px', marginTop: '12px', textAlign: 'left', fontSize: '0.8rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span>🔥 Ponto Forte:</span>
-                <strong style={{ color: '#22c55e' }}>{strongestSkill[0]} ({strongestSkill[1]})</strong>
+          ) : (
+            /* Radar Chart Display */
+            <div className="cyber-card" style={{ borderColor: 'var(--neon-cyan)', textAlign: 'center' }}>
+              <h3 className="text-glow-cyan" style={{ fontSize: '1.1rem', color: 'var(--neon-cyan)', marginBottom: '14px' }}>
+                🕸️ Gráfico de Aranha de Competências
+              </h3>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {radarChart}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span>⚠️ Ponto Fraco:</span>
-                <strong style={{ color: 'var(--neon-pink)' }}>{weakestSkill[0]} ({weakestSkill[1]})</strong>
+              
+              {/* diagnostic pointers */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px', marginTop: '12px', textAlign: 'left', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span>🔥 Ponto Forte:</span>
+                  <strong style={{ color: '#22c55e' }}>{strongestSkill[0]} ({strongestSkill[1]})</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>⚠️ Ponto Fraco:</span>
+                  <strong style={{ color: 'var(--neon-pink)' }}>{weakestSkill[0]} ({weakestSkill[1]})</strong>
+                </div>
+                <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.05)', border: '1px solid rgba(244, 63, 94, 0.15)', color: 'var(--neon-pink)' }}>
+                  {getWeaknessTip(weakestSkill[0])}
+                </div>
               </div>
-              <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.05)', border: '1px solid rgba(244, 63, 94, 0.15)', color: 'var(--neon-pink)' }}>
-                {getWeaknessTip(weakestSkill[0])}
+            </div>
+          )}
+
+          {/* Olympic Medals Showcase */}
+          <div className="cyber-card">
+            <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>
+              🎖️ Minhas Medalhas Olímpicas
+            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px 0' }}>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '2rem' }}>🥇</span>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>Ouro</div>
+                <strong style={{ fontSize: '1.2rem', color: 'var(--neon-yellow)' }}>
+                  {Object.values(gameState.olympicMedals || {}).filter(m => m === 'gold').length}
+                </strong>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '2rem' }}>🥈</span>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>Prata</div>
+                <strong style={{ fontSize: '1.2rem', color: '#cbd5e1' }}>
+                  {Object.values(gameState.olympicMedals || {}).filter(m => m === 'silver').length}
+                </strong>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '2rem' }}>🥉</span>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>Bronze</div>
+                <strong style={{ fontSize: '1.2rem', color: '#b45309' }}>
+                  {Object.values(gameState.olympicMedals || {}).filter(m => m === 'bronze').length}
+                </strong>
               </div>
             </div>
           </div>

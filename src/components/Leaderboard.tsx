@@ -21,6 +21,7 @@ interface LeaderboardEntry {
   totalPlayTimeSeconds?: number;
   selectedOperation?: string;
   unlockedSkillsCount?: number;
+  olympicMedals?: Record<string, 'gold' | 'silver' | 'bronze'>;
 }
 
 interface LeaderboardProps {
@@ -30,6 +31,7 @@ interface LeaderboardProps {
 
 export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUsername }) => {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const safeEntries = Array.isArray(entries) ? entries : [];
 
   const getRankBadge = (index: number) => {
@@ -63,7 +65,48 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
   };
 
   return (
-    <div className="cyber-card" style={{ width: '100%', border: '1px solid rgba(0, 255, 204, 0.2)' }}>
+    <div className="cyber-card" style={{ width: '100%', border: '1px solid rgba(0, 255, 204, 0.2)', position: 'relative' }}>
+      {/* Floating inline Toast Notification */}
+      {toastMessage && (
+        <div
+          className="cyber-card border-glow-cyan animate-fade-in"
+          style={{
+            position: 'absolute',
+            top: '40px',
+            left: '10px',
+            right: '10px',
+            zIndex: 100,
+            padding: '10px 14px',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1.5px solid var(--neon-cyan)',
+            boxShadow: '0 0 15px rgba(0, 255, 204, 0.3)',
+            borderRadius: '6px',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>💬</span>
+            <span style={{ fontWeight: 'bold' }}>{toastMessage}</span>
+          </div>
+          <button 
+            onClick={() => setToastMessage(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.5)',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              padding: '0 4px'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <h2
         className="text-glow-cyan"
         style={{
@@ -125,6 +168,8 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
                   padding: '12px 16px',
                 }}
               >
@@ -226,12 +271,26 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                       )}
                     </div>
                     
-                    {/* Equipped Pet Display (Summary) */}
-                    {entry.equippedPetEmoji && (
-                      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        🐾 <span>{entry.equippedPetEmoji}</span> <strong>{entry.equippedPetName}</strong> <span style={{ color: 'var(--neon-cyan)', background: 'rgba(0,255,204,0.1)', padding: '0px 4px', borderRadius: '3px', fontSize: '0.65rem' }}>Lvl {entry.equippedPetLevel || 1}</span>
-                      </span>
-                    )}
+                    {/* Equipped Pet Display (Summary) & Medals */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                      {entry.equippedPetEmoji && (
+                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          🐾 <span>{entry.equippedPetEmoji}</span> <strong>{entry.equippedPetName}</strong> <span style={{ color: 'var(--neon-cyan)', background: 'rgba(0,255,204,0.1)', padding: '0px 4px', borderRadius: '3px', fontSize: '0.65rem' }}>Lvl {entry.equippedPetLevel || 1}</span>
+                        </span>
+                      )}
+                      {(() => {
+                        const m = entry.olympicMedals || {};
+                        const golds = Object.values(m).filter(x => x === 'gold').length;
+                        const silvers = Object.values(m).filter(x => x === 'silver').length;
+                        const bronzes = Object.values(m).filter(x => x === 'bronze').length;
+                        if (golds === 0 && silvers === 0 && bronzes === 0) return null;
+                        return (
+                          <span style={{ fontSize: '0.75rem', display: 'inline-flex', gap: '4px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: '4px' }}>
+                            🏅 {golds > 0 && `🥇${golds}`} {silvers > 0 && `🥈${silvers}`} {bronzes > 0 && `🥉${bronzes}`}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
 
@@ -328,6 +387,50 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                           >
                             <span>{item.emoji}</span> <span style={{ color: item.color }}>{item.name}</span>
                           </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick Chat Reations (Child Safe Roblox-style Emojis) */}
+                  {!isCurrentUser && (
+                    <div style={{ marginTop: '8px', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '8px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>💬 Enviar Reação Rápida:</div>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {[
+                          { text: "Parabéns! 🏆", sound: "correct" },
+                          { text: "Quase te alcanço! 🏃‍♂️", sound: "hatch_roll" },
+                          { text: "Matemática neles! ⚔️", sound: "level_up" },
+                          { text: "Incrível! 🌟", sound: "hatch_success" },
+                        ].map((btn, idx) => (
+                          <button
+                            key={idx}
+                            className="cyber-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (btn.sound === 'correct') audioEngine.playCorrect();
+                              else if (btn.sound === 'level_up') audioEngine.playLevelUp();
+                              else if (btn.sound === 'hatch_success') audioEngine.playHatchSuccess();
+                              else audioEngine.playHatchRoll();
+                              
+                              setToastMessage(`Enviado para ${entry.username}: "${btn.text}"!`);
+                              
+                              // Trigger automatic simulation reply from AI in ranking after 2 seconds
+                              setTimeout(() => {
+                                audioEngine.playHatchSuccess();
+                                setToastMessage(`[De ${entry.username}]: Obrigado! Boa sorte nos estudos! 🍀`);
+                              }, 2500);
+                            }}
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '0.7rem',
+                              borderColor: 'var(--neon-cyan)',
+                              background: 'rgba(0, 255, 204, 0.05)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {btn.text}
+                          </button>
                         ))}
                       </div>
                     </div>

@@ -178,6 +178,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   const magnetTimeLeftRef = useRef<number>(0);
   const shieldActiveRef = useRef<boolean>(false);
   const slowmoTimeLeftRef = useRef<number>(0);
+  const portalToleranceUsed = useRef<boolean>(false);
   
   // Speed & Distance Ramping
   const currentSpeedRef = useRef<number>(3.5);
@@ -525,10 +526,10 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     setBossHp(3);
     setBossQuestion(null);
     
-    // Reset powerups
     magnetTimeLeftRef.current = 0;
     shieldActiveRef.current = false;
     slowmoTimeLeftRef.current = 0;
+    portalToleranceUsed.current = false;
     setHudMagnetActive(false);
     setHudSlowmoActive(false);
 
@@ -1005,7 +1006,9 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         // Magnet effect / Fever mode magnet pull
         if ((magnetTimeLeftRef.current > 0 || feverTimeLeftRef.current > 0) && item.type === 'gem') {
           const dx = 65 - item.x;
-          item.x += dx * 0.12;
+          const hasTimeBuff = equippedPet && (equippedPet.buffType === 'time_bonus' || equippedPet.buffType === 'combined');
+          const pullSpeed = hasTimeBuff ? 0.22 : 0.12;
+          item.x += dx * pullSpeed;
           item.lane = playerLaneRef.current; // snap lane target
         } else {
           item.x -= activeSpeed;
@@ -1098,7 +1101,15 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           if (isCorrect) {
             handleGateSuccess(gate.x, LANES[chosenLane]);
           } else {
-            handleCollisionDamage('Resposta Errada!');
+            const hasPortalTolerance = equippedPet && (equippedPet.buffType === 'time_bonus' || equippedPet.buffType === 'combined');
+            if (hasPortalTolerance && !portalToleranceUsed.current) {
+              portalToleranceUsed.current = true;
+              audioEngine.playHatchSuccess();
+              addFloatingText('✨ PORTAL TOLERADO!', gate.x, LANES[chosenLane] - 10, '#a855f7');
+              handleGateSuccess(gate.x, LANES[gate.question.correctLane]);
+            } else {
+              handleCollisionDamage('Resposta Errada!');
+            }
           }
 
           const nextQ = generateRunnerQuestion();

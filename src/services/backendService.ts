@@ -236,9 +236,12 @@ export const backendService = {
     if (isSupabaseEnabled && supabase) {
       try {
         console.log('[BackendService] Fetching users from Supabase...');
-        const { data, error } = await supabase.from('users').select('*');
+        const { data, error } = await Promise.race([
+          supabase.from('users').select('*'),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timed out')), 2500))
+        ]);
         if (error) throw error;
-        return (data || []).map(u => ({
+        return (data || []).map((u: any) => ({
           id: u.id,
           username: u.username,
           role: u.role as 'admin' | 'player',
@@ -716,6 +719,10 @@ export const backendService = {
     mockDb.forceMathStatsState(userId, questionKey, targetState);
   },
 
+  async recordOlympicMedal(userId: string, category: string, medal: 'gold' | 'silver' | 'bronze'): Promise<GameState | null> {
+    return mockDb.recordOlympicMedal(userId, category, medal);
+  },
+
   async resetMathStats(userId: string): Promise<void> {
     mockDb.resetMathStats(userId);
   },
@@ -835,11 +842,16 @@ export const backendService = {
       try {
         console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
         // Fetch players, game_states, and pets in parallel
-        const [usersRes, statesRes, petsRes, clansRes] = await Promise.all([
-          supabase.from('users').select('id, username').eq('role', 'player'),
-          supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills'),
-          supabase.from('pets').select('*'),
-          supabase.from('clans').select('id, name')
+        const [usersRes, statesRes, petsRes, clansRes] = await Promise.race([
+          Promise.all([
+            supabase.from('users').select('id, username').eq('role', 'player'),
+            supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills'),
+            supabase.from('pets').select('*'),
+            supabase.from('clans').select('id, name')
+          ]),
+          new Promise<any[]>((_, reject) => 
+            setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
+          )
         ]);
 
         if (usersRes.error) throw usersRes.error;
@@ -861,8 +873,8 @@ export const backendService = {
         ];
 
         return dbUsers
-          .map(u => {
-            const state = dbStates.find(s => s.user_id === u.id) || {
+          .map((u: any) => {
+            const state = dbStates.find((s: any) => s.user_id === u.id) || {
               aura_level: 1,
               rebirths: 0,
               gems: 0,
@@ -876,8 +888,8 @@ export const backendService = {
               selected_operation: 'multiplication',
               unlocked_skills: []
             };
-            const equippedPet = state.equipped_pet_id ? dbPets.find(p => p.id === state.equipped_pet_id) : null;
-            const petType = equippedPet ? PET_TYPES.find(pt => pt.id === equippedPet.pet_type_id) : null;
+            const equippedPet = state.equipped_pet_id ? dbPets.find((p: any) => p.id === state.equipped_pet_id) : null;
+            const petType = equippedPet ? PET_TYPES.find((pt: any) => pt.id === equippedPet.pet_type_id) : null;
             const petEmoji = petType?.emoji;
             const petName = equippedPet?.nickname || petType?.name;
             const petLevel = equippedPet?.level ?? 1;
@@ -905,7 +917,7 @@ export const backendService = {
             const titleItem = activeTitleId ? COSMETIC_ITEMS.find(c => c.id === activeTitleId) : null;
             const titleText = titleItem ? titleItem.name.replace('Título: ', '') : undefined;
 
-            const clan = state.clan_id ? dbClans.find(c => c.id === state.clan_id) : null;
+            const clan = state.clan_id ? dbClans.find((c: any) => c.id === state.clan_id) : null;
 
             return {
               username: u.username,
@@ -924,10 +936,11 @@ export const backendService = {
               clanContributions: state.clan_contributions ?? 0,
               totalPlayTimeSeconds: state.total_play_time_seconds ?? 0,
               selectedOperation: state.selected_operation ?? 'multiplication',
-              unlockedSkillsCount: (state.unlocked_skills || []).length
+              unlockedSkillsCount: (state.unlocked_skills || []).length,
+              olympicMedals: state.olympicMedals
             };
           })
-          .sort((a, b) => {
+          .sort((a: any, b: any) => {
             if (b.rebirths !== a.rebirths) {
               return b.rebirths - a.rebirths;
             }
@@ -945,22 +958,26 @@ export const backendService = {
     if (isSupabaseEnabled && supabase) {
       try {
         console.log('[BackendService] Fetching clans leaderboard from Supabase...');
-        const [clansRes, statesRes] = await Promise.all([
-          supabase.from('clans').select('*'),
-          supabase.from('game_states').select('user_id, aura_level, rebirths')
+        const [clansRes, statesRes] = await Promise.race([
+          Promise.all([
+            supabase.from('clans').select('*'),
+            supabase.from('game_states').select('user_id, aura_level, rebirths')
+          ]),
+          new Promise<any[]>((_, reject) => 
+            setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
+          )
         ]);
-
         if (clansRes.error) throw clansRes.error;
         const dbClans = clansRes.data || [];
         const dbStates = statesRes.data || [];
 
-        return dbClans.map(clan => {
+        return dbClans.map((clan: any) => {
           let totalAuraLevel = 0;
           let totalRebirths = 0;
           const membersList = clan.members || [];
           
           membersList.forEach((memberId: string) => {
-            const state = dbStates.find(s => s.user_id === memberId);
+            const state = dbStates.find((s: any) => s.user_id === memberId);
             if (state) {
               totalAuraLevel += (state.aura_level ?? 0);
               totalRebirths += (state.rebirths ?? 0);
@@ -984,7 +1001,7 @@ export const backendService = {
             bossMaxHp: clan.boss_max_hp ?? 5000,
             bossLevel: clan.boss_level ?? 1
           };
-        }).sort((a, b) => {
+        }).sort((a: any, b: any) => {
           if (b.totalRebirths !== a.totalRebirths) {
             return b.totalRebirths - a.totalRebirths;
           }

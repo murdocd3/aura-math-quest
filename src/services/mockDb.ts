@@ -57,6 +57,7 @@ export interface GameState {
   customTimeLimit?: number;
   masteryThreshold?: number;
   lockedOperations?: string[];
+  olympicMedals?: Record<string, 'gold' | 'silver' | 'bronze'>;
 }
 
 export interface Skill {
@@ -1526,6 +1527,7 @@ export const mockDb = {
       }
     }
     
+    if (state.olympicMedals === undefined) state.olympicMedals = {};
     return state;
   },
 
@@ -1683,6 +1685,28 @@ export const mockDb = {
   getMathStats(userId: string): MathStatistic[] {
     const stats = getStorageItem<MathStatistic>(STORAGE_KEYS.STATS);
     return stats.filter(s => s.userId === userId);
+  },
+
+  recordOlympicMedal(userId: string, category: string, medal: 'gold' | 'silver' | 'bronze'): GameState | null {
+    const state = this.getGameState(userId);
+    if (!state) return null;
+    const medals = { ...(state.olympicMedals || {}) };
+    const currentMedal = medals[category];
+    
+    let shouldUpdate = false;
+    if (!currentMedal) {
+      shouldUpdate = true;
+    } else if (currentMedal === 'bronze' && (medal === 'silver' || medal === 'gold')) {
+      shouldUpdate = true;
+    } else if (currentMedal === 'silver' && medal === 'gold') {
+      shouldUpdate = true;
+    }
+    
+    if (shouldUpdate) {
+      medals[category] = medal;
+      return this.updateGameState(userId, { olympicMedals: medals });
+    }
+    return state;
   },
 
   recordMathAnswer(userId: string, questionKey: string, correct: boolean, timeMs: number): void {
