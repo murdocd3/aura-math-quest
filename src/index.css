@@ -198,13 +198,26 @@ body {
 }
 
 /* Hit splat damage effects */
-@keyframes float-up-fade {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-50px); opacity: 0; }
+@keyframes pop-float-critical {
+  0% { transform: translateY(0) scale(0.3) rotate(-10deg); opacity: 1; }
+  25% { transform: translateY(-15px) scale(1.65) rotate(8deg); opacity: 1; }
+  50% { transform: translateY(-25px) scale(1.3) rotate(-4deg); opacity: 1; }
+  100% { transform: translateY(-60px) scale(1.0) rotate(0deg); opacity: 0; }
+}
+
+@keyframes pop-float-normal {
+  0% { transform: translateY(0) scale(0.3); opacity: 1; }
+  25% { transform: translateY(-12px) scale(1.4); opacity: 1; }
+  100% { transform: translateY(-50px) scale(1.0); opacity: 0; }
+}
+
+@keyframes pop-float-error {
+  0% { transform: translateY(0) scale(0.3) rotate(5deg); opacity: 1; }
+  25% { transform: translateY(-12px) scale(1.35) rotate(-6deg); opacity: 1; }
+  100% { transform: translateY(-50px) scale(1.0) rotate(0deg); opacity: 0; }
 }
 
 .hit-splat {
-  animation: float-up-fade 1.2s forwards cubic-bezier(0.25, 1, 0.5, 1);
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
   font-size: 1.6rem;
@@ -216,18 +229,21 @@ body {
 
 .hit-splat-critical {
   color: var(--neon-yellow);
-  font-size: 2rem;
-  text-shadow: 0 0 15px var(--neon-yellow);
+  font-size: 2.2rem;
+  text-shadow: 0 0 15px var(--neon-yellow), 0 0 30px rgba(234, 179, 8, 0.4);
+  animation: pop-float-critical 1.2s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .hit-splat-normal {
   color: var(--neon-cyan);
-  text-shadow: 0 0 10px var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px rgba(0, 255, 204, 0.3);
+  animation: pop-float-normal 1.1s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .hit-splat-error {
   color: var(--neon-pink);
-  text-shadow: 0 0 10px var(--neon-pink);
+  text-shadow: 0 0 10px var(--neon-pink), 0 0 20px rgba(244, 63, 94, 0.3);
+  animation: pop-float-error 1.1s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* Spell Projectiles Animations */

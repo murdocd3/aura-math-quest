@@ -21,6 +21,19 @@ function App() {
   // Popups/notifications
   const [battleReward, setBattleReward] = useState<{ xp: number; gems: number } | null>(null);
   const [selectedCampaignStageId, setSelectedCampaignStageId] = useState<number | null>(null);
+  const [showLevelUpCelebration, setShowLevelUpCelebration] = useState<number | null>(null);
+  const [lastLevel, setLastLevel] = useState<number | null>(null);
+
+  // Global Level Up Detection Effect
+  useEffect(() => {
+    if (gameState) {
+      if (lastLevel !== null && gameState.auraLevel > lastLevel) {
+        setShowLevelUpCelebration(gameState.auraLevel);
+        audioEngine.playLevelUp();
+      }
+      setLastLevel(gameState.auraLevel);
+    }
+  }, [gameState?.auraLevel]);
 
   // Ensure DB is seeded on startup
   useEffect(() => {
@@ -275,6 +288,122 @@ function App() {
             </div>
             <button className="cyber-btn" onClick={handleRewardClose} style={{ width: '100%', padding: '12px' }}>
               Retornar ao Hub de Aura
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Global Level Up Celebration Overlay */}
+      {showLevelUpCelebration !== null && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(3, 7, 18, 0.95)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          {/* Confetti simulation (standard CSS elements) */}
+          <div style={{ pointerEvents: 'none', position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
+            {Array.from({ length: 25 }).map((_, idx) => {
+              const delay = Math.random() * 3;
+              const left = Math.random() * 100;
+              const color = ['var(--neon-yellow)', 'var(--neon-cyan)', 'var(--neon-purple)', 'var(--neon-pink)'][idx % 4];
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    position: 'absolute',
+                    top: '-20px',
+                    left: `${left}%`,
+                    width: '10px',
+                    height: '10px',
+                    backgroundColor: color,
+                    borderRadius: '20%',
+                    boxShadow: `0 0 6px ${color}`,
+                    animation: `fall ${2 + Math.random() * 2}s linear infinite`,
+                    animationDelay: `${delay}s`,
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          <div
+            className="cyber-card animate-float"
+            style={{
+              width: '90%',
+              maxWidth: '440px',
+              textAlign: 'center',
+              padding: '40px 30px',
+              borderColor: 'var(--neon-yellow)',
+              boxShadow: '0 0 45px rgba(234, 179, 8, 0.45)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px',
+            }}
+          >
+            <div style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 0 15px var(--neon-yellow))', animation: 'pulse-ring 1s infinite alternate' }}>⚡</div>
+            
+            <h1
+              className="text-glow-yellow"
+              style={{
+                color: 'var(--neon-yellow)',
+                fontSize: '2.3rem',
+                fontWeight: 900,
+                letterSpacing: '1px',
+                margin: 0,
+              }}
+            >
+              NÍVEL DE AURA ELEVADO!
+            </h1>
+            
+            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1.15rem', margin: 0 }}>
+              Sua energia ciber-matemática se expandiu! Você alcançou o:
+            </p>
+            
+            <div
+              style={{
+                fontSize: '2.8rem',
+                fontWeight: 900,
+                color: 'var(--neon-cyan)',
+                textShadow: '0 0 15px var(--neon-cyan)',
+                background: 'rgba(0, 255, 204, 0.08)',
+                padding: '12px 36px',
+                borderRadius: '12px',
+                border: '1.8px solid var(--neon-cyan)',
+              }}
+            >
+              Nível {showLevelUpCelebration}
+            </div>
+
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>
+              "Os Glitches do Sistema tremem perante o seu poder de raciocínio!"
+            </p>
+
+            <button
+              className="cyber-btn cyber-btn-cyan"
+              onClick={() => {
+                setShowLevelUpCelebration(null);
+                audioEngine.playCorrect();
+              }}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                boxShadow: '0 0 15px rgba(0, 255, 204, 0.3)',
+              }}
+            >
+              Continuar a Aventura 🚀
             </button>
           </div>
         </div>

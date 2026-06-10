@@ -45,6 +45,117 @@ const getPedagogicalExplanation = (q: Question) => {
   return '';
 };
 
+const renderVisualHelper = (q: Question, defaultOp: string) => {
+  const op = q.op || defaultOp || 'multiplication';
+  const num1 = q.num1;
+  const num2 = q.num2;
+  const dotsStyle = {
+    display: 'flex',
+    gap: '6px',
+    justifyContent: 'center',
+    margin: '10px 0',
+    flexWrap: 'wrap' as const,
+  };
+  const dotSpanStyle = (color: string, crossed = false) => ({
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%',
+    backgroundColor: color,
+    display: 'inline-block',
+    boxShadow: `0 0 6px ${color}`,
+    opacity: crossed ? 0.3 : 1,
+    position: 'relative' as const,
+  });
+
+  if (op === 'addition') {
+    return (
+      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
+        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Dica Holográfica Visual:</div>
+        <div style={dotsStyle}>
+          {Array.from({ length: num1 }).map((_, i) => (
+            <span key={`n1-${i}`} style={dotSpanStyle('var(--neon-cyan)')} />
+          ))}
+          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--neon-purple)', margin: '0 4px' }}>+</span>
+          {Array.from({ length: num2 }).map((_, i) => (
+            <span key={`n2-${i}`} style={dotSpanStyle('#3b82f6')} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (op === 'subtraction') {
+    return (
+      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
+        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Dica Holográfica Visual:</div>
+        <div style={dotsStyle}>
+          {Array.from({ length: num1 }).map((_, i) => {
+            const isCrossed = i >= num1 - num2;
+            return (
+              <span key={`sub-${i}`} style={dotSpanStyle(isCrossed ? 'var(--neon-pink)' : 'var(--neon-cyan)', isCrossed)}>
+                {isCrossed && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '2px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 2px #000'
+                  }}>×</span>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (op === 'multiplication') {
+    const rows = num1;
+    const cols = num2;
+    if (rows * cols > 100) return null;
+    return (
+      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
+        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Grade Holográfica ({rows} × {cols}):</div>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px', alignItems: 'center' }}>
+          {Array.from({ length: rows }).map((_, r) => (
+            <div key={`row-${r}`} style={{ display: 'flex', gap: '6px' }}>
+              {Array.from({ length: cols }).map((_, c) => (
+                <span key={`col-${c}`} style={dotSpanStyle('var(--neon-yellow)')} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (op === 'division') {
+    const total = num1;
+    const groups = num2;
+    const perGroup = Math.floor(total / groups);
+    if (total > 100) return null;
+    return (
+      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
+        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Repartição Holográfica ({total} ÷ {groups} grupos):</div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {Array.from({ length: groups }).map((_, g) => (
+            <div key={`group-${g}`} style={{ border: '1px solid rgba(255,255,255,0.2)', padding: '6px', borderRadius: '4px', display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)' }}>
+              {Array.from({ length: perGroup }).map((_, i) => (
+                <span key={`item-${i}`} style={dotSpanStyle('var(--neon-cyan)')} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const MONSTERS = {
   forest: [
     { name: 'Slime Glitch', emoji: '👾', maxHp: 3 },
@@ -1811,6 +1922,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                     <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', borderTop: '1px dashed rgba(244, 63, 94, 0.4)', paddingTop: '8px', fontStyle: 'italic', lineHeight: '1.35rem' }}>
                       {getPedagogicalExplanation(currentQuestion)}
                     </div>
+                    {renderVisualHelper(currentQuestion, gameState.selectedOperation)}
                   </div>
                 )}
               </div>
