@@ -25,7 +25,7 @@ interface Obstacle {
   width: number;
   height: number;
   passed: boolean;
-  type?: 'spike' | 'laser';
+  type?: 'spike' | 'laser' | 'bouncing_drone' | 'flickering_firewall';
 }
 
 interface GateColumn {
@@ -33,6 +33,8 @@ interface GateColumn {
   x: number;
   question: RunnerQuestion;
   passed: boolean;
+  pattern: 'diagonal_up' | 'diagonal_down' | 'staggered_middle' | 'default';
+  passedLanes: boolean[];
 }
 
 interface Star {
@@ -87,7 +89,7 @@ const CANVAS_HEIGHT = 200;
 
 const RUNNER_CONFIG = {
   initialSpeed: 3.5,
-  maxSpeed: 7.0,
+  maxSpeed: 11.0,
   speedIncrement: 0.25,
   obstacleSpawnRate: 3000,
   gateSpawnRate: 10000,
@@ -221,8 +223,14 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       emoji: petType?.emoji || '🐾',
       rarity: equipped.rarity,
       buffType: equipped.buffType,
+      buffValue: petType?.buffValue || 1.0,
+      xpMultiplier: petType?.xpMultiplier || 1.0,
+      gemMultiplier: petType?.gemMultiplier || 1.0,
     };
   })();
+
+  const currentThemeRef = useRef<'city' | 'forest' | 'desert' | 'space'>('city');
+  const [themeBanner, setThemeBanner] = useState<string | null>(null);
 
   // Helper to resolve dynamic symbols
   const getOpSymbol = (op: string) => {
@@ -537,7 +545,14 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     shieldActiveRef.current = !!startWithShield;
     setHudShieldActive(!!startWithShield);
 
-    setShields(3);
+    // If pet has shield passive, starting shields is 4
+    const maxShields = startWithShield ? 4 : 3;
+    shieldsRef.current = maxShields;
+    setShields(maxShields);
+
+    currentThemeRef.current = 'city';
+    setThemeBanner(null);
+
     setGameOver(false);
     setIsPlaying(true);
     setXpGained(0);
@@ -584,9 +599,15 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         }
       }
 
+      // Continuous speed ramping based on distance
+      if (!bossActiveRef.current) {
+        currentSpeedRef.current = Math.min(RUNNER_CONFIG.initialSpeed + (distanceRef.current / 150), RUNNER_CONFIG.maxSpeed);
+      }
+
       // Base game speed with slow-mo & Fever modifiers
       const baseSpeed = currentSpeedRef.current;
-      const slowmoFactor = slowmoTimeLeftRef.current > 0 ? RUNNER_CONFIG.slowmoFactor : 1.0;
+      const activeSlowmoFactor = equippedPet && (equippedPet.buffType === 'time_bonus' || equippedPet.buffType === 'combined') ? 0.3 : RUNNER_CONFIG.slowmoFactor;
+      const slowmoFactor = slowmoTimeLeftRef.current > 0 ? activeSlowmoFactor : 1.0;
       const feverFactor = feverTimeLeftRef.current > 0 ? 2.0 : 1.0;
       const activeSpeed = bossActiveRef.current ? 0 : baseSpeed * slowmoFactor * feverFactor;
 
@@ -606,32 +627,145 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         if (shakeIntensityRef.current < 0.2) shakeIntensityRef.current = 0;
       }
 
+      // Theme detection
+      let theme: 'city' | 'forest' | 'desert' | 'space' = 'city';
+      if (distanceRef.current >= 900) theme = 'space';
+      else if (distanceRef.current >= 600) theme = 'desert';
+      else if (distanceRef.current >= 300) theme = 'forest';
+
+      if (theme !== currentThemeRef.current) {
+        currentThemeRef.current = theme;
+        audioEngine.playHatchSuccess();
+        const bannerText = theme === 'forest' ? '🌲 ENTRANDO NO NEXO FLORESTAL!' :
+                           theme === 'desert' ? '🏜️ ENTRANDO NO DESERTO HOLOGRÁFICO!' :
+                           theme === 'space'  ? '🌌 ENTRANDO NO ESPAÇO SIDERAL!' :
+                                                '🏙️ RETORNANDO À CIDADE CIBERNÉTICA!';
+        setThemeBanner(bannerText);
+        setTimeout(() => setThemeBanner(null), 3500);
+      }
+
+      const themeColors = {
+        city: {
+          bg: '#030712',
+          grid: 'rgba(0, 255, 204, 0.08)',
+          lane: 'rgba(0, 255, 204, 0.15)',
+          stroke: '#00ffcc',
+          trail: '#00ffcc'
+        },
+        forest: {
+          bg: '#021e14',
+          grid: 'rgba(16, 185, 129, 0.08)',
+          lane: 'rgba(16, 185, 129, 0.18)',
+          stroke: '#10b981',
+          trail: '#10b981'
+        },
+        desert: {
+          bg: '#1c0c02',
+          grid: 'rgba(245, 158, 11, 0.08)',
+          lane: 'rgba(245, 158, 11, 0.18)',
+          stroke: '#f59e0b',
+          trail: '#f59e0b'
+        },
+        space: {
+          bg: '#08001a',
+          grid: 'rgba(217, 70, 239, 0.08)',
+          lane: 'rgba(217, 70, 239, 0.18)',
+          stroke: '#d946ef',
+          trail: '#d946ef'
+        }
+      };
+
+      const activeTheme = themeColors[theme];
+
       // 1. CLEAR AND DRAW BACKGROUND
-      ctx.fillStyle = '#030712';
+      ctx.fillStyle = activeTheme.bg;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // PARALLAX LAYER 1: Distant Cyber Skyscrapers
-      const buildingOffset = (time * 0.03 * slowmoFactor * feverFactor) % 300;
-      ctx.fillStyle = 'rgba(17, 24, 39, 0.4)';
-      ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
-      ctx.lineWidth = 1.5;
-      for (let i = -1; i < 6; i++) {
-        const bX = i * 160 - buildingOffset;
-        const bWidth = 100;
-        const bHeight = 80 + ((i * 47) % 50);
-        ctx.fillRect(bX, CANVAS_HEIGHT - bHeight, bWidth, bHeight);
-        ctx.strokeRect(bX, CANVAS_HEIGHT - bHeight, bWidth, bHeight);
-        
-        // Simple neon windows on skyscrapers
-        ctx.fillStyle = 'rgba(0, 255, 204, 0.03)';
-        ctx.fillRect(bX + 15, CANVAS_HEIGHT - bHeight + 15, 12, 12);
-        ctx.fillRect(bX + 45, CANVAS_HEIGHT - bHeight + 15, 12, 12);
-        ctx.fillRect(bX + 15, CANVAS_HEIGHT - bHeight + 40, 12, 12);
+      // PARALLAX LAYER: Background Objects
+      if (theme === 'city') {
+        const buildingOffset = (time * 0.03 * slowmoFactor * feverFactor) % 300;
         ctx.fillStyle = 'rgba(17, 24, 39, 0.4)';
+        ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+        ctx.lineWidth = 1.5;
+        for (let i = -1; i < 6; i++) {
+          const bX = i * 160 - buildingOffset;
+          const bWidth = 100;
+          const bHeight = 80 + ((i * 47) % 50);
+          ctx.fillRect(bX, CANVAS_HEIGHT - bHeight, bWidth, bHeight);
+          ctx.strokeRect(bX, CANVAS_HEIGHT - bHeight, bWidth, bHeight);
+          
+          ctx.fillStyle = 'rgba(0, 255, 204, 0.03)';
+          ctx.fillRect(bX + 15, CANVAS_HEIGHT - bHeight + 15, 12, 12);
+          ctx.fillRect(bX + 45, CANVAS_HEIGHT - bHeight + 15, 12, 12);
+          ctx.fillRect(bX + 15, CANVAS_HEIGHT - bHeight + 40, 12, 12);
+          ctx.fillStyle = 'rgba(17, 24, 39, 0.4)';
+        }
+      } else if (theme === 'forest') {
+        const treeOffset = (time * 0.03 * slowmoFactor * feverFactor) % 300;
+        ctx.fillStyle = 'rgba(6, 78, 59, 0.4)';
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.08)';
+        ctx.lineWidth = 1.5;
+        for (let i = -1; i < 6; i++) {
+          const tX = i * 160 - treeOffset;
+          ctx.fillRect(tX + 45, CANVAS_HEIGHT - 35, 10, 35); // trunk
+          ctx.beginPath();
+          ctx.moveTo(tX + 15, CANVAS_HEIGHT - 35);
+          ctx.lineTo(tX + 50, CANVAS_HEIGHT - 85);
+          ctx.lineTo(tX + 85, CANVAS_HEIGHT - 35);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(tX + 25, CANVAS_HEIGHT - 65);
+          ctx.lineTo(tX + 50, CANVAS_HEIGHT - 110);
+          ctx.lineTo(tX + 75, CANVAS_HEIGHT - 65);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      } else if (theme === 'desert') {
+        const duneOffset = (time * 0.02 * slowmoFactor * feverFactor) % 400;
+        ctx.fillStyle = 'rgba(120, 53, 4, 0.35)';
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.08)';
+        ctx.lineWidth = 1.5;
+        for (let i = -1; i < 4; i++) {
+          const pX = i * 250 - duneOffset;
+          ctx.beginPath();
+          ctx.moveTo(pX, CANVAS_HEIGHT);
+          ctx.lineTo(pX + 100, CANVAS_HEIGHT - 80);
+          ctx.lineTo(pX + 200, CANVAS_HEIGHT);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          ctx.fillRect(pX + 40, CANVAS_HEIGHT - 40, 8, 40);
+          ctx.fillRect(pX + 32, CANVAS_HEIGHT - 30, 8, 4);
+          ctx.fillRect(pX + 32, CANVAS_HEIGHT - 35, 4, 10);
+        }
+      } else if (theme === 'space') {
+        const spaceGrad = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, 0);
+        spaceGrad.addColorStop(0, 'rgba(107, 33, 168, 0.15)');
+        spaceGrad.addColorStop(0.5, 'rgba(217, 70, 239, 0.05)');
+        spaceGrad.addColorStop(1, 'rgba(59, 130, 246, 0.15)');
+        ctx.fillStyle = spaceGrad;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        ctx.strokeStyle = 'rgba(217, 70, 239, 0.3)';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+          const mSpeed = 220;
+          const mX = (time * 0.1 * mSpeed + i * 350) % (CANVAS_WIDTH + 200) - 100;
+          const mY = (time * 0.05 * mSpeed + i * 80) % CANVAS_HEIGHT;
+          ctx.beginPath();
+          ctx.moveTo(mX, mY);
+          ctx.lineTo(mX - 30, mY - 15);
+          ctx.stroke();
+        }
       }
 
       // Draw Grid Lines (moving left)
-      ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
+      ctx.strokeStyle = activeTheme.grid;
       ctx.lineWidth = 1;
       const gridOffset = (time * 0.15 * slowmoFactor * feverFactor) % 40;
       for (let x = -gridOffset; x < CANVAS_WIDTH; x += 40) {
@@ -641,9 +775,9 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         ctx.stroke();
       }
 
-      // Draw three lane lines (neon cyan)
+      // Draw three lane lines
       LANES.forEach(y => {
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.15)';
+        ctx.strokeStyle = activeTheme.lane;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(0, y);
@@ -689,7 +823,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         const isAnyGateClose = gatesRef.current.some(gate => Math.abs(gate.x - (CANVAS_WIDTH + 20)) < 350);
         if (elapsed > RUNNER_CONFIG.obstacleSpawnRate && !isAnyGateClose && timeSinceGate < 7000) {
           const roll = Math.random();
-          if (roll < 0.70) {
+          if (roll < 0.45) {
             // Normal Spike
             const lane = Math.floor(Math.random() * 3);
             obstaclesRef.current.push({
@@ -701,7 +835,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
               passed: false,
               type: 'spike',
             });
-          } else if (roll < 0.85) {
+          } else if (roll < 0.60) {
             // Lane Laser Indicator
             const lane = Math.floor(Math.random() * 3);
             obstaclesRef.current.push({
@@ -712,6 +846,30 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
               height: 20,
               passed: false,
               type: 'laser',
+            });
+          } else if (roll < 0.75) {
+            // Bouncing Drone
+            const lane = Math.floor(Math.random() * 3);
+            obstaclesRef.current.push({
+              id: Math.random().toString(36).substring(2, 9),
+              x: CANVAS_WIDTH + 20,
+              lane,
+              width: 28,
+              height: 28,
+              passed: false,
+              type: 'bouncing_drone',
+            });
+          } else if (roll < 0.88) {
+            // Flickering Firewall
+            const lane = Math.floor(Math.random() * 3);
+            obstaclesRef.current.push({
+              id: Math.random().toString(36).substring(2, 9),
+              x: CANVAS_WIDTH + 20,
+              lane,
+              width: 30,
+              height: 35,
+              passed: false,
+              type: 'flickering_firewall',
             });
           } else {
             // Double Spikes (2 lanes blocked simultaneously, leaving 1 safe lane)
@@ -748,11 +906,18 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
             return true;
           });
 
+          const patterns: ('diagonal_up' | 'diagonal_down' | 'staggered_middle' | 'default')[] = [
+            'default', 'diagonal_up', 'diagonal_down', 'staggered_middle'
+          ];
+          const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
           gatesRef.current.push({
             id: Math.random().toString(36).substring(2, 9),
             x: CANVAS_WIDTH + 100,
             question: activeQ,
             passed: false,
+            pattern,
+            passedLanes: [false, false, false],
           });
           lastGateTime.current = time;
         }
@@ -955,6 +1120,40 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
             ctx.stroke();
           }
           ctx.restore();
+        } else if (obs.type === 'bouncing_drone') {
+          const actualObsY = LANES[1] + Math.sin((time * 0.005) + obs.x * 0.02) * 70;
+          ctx.save();
+          ctx.fillStyle = '#f59e0b';
+          ctx.strokeStyle = '#fff';
+          ctx.shadowColor = '#f59e0b';
+          ctx.shadowBlur = 12;
+          
+          ctx.beginPath();
+          ctx.arc(obs.x + 14, actualObsY + 10, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillRect(obs.x - 4, actualObsY + 6, 8, 4);
+          ctx.fillRect(obs.x + 24, actualObsY + 6, 8, 4);
+          ctx.restore();
+        } else if (obs.type === 'flickering_firewall') {
+          const isActive = Math.floor(time / 600) % 2 === 0;
+          ctx.save();
+          ctx.shadowBlur = isActive ? 15 : 2;
+          ctx.shadowColor = '#ef4444';
+          ctx.fillStyle = isActive ? 'rgba(239, 68, 68, 0.8)' : 'rgba(239, 68, 68, 0.15)';
+          ctx.strokeStyle = isActive ? '#ef4444' : 'rgba(239, 68, 68, 0.3)';
+          ctx.lineWidth = isActive ? 2.5 : 1;
+
+          ctx.fillRect(obs.x, obsY - 15, obs.width, obs.height);
+          ctx.strokeRect(obs.x, obsY - 15, obs.width, obs.height);
+
+          if (isActive) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 9px Share Tech Mono';
+            ctx.fillText('❌', obs.x + 10, obsY + 8);
+          }
+          ctx.restore();
         } else {
           // Draw standard spike
           ctx.fillStyle = '#f43f5e';
@@ -979,17 +1178,26 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         if (!obs.passed) {
           if (isLaser) {
             const isWarning = obs.x > 320;
-            // Hit player if in same lane during the active fire window (and not invulnerable in Overdrive)
             if (!isWarning && feverTimeLeftRef.current <= 0 && obs.lane === playerLaneRef.current && obs.x > -20 && obs.x < 320) {
               obs.passed = true;
               handleCollisionDamage('Laser!');
             }
           } else {
-            // Spike collision (ignored during Overdrive)
             if (feverTimeLeftRef.current <= 0 && obs.x < playerX + 15 && obs.x + obs.width > playerX - 15) {
-              if (obs.lane === playerLaneRef.current) {
-                obs.passed = true;
-                handleCollisionDamage('Obstáculo!');
+              const actualObsY = obs.type === 'bouncing_drone' ? LANES[1] + Math.sin((time * 0.005) + obs.x * 0.02) * 70 : LANES[obs.lane];
+              const isCollidingY = Math.abs(playerYRef.current + 8 - (actualObsY + 10)) < 24;
+
+              if (isCollidingY) {
+                if (obs.type === 'flickering_firewall') {
+                  const isActive = Math.floor(time / 600) % 2 === 0;
+                  if (isActive) {
+                    obs.passed = true;
+                    handleCollisionDamage('Firewall!');
+                  }
+                } else {
+                  obs.passed = true;
+                  handleCollisionDamage(obs.type === 'bouncing_drone' ? 'Drone Móvel!' : 'Obstáculo!');
+                }
               }
             }
           }
@@ -1071,53 +1279,86 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       gatesRef.current.forEach((gate, idx) => {
         gate.x -= activeSpeed;
 
+        const getGateXOffset = (laneIdx: number) => {
+          if (gate.pattern === 'diagonal_up') return laneIdx * 80;
+          if (gate.pattern === 'diagonal_down') return (2 - laneIdx) * 80;
+          if (gate.pattern === 'staggered_middle') return laneIdx === 1 ? 0 : 80;
+          return 0;
+        };
+
         LANES.forEach((laneY, laneIdx) => {
           const answerVal = gate.question.choices[laneIdx];
+          const gateX = gate.x + getGateXOffset(laneIdx);
           
-          ctx.strokeStyle = 'var(--neon-purple)';
+          ctx.strokeStyle = gate.question.correctLane === laneIdx ? 'rgba(168, 85, 247, 0.8)' : 'rgba(255, 255, 255, 0.2)';
           ctx.lineWidth = 4;
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
           ctx.save();
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 10;
           ctx.shadowColor = '#a855f7';
 
-          ctx.fillRect(gate.x, laneY - 20, 45, 40);
-          ctx.strokeRect(gate.x, laneY - 20, 45, 40);
+          ctx.fillRect(gateX, laneY - 20, 45, 40);
+          ctx.strokeRect(gateX, laneY - 20, 45, 40);
 
           ctx.restore();
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 1.2rem Share Tech Mono';
+          ctx.font = 'bold 1.15rem Share Tech Mono';
           ctx.textAlign = 'center';
-          ctx.fillText(String(answerVal), gate.x + 22, laneY + 6);
+          ctx.fillText(String(answerVal), gateX + 22, laneY + 6);
+
+          // Draw connection wires for staggered gates
+          if (gate.pattern !== 'default' && laneIdx < 2) {
+            ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(gateX + 22, laneY + 20);
+            ctx.lineTo(gate.x + getGateXOffset(laneIdx + 1) + 22, LANES[laneIdx + 1] - 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
         });
 
+        // Collision Check per lane
         const playerX = 65;
-        if (!gate.passed && gate.x < playerX + 10 && gate.x + 45 > playerX - 10) {
-          gate.passed = true;
-          
-          const chosenLane = playerLaneRef.current;
-          const isCorrect = chosenLane === gate.question.correctLane;
+        if (!gate.passed) {
+          LANES.forEach((_, laneIdx) => {
+            const gateX = gate.x + getGateXOffset(laneIdx);
+            
+            if (!gate.passedLanes[laneIdx] && gateX < playerX + 10 && gateX + 45 > playerX - 10) {
+              gate.passedLanes[laneIdx] = true;
+              
+              if (playerLaneRef.current === laneIdx) {
+                gate.passed = true;
+                gate.passedLanes = [true, true, true]; // mark all lanes passed
+                
+                const isCorrect = laneIdx === gate.question.correctLane;
 
-          if (isCorrect) {
-            handleGateSuccess(gate.x, LANES[chosenLane]);
-          } else {
-            const hasPortalTolerance = equippedPet && (equippedPet.buffType === 'time_bonus' || equippedPet.buffType === 'combined');
-            if (hasPortalTolerance && !portalToleranceUsed.current) {
-              portalToleranceUsed.current = true;
-              audioEngine.playHatchSuccess();
-              addFloatingText('✨ PORTAL TOLERADO!', gate.x, LANES[chosenLane] - 10, '#a855f7');
-              handleGateSuccess(gate.x, LANES[gate.question.correctLane]);
-            } else {
-              handleCollisionDamage('Resposta Errada!');
+                if (isCorrect) {
+                  handleGateSuccess(gateX, LANES[laneIdx]);
+                } else {
+                  const hasPortalTolerance = equippedPet && (equippedPet.buffType === 'time_bonus' || equippedPet.buffType === 'combined');
+                  if (hasPortalTolerance && !portalToleranceUsed.current) {
+                    portalToleranceUsed.current = true;
+                    audioEngine.playHatchSuccess();
+                    addFloatingText('✨ PORTAL TOLERADO!', gateX, LANES[laneIdx] - 10, '#a855f7');
+                    handleGateSuccess(gateX, LANES[gate.question.correctLane]);
+                  } else {
+                    handleCollisionDamage('Resposta Errada!');
+                  }
+                }
+
+                const nextQ = generateRunnerQuestion();
+                currentQuestionRef.current = nextQ;
+                setHudQuestion(nextQ);
+              }
             }
-          }
-
-          const nextQ = generateRunnerQuestion();
-          currentQuestionRef.current = nextQ;
-          setHudQuestion(nextQ);
+          });
         }
 
-        if (gate.x < -100) {
+        // Clean up when the furthest gate is out of bounds
+        const maxOffset = gate.pattern === 'diagonal_up' ? 160 : gate.pattern === 'diagonal_down' ? 160 : gate.pattern === 'staggered_middle' ? 80 : 0;
+        if (gate.x + maxOffset < -100) {
           gatesRef.current.splice(idx, 1);
         }
       });
@@ -1248,7 +1489,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     const hasGemBuff = equippedPet && (equippedPet.buffType === 'gem_multiplier' || equippedPet.buffType === 'combined');
 
     if (type === 'gem') {
-      const gemVal = hasGemBuff ? RUNNER_CONFIG.petGemMultiplier : 1;
+      const gemVal = hasGemBuff ? Math.max(2, Math.round(equippedPet?.gemMultiplier || 2)) : 1;
       scoreRef.current.gems += gemVal;
       setGemsGained(scoreRef.current.gems);
       addFloatingText(`+${gemVal} 💎`, x, y - 10, '#22c55e');
@@ -1455,10 +1696,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       });
     }
 
-    // Dynamic Speed Ramping: increase speed on correct gates
-    if (currentSpeedRef.current < RUNNER_CONFIG.maxSpeed) {
-      currentSpeedRef.current += RUNNER_CONFIG.speedIncrement;
-    }
+    // Dynamic Speed Ramping is now continuously driven by distance in the animation loop.
 
     // Trigger Boss Battle every 8 solved questions
     if (nextSolved % 8 === 0) {
@@ -1647,7 +1885,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           
           {/* Shields Display */}
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            {[...Array(3)].map((_, idx) => (
+            {[...Array(equippedPet && (equippedPet.buffType === 'aura_multiplier' || equippedPet.buffType === 'combined') ? 4 : 3)].map((_, idx) => (
               <span
                 key={idx}
                 style={{
@@ -1660,21 +1898,44 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
                 🛡️
               </span>
             ))}
+            {equippedPet && (
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  background: 'rgba(168, 85, 247, 0.2)',
+                  color: 'var(--neon-purple)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(168, 85, 247, 0.4)',
+                  marginLeft: '4px',
+                  fontFamily: 'Share Tech Mono',
+                  fontWeight: 'bold',
+                  boxShadow: '0 0 6px rgba(168, 85, 247, 0.2)'
+                }}
+              >
+                {equippedPet.emoji} {equippedPet.name}: {
+                  equippedPet.buffType === 'gem_multiplier' ? 'Bônus de Gemas 💎' :
+                  equippedPet.buffType === 'time_bonus' ? 'Bullet Time & Tolerância 🐇' :
+                  equippedPet.buffType === 'aura_multiplier' ? 'Escudo Extra 🛡️' :
+                  'Combo Supremo ⚡'
+                }
+              </span>
+            )}
             {hudShieldActive && (
               <span
                 style={{
-                  fontSize: '0.75rem',
+                  fontSize: '0.7rem',
                   background: 'rgba(0, 255, 204, 0.2)',
                   color: '#00ffcc',
                   padding: '2px 6px',
                   borderRadius: '4px',
                   border: '1px solid rgba(0, 255, 204, 0.4)',
-                  marginLeft: '8px',
+                  marginLeft: '4px',
                   fontFamily: 'Share Tech Mono',
                   boxShadow: '0 0 8px rgba(0, 255, 204, 0.3)'
                 }}
               >
-                ESCUDO ATIVO
+                🛡️ ESCUDO ATIVO
               </span>
             )}
           </div>
@@ -1740,6 +2001,33 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
             onClick={handleCanvasClick}
             style={{ display: 'block', width: '100%', height: '100%', cursor: bossActiveRef.current ? 'default' : 'pointer' }}
           />
+
+          {/* Biome Transition Banner Overlay */}
+          {themeBanner && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '32%',
+                left: 0,
+                right: 0,
+                textAlign: 'center',
+                color: '#fff',
+                fontFamily: 'Share Tech Mono',
+                fontSize: '1.4rem',
+                fontWeight: 'bold',
+                textShadow: '0 0 10px rgba(168,85,247,0.8), 0 0 20px rgba(168,85,247,0.4)',
+                background: 'rgba(15, 23, 42, 0.85)',
+                padding: '10px 0',
+                borderTop: '2px solid var(--neon-purple)',
+                borderBottom: '2px solid var(--neon-purple)',
+                pointerEvents: 'none',
+                zIndex: 9,
+                animation: 'pulse 1s infinite alternate'
+              }}
+            >
+              {themeBanner}
+            </div>
+          )}
 
           {/* Boss Math Question Panel Overlay */}
           {hudBossActive && bossQuestion && !gameOver && (
