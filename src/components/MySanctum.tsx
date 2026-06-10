@@ -31,6 +31,10 @@ const PET_THOUGHTS = [
   "BEEP BOOP! Sincronizando ondas de Aura! ⚡",
   "Adoro ver as luzes neon piscando! 🏮",
   "Que tal uma partida rápida de Cyber Runner? 🏃‍♂️",
+  "Minha casinha tecnológica é tão aconchegante! 🚀",
+  "Adoro tirar uma soneca perto da Janela de Neon! 🌌",
+  "Uau, esse tapete holográfico faz cócegas nas patas! 👾",
+  "A estante está cheia de hologramas de álgebra antiga! 📚"
 ];
 
 const LIGHT_MODES = [
@@ -65,20 +69,40 @@ export const MySanctum: React.FC<MySanctumProps> = ({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const roomRef = useRef<HTMLDivElement>(null);
 
-  // Shop catalog
+  // Shop catalog (Expanded to 12 items to support home features)
   const catalog: Omit<SanctumItem, 'x' | 'y' | 'placed' | 'purchased'>[] = [
     { id: 'chair', name: 'Cadeira Ciber-Gamer', emoji: '💺', cost: 15 },
     { id: 'table', name: 'Mesa de Holograma', emoji: '🎛️', cost: 25 },
-    { id: 'trophy', name: 'Troféu dos Deuses', emoji: '🏆', cost: 40 },
+    { id: 'bed', name: 'Cama de Levitação Criogênica', emoji: '🛌', cost: 35 },
+    { id: 'plant', name: 'Orquídea Neon Fluorescente', emoji: '🌵', cost: 12 },
+    { id: 'window', name: 'Janela com Projeção Estelar', emoji: '🖼️', cost: 30 },
+    { id: 'rug', name: 'Tapete de Fibra Holográfica', emoji: '🪩', cost: 18 },
+    { id: 'bookshelf', name: 'Estante de Dados Ópticos', emoji: '📚', cost: 28 },
+    { id: 'lamp', name: 'Luminária de Plasma Quântico', emoji: '🔮', cost: 14 },
+    { id: 'pethouse', name: 'Cápsula Pet-Santuário', emoji: '🚀', cost: 22 },
     { id: 'neon', name: 'Painel LED Ciber', emoji: '🏮', cost: 20 },
     { id: 'console', name: 'Super Ciber-Console', emoji: '🎮', cost: 30 },
+    { id: 'trophy', name: 'Troféu dos Deuses', emoji: '🏆', cost: 40 },
   ];
 
   useEffect(() => {
     // Load purchased and placed items
     const saved = localStorage.getItem(`amq_santuario_items_${playerUser.id}`);
     if (saved) {
-      setItems(JSON.parse(saved));
+      const parsed: SanctumItem[] = JSON.parse(saved);
+      // Merge with new catalog items in case they are missing in local storage
+      const merged = catalog.map(catItem => {
+        const existing = parsed.find(p => p.id === catItem.id);
+        if (existing) return existing;
+        return {
+          ...catItem,
+          x: 40 + Math.random() * 20,
+          y: 50 + Math.random() * 20,
+          purchased: false,
+          placed: false
+        };
+      });
+      setItems(merged);
     } else {
       const defaultItems: SanctumItem[] = catalog.map(item => ({
         ...item,
@@ -274,6 +298,27 @@ export const MySanctum: React.FC<MySanctumProps> = ({
       setTimeout(() => setPetThought(null), 4000);
     } else if (item.id === 'chair') {
       setPetThought("Parece super confortável. Posso deitar? 💺");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'bed') {
+      setPetThought("Que delícia de cama flutuante! Zzz... 🛌");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'plant') {
+      setPetThought("Essa planta brilha no escuro! Que incrível! 🌵");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'window') {
+      setPetThought("Olha as estrelas lá fora! O espaço é infinito... 🖼️");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'rug') {
+      setPetThought("Esse tapete faz cócegas eletrônicas nas patinhas! 🪩");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'bookshelf') {
+      setPetThought("Muitos gigabytes de pura sabedoria nessa estante! 📚");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'pethouse') {
+      setPetThought("Meu próprio casulo espacial de recarga! Obrigado! 🚀");
+      setTimeout(() => setPetThought(null), 4000);
+    } else if (item.id === 'lamp') {
+      setPetThought("Essa lâmpada flutuante de plasma é hipnotizante... 🔮");
       setTimeout(() => setPetThought(null), 4000);
     }
   };
