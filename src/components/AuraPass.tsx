@@ -470,6 +470,28 @@ export const AuraPass: React.FC<AuraPassProps> = ({
         </div>
       </div>
 
+      {/* Explanatory Banner */}
+      <div style={{
+        background: 'rgba(234, 179, 8, 0.05)',
+        border: '1px dashed rgba(234, 179, 8, 0.3)',
+        padding: '14px 16px',
+        borderRadius: '10px',
+        marginBottom: '24px',
+        fontSize: '0.85rem',
+        lineHeight: '1.45rem',
+        textAlign: 'left'
+      }}>
+        <strong style={{ color: 'var(--neon-yellow)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', marginBottom: '6px', textShadow: '0 0 8px rgba(234,179,8,0.3)' }}>
+          👑 Como obter o Passe Elite Premium?
+        </strong>
+        O <strong>Passe Elite Premium</strong> pode ser liberado com <strong>50 Gemas de Matemática (💎)</strong>. 
+        Você pode conseguir gemas facilmente jogando nas seções do game:
+        <ul style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <li>⚔️ <strong>Mapas de Aventura</strong>: Resolva as equações de Adição, Subtração, Multiplicação e Divisão no mapa principal do Hub!</li>
+          <li>🏆 <strong>Desafios & Mini-jogos</strong>: Dispute contra outros alunos na Arena, bata recordes de distância no Cyber Runner ou resolva enigmas lógicos nas Olimpíadas dos Deuses.</li>
+        </ul>
+      </div>
+
       {/* Grid Track Rewards - Fortnite Parallel Design */}
       <h4 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '16px', fontWeight: 600 }}>
         🎁 Trilha de Recompensas do Passe
