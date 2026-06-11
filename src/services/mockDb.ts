@@ -136,6 +136,8 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
   { id: 'title_math_lightning', name: 'Título: [⚡ Relâmpago Matemático]', emoji: '🏷️', cost: 30, description: 'Exibe o título ao lado do seu nome.', color: '#a855f7', category: 'title' },
   { id: 'title_aura_alchemist', name: 'Título: [🔮 Alquimista de Aura]', emoji: '🏷️', cost: 50, description: 'Exibe o título ao lado do seu nome.', color: '#ec4899', category: 'title' },
   { id: 'title_legendary_legend', name: 'Título: [👑 Lenda do Universo]', emoji: '🏷️', cost: 100, description: 'Exibe o título ao lado do seu nome.', color: '#f97316', category: 'title' },
+  { id: 'title_ciber', name: 'Título: [👾 Ciber-Viajante]', emoji: '🏷️', cost: 0, description: 'Desbloqueado no Passe de Aura Sazonal.', color: '#a855f7', category: 'title' },
+  { id: 'title_mestre', name: 'Título: [👑 Mestre Cósmico]', emoji: '🏷️', cost: 0, description: 'Conquistado ao completar a Temporada 1 do Passe de Aura.', color: '#facc15', category: 'title' },
 ];
 
 export interface Pet {

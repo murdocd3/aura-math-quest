@@ -2393,6 +2393,10 @@ export const HubWorld: React.FC<HubWorldProps> = ({
               userId={playerUser.id}
               gameState={gameState}
               onStateUpdate={onStateUpdate}
+              onNavigateToRunner={onNavigateToRunner}
+              onNavigateToOlympics={onNavigateToOlympics}
+              onNavigateToSanctum={onNavigateToSanctum}
+              onSelectZone={onSelectZone}
             />
           )}
         </div>
