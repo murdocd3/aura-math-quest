@@ -920,7 +920,7 @@ export const backendService = {
             const clan = state.clan_id ? dbClans.find((c: any) => c.id === state.clan_id) : null;
 
             const lastActiveTime = new Date(state.updated_at || 0).getTime();
-            const isOnline = (Date.now() - lastActiveTime) < 60000;
+            const isOnline = (Date.now() - lastActiveTime) < 180000;
 
             return {
               username: u.username,

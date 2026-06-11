@@ -2142,7 +2142,7 @@ export const mockDb = {
           totalPlayTimeSeconds: state.totalPlayTimeSeconds ?? 0,
           selectedOperation: state.selectedOperation ?? 'multiplication',
           unlockedSkillsCount: (state.unlockedSkills || []).length,
-          isOnline: (Date.now() - new Date(state.updatedAt || 0).getTime()) < 60000
+          isOnline: (Date.now() - new Date(state.updatedAt || 0).getTime()) < 180000
         };
       })
       .sort((a, b) => {

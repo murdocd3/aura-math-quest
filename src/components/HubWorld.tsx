@@ -342,7 +342,25 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
   // Load leaderboard and trigger playtime tracking
   useEffect(() => {
-    refreshLeaderboard();
+    const initHeartbeatAndLoad = async () => {
+      try {
+        const freshState = await backendService.getGameState(playerUser.id);
+        if (freshState) {
+          const updated = await backendService.updateGameState(playerUser.id, {
+            totalPlayTimeSeconds: freshState.totalPlayTimeSeconds || 0
+          });
+          if (updated) {
+            onStateUpdate(updated);
+          }
+        }
+      } catch (err) {
+        console.error('Error in initial heartbeat update:', err);
+      }
+      // Load leaderboard after marking status as active
+      refreshLeaderboard();
+    };
+
+    initHeartbeatAndLoad();
     
     // Playtime tracker: Increment play time in database every 30 seconds
     const interval = setInterval(async () => {
