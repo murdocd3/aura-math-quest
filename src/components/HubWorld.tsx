@@ -686,7 +686,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       <div className="main-layout-grid">
         
         {/* Left Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
           
           {/* Pedagogical Nudge Banner */}
           {showNudgeBanner && (

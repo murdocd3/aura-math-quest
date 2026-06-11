@@ -370,17 +370,26 @@ export const AuraPass: React.FC<AuraPassProps> = ({
       borderColor: 'var(--neon-purple)', 
       boxShadow: '0 0 25px rgba(168,85,247,0.2)',
       padding: '24px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box'
     }}>
       {/* Title Header Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(236, 72, 153, 0.1) 50%, rgba(0, 255, 204, 0.05) 100%)',
         border: '1px solid rgba(168, 85, 247, 0.3)',
         borderRadius: '12px',
-        padding: '20px',
+        padding: '24px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         textAlign: 'center',
         marginBottom: '24px',
-        position: 'relative'
+        position: 'relative',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <div style={{
           position: 'absolute',
@@ -398,27 +407,31 @@ export const AuraPass: React.FC<AuraPassProps> = ({
         }}>
           TEMPORADA 1
         </div>
-        <h3 style={{ fontSize: '1.6rem', marginBottom: '8px', color: '#fff', fontWeight: 800, textShadow: '0 0 10px rgba(168,85,247,0.4)' }}>
+        <h3 style={{ fontSize: '1.6rem', marginBottom: '8px', color: '#fff', fontWeight: 800, textShadow: '0 0 10px rgba(168,85,247,0.4)', textAlign: 'center', width: '100%' }}>
           🌌 Passe de Aura Sazonal
         </h3>
-        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', maxWidth: '500px', margin: '0 auto' }}>
+        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', maxWidth: '500px', margin: '0 auto', textAlign: 'center', width: '100%' }}>
           Acumule XP resolvendo missões matemáticas e desbloqueie visuais de aura exclusivos, moedas e pets lendários!
         </p>
       </div>
 
       {/* Progress & Elite Pass Purchase Section */}
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1.2fr 0.8fr', 
-        gap: '20px', 
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '20px',
         background: 'rgba(15,23,42,0.6)', 
         padding: '20px', 
         borderRadius: '12px', 
         border: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: '24px'
+        marginBottom: '24px',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
-        <div>
+        <div style={{ flex: '1 1 300px', minWidth: '280px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '1.1rem', color: '#fff', fontWeight: 800 }}>
               Nível do Passe: <span style={{ color: 'var(--neon-purple)', textShadow: '0 0 8px rgba(168,85,247,0.3)' }}>{Math.floor(currentXp / 100) + 1}</span>
@@ -435,7 +448,7 @@ export const AuraPass: React.FC<AuraPassProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'center' }}>
           {isPremiumUnlocked ? (
             <div style={{ 
               background: 'rgba(250,204,21,0.1)', 
@@ -461,7 +474,8 @@ export const AuraPass: React.FC<AuraPassProps> = ({
                 fontSize: '0.9rem', 
                 fontWeight: 800,
                 color: 'var(--neon-yellow)',
-                boxShadow: '0 0 15px rgba(234,179,8,0.15)'
+                boxShadow: '0 0 15px rgba(234,179,8,0.15)',
+                whiteSpace: 'nowrap'
               }}
             >
               ⭐ Ativar Passe Elite (50 💎)
@@ -500,14 +514,17 @@ export const AuraPass: React.FC<AuraPassProps> = ({
       {/* Overflow Container preventing grid breaks */}
       <div style={{ 
         width: '100%', 
+        maxWidth: '100%',
         minWidth: 0,
+        display: 'block',
         overflowX: 'auto', 
         paddingBottom: '20px', 
         marginBottom: '24px',
         background: 'rgba(15,23,42,0.3)',
         borderRadius: '12px',
         padding: '16px',
-        border: '1px solid rgba(255,255,255,0.03)'
+        border: '1px solid rgba(255,255,255,0.03)',
+        boxSizing: 'border-box'
       }}>
         {/* The timeline flex grid structure */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', width: 'max-content' }}>
