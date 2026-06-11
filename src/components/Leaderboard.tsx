@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { CyberSprite } from './CyberSprite';
-import { COSMETIC_ITEMS } from '../services/mockDb';
+import { COSMETIC_ITEMS, getPetEvolutionEmoji } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
 
 interface LeaderboardEntry {
@@ -22,6 +22,7 @@ interface LeaderboardEntry {
   selectedOperation?: string;
   unlockedSkillsCount?: number;
   olympicMedals?: Record<string, 'gold' | 'silver' | 'bronze'>;
+  isOnline?: boolean;
 }
 
 interface LeaderboardProps {
@@ -215,41 +216,31 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                     />
                   </div>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                       <span
+                      <span 
+                        title={entry.isOnline ? "Online" : "Offline"}
+                        style={{
+                          width: '7px',
+                          height: '7px',
+                          borderRadius: '50%',
+                          backgroundColor: entry.isOnline ? '#00ffcc' : '#4b5563',
+                          boxShadow: entry.isOnline ? '0 0 6px #00ffcc' : 'none',
+                          display: 'inline-block',
+                          flexShrink: 0
+                        }}
+                      />
+                      <span
                         style={{
                           fontWeight: 800,
                           color: nameColor,
                           textTransform: 'capitalize',
                           textShadow: entry.rebirths > 0 ? '0 0 10px rgba(244,63,94,0.4)' : 'none',
+                          fontSize: '0.95rem'
                         }}
                       >
                         {entry.username}
                       </span>
-                      {entry.clanName && (
-                        <span 
-                          style={{ 
-                            fontSize: '0.65rem', 
-                            color: 'var(--neon-yellow)', 
-                            background: 'rgba(234, 179, 8, 0.12)', 
-                            border: '1px solid rgba(234, 179, 8, 0.35)', 
-                            padding: '1px 5px', 
-                            borderRadius: '4px', 
-                            fontWeight: 900,
-                            letterSpacing: '0.5px',
-                            textTransform: 'uppercase',
-                            textShadow: '0 0 4px rgba(234, 179, 8, 0.4)'
-                          }}
-                        >
-                          🛡️ {entry.clanName}
-                        </span>
-                      )}
-                      {entry.equippedTitle && (
-                        <span style={{ fontSize: '0.7rem', color: '#00ffcc', fontWeight: 800, textShadow: '0 0 5px rgba(0, 255, 204, 0.5)' }}>
-                          {entry.equippedTitle}
-                        </span>
-                      )}
                       {entry.rebirths > 0 && (
                         <span style={{ fontSize: '0.8rem', color: 'var(--neon-yellow)', filter: 'drop-shadow(0 0 4px var(--neon-yellow))' }}>
                           {getRebirthStars(entry.rebirths)}
@@ -258,10 +249,10 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                       {isCurrentUser && (
                         <span
                           style={{
-                            fontSize: '0.7rem',
+                            fontSize: '0.65rem',
                             background: 'var(--neon-cyan)',
                             color: '#0b0f19',
-                            padding: '2px 6px',
+                            padding: '1px 5px',
                             borderRadius: '4px',
                             fontWeight: 800,
                           }}
@@ -271,11 +262,44 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                       )}
                     </div>
                     
-                    {/* Equipped Pet Display (Summary) & Medals */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                    {/* Secondary line: Title, Clan, Pet summary & Medals */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
+                      {entry.equippedTitle && (
+                        <span
+                          style={{
+                            fontSize: '0.62rem',
+                            color: 'var(--neon-cyan)',
+                            background: 'rgba(0, 255, 204, 0.08)',
+                            border: '1px solid rgba(0, 255, 204, 0.25)',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                            textShadow: '0 0 4px rgba(0, 255, 204, 0.3)',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {entry.equippedTitle}
+                        </span>
+                      )}
+                      {entry.clanName && (
+                        <span 
+                          style={{ 
+                            fontSize: '0.62rem', 
+                            color: 'var(--neon-yellow)', 
+                            background: 'rgba(234, 179, 8, 0.08)', 
+                            border: '1px solid rgba(234, 179, 8, 0.25)', 
+                            padding: '1px 5px', 
+                            borderRadius: '4px', 
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          🛡️ {entry.clanName}
+                        </span>
+                      )}
                       {entry.equippedPetEmoji && (
-                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          🐾 <span>{entry.equippedPetEmoji}</span> <strong>{entry.equippedPetName}</strong> <span style={{ color: 'var(--neon-cyan)', background: 'rgba(0,255,204,0.1)', padding: '0px 4px', borderRadius: '3px', fontSize: '0.65rem' }}>Lvl {entry.equippedPetLevel || 1}</span>
+                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '1px 5px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                          🐾 <span>{getPetEvolutionEmoji(entry.equippedPetEmoji || '', entry.equippedPetLevel || 1)}</span> <strong>{entry.equippedPetName}</strong> <span style={{ color: 'var(--neon-cyan)', background: 'rgba(0,255,204,0.1)', padding: '0px 4px', borderRadius: '3px', fontSize: '0.6rem' }}>Lvl {entry.equippedPetLevel || 1}</span>
                         </span>
                       )}
                       {(() => {
@@ -285,7 +309,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                         const bronzes = Object.values(m).filter(x => x === 'bronze').length;
                         if (golds === 0 && silvers === 0 && bronzes === 0) return null;
                         return (
-                          <span style={{ fontSize: '0.75rem', display: 'inline-flex', gap: '4px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '0.65rem', display: 'inline-flex', gap: '4px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '1px 5px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
                             🏅 {golds > 0 && `🥇${golds}`} {silvers > 0 && `🥈${silvers}`} {bronzes > 0 && `🥉${bronzes}`}
                           </span>
                         );
@@ -332,7 +356,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                     gap: '10px'
                   }}
                 >
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                     {/* Left detailed panel */}
                     <div>
                       <div style={{ marginBottom: '6px' }}>

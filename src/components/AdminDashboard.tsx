@@ -183,16 +183,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const handlePrintPdf = async () => {
     if (!selectedUserId || !activeStats) return;
     
-    // Fetch chronological timeline entries
+    // Fetch chronological timeline entries, math stats, and pets
     const timeline = await backendService.getTimeline(selectedUserId);
+    const mathStats = await backendService.getMathStats(selectedUserId);
+    const pets = await backendService.getPets(selectedUserId);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    // Group timeline entries by date (DD/MM/YYYY)
+    // Group timeline entries by date (YYYY-MM-DD)
     const groupedByDate: Record<string, { total: number; correct: number; timeSum: number; categories: Record<string, { total: number; correct: number }> }> = {};
     
     timeline.forEach(t => {
-      const dateStr = new Date(t.timestamp).toLocaleDateString('pt-BR');
+      let dateStr = '';
+      try {
+        dateStr = new Date(t.timestamp).toISOString().substring(0, 10);
+      } catch (e) {
+        if (typeof t.timestamp === 'string' && t.timestamp.length >= 10) {
+          dateStr = t.timestamp.substring(0, 10);
+        } else {
+          dateStr = new Date().toISOString().substring(0, 10);
+        }
+      }
       if (!groupedByDate[dateStr]) {
         groupedByDate[dateStr] = { total: 0, correct: 0, timeSum: 0, categories: {} };
       }
@@ -208,12 +219,212 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       if (t.correct) day.categories[t.category].correct++;
     });
 
-    const datesSorted = Object.keys(groupedByDate).sort((a, b) => {
-      const partsA = a.split('/');
-      const partsB = b.split('/');
-      return new Date(Number(partsA[2]), Number(partsA[1]) - 1, Number(partsA[0])).getTime() - 
-             new Date(Number(partsB[2]), Number(partsB[1]) - 1, Number(partsB[0])).getTime();
-    });
+    const datesSorted = Object.keys(groupedByDate).sort();
+
+    const generateEvolutionChartSvg = (dates: string[], groupedData: typeof groupedByDate) => {
+      if (dates.length < 2) {
+        return '<p style="color: #6b7280; font-style: italic; font-size: 11px; text-align: center; padding: 15px; border: 1px dashed #d1d5db; border-radius: 6px; margin-top: 10px;">Dados de histórico temporal insuficientes para gerar a curva de aprendizagem (mínimo de 2 dias de atividade necessários).</p>';
+      }
+
+      const width = 600;
+      const height = 180;
+      const padding = 35;
+      const chartWidth = width - padding * 2;
+      const chartHeight = height - padding * 2;
+
+      const points = dates.slice(-7).map((date) => {
+        const d = groupedData[date];
+        const accuracy = Math.round((d.correct / d.total) * 100);
+        const avgTime = d.timeSum / d.total / 1000;
+        return { date, accuracy, avgTime };
+      });
+
+      const maxTime = Math.max(...points.map(p => p.avgTime), 5); // at least 5s scale
+
+      const getX = (index: number) => padding + (index / (points.length - 1)) * chartWidth;
+      const getYAcc = (acc: number) => padding + chartHeight - (acc / 100) * chartHeight;
+      const getYTime = (t: number) => padding + chartHeight - (t / maxTime) * chartHeight;
+
+      let gridLines = '';
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (i / 4) * chartHeight;
+        const val = 100 - i * 25;
+        gridLines += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#e5e7eb" stroke-dasharray="3" stroke-width="1" />`;
+        gridLines += `<text x="${padding - 8}" y="${y + 3}" fill="#9ca3af" font-size="8px" text-anchor="end">${val}%</text>`;
+      }
+
+      const xLabels = points.map((p, idx) => {
+        const x = getX(idx);
+        const [, month, day] = p.date.split('-');
+        const formattedDate = `${day}/${month}`;
+        return `<text x="${x}" y="${height - padding + 15}" fill="#6b7280" font-size="8px" text-anchor="middle">${formattedDate}</text>
+                <circle cx="${x}" cy="${height - padding}" r="2" fill="#d1d5db" />`;
+      }).join('');
+
+      let pathAccPoints = '';
+      let pathTimePoints = '';
+      let accCircles = '';
+      let timeCircles = '';
+
+      points.forEach((p, idx) => {
+        const x = getX(idx);
+        const yAcc = getYAcc(p.accuracy);
+        const yTime = getYTime(p.avgTime);
+
+        if (idx === 0) {
+          pathAccPoints = `M ${x} ${yAcc}`;
+          pathTimePoints = `M ${x} ${yTime}`;
+        } else {
+          pathAccPoints += ` L ${x} ${yAcc}`;
+          pathTimePoints += ` L ${x} ${yTime}`;
+        }
+
+        accCircles += `<circle cx="${x}" cy="${yAcc}" r="4.5" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+                       <text x="${x}" y="${yAcc - 8}" fill="#4c1d95" font-size="8px" font-weight="700" text-anchor="middle">${p.accuracy}%</text>`;
+        timeCircles += `<circle cx="${x}" cy="${yTime}" r="4.5" fill="#06b6d4" stroke="#ffffff" stroke-width="1.5" />
+                        <text x="${x}" y="${yTime + 12}" fill="#0891b2" font-size="8px" font-weight="700" text-anchor="middle">${p.avgTime.toFixed(1)}s</text>`;
+      });
+
+      return `
+        <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow: visible; background-color: #fafbfd; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin-top: 10px;">
+          <!-- Legend -->
+          <g transform="translate(${width / 2 - 140}, 15)" font-size="9px" font-weight="600">
+            <circle cx="0" cy="0" r="4" fill="#7c3aed" />
+            <text x="8" y="3" fill="#4c1d95">Precisão Aritmética (%)</text>
+            <circle cx="150" cy="0" r="4" fill="#06b6d4" />
+            <text x="158" y="3" fill="#0891b2">Tempo Médio de Resposta (s)</text>
+          </g>
+          <!-- Grid -->
+          ${gridLines}
+          <!-- Paths -->
+          <path d="${pathAccPoints}" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="${pathTimePoints}" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4,2" />
+          <!-- Dots & Text Labels -->
+          ${accCircles}
+          ${timeCircles}
+          <!-- X labels -->
+          ${xLabels}
+        </svg>
+      `;
+    };
+
+    const evolutionChartHtml = generateEvolutionChartSvg(datesSorted, groupedByDate);
+
+    const generateCognitiveHeatmapHtml = (stats: any[], selectedOp: string) => {
+      let opSymbol = 'x';
+      if (selectedOp === 'addition') opSymbol = '+';
+      else if (selectedOp === 'subtraction') opSymbol = '-';
+      else if (selectedOp === 'division') opSymbol = '÷';
+
+      const statsMap: Record<string, any> = {};
+      stats.forEach(s => {
+        const isTargetOp = selectedOp === 'addition' ? s.questionKey.includes('+') :
+                           selectedOp === 'subtraction' ? s.questionKey.includes('-') :
+                           selectedOp === 'multiplication' ? (s.questionKey.includes('x') || s.questionKey.includes('*')) :
+                           (s.questionKey.includes('/') || s.questionKey.includes('÷'));
+        
+        if (!isTargetOp) return;
+
+        const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
+        if (parts.length >= 2) {
+          const n1 = parseInt(parts[0]);
+          const n2 = parseInt(parts[1]);
+          if (!isNaN(n1) && !isNaN(n2)) {
+            statsMap[`${n1}_${n2}`] = s;
+          }
+        }
+      });
+
+      const range = Array.from({ length: 9 }, (_, i) => i + 2); // 2 to 10
+
+      let gridHeadersHtml = `<th style="background-color: #faf5ff; font-weight: bold; text-align: center; border-right: 2px solid #e5e7eb; width: 35px; border-bottom: 2px solid #e5e7eb;">${opSymbol}</th>`;
+      range.forEach(col => {
+        gridHeadersHtml += `<th style="text-align: center; width: 35px; font-weight: bold; border-bottom: 2px solid #e5e7eb; background-color: #faf5ff;">${col}</th>`;
+      });
+
+      let gridRowsHtml = '';
+      range.forEach(row => {
+        let rowCells = `<td style="font-weight: bold; background-color: #faf5ff; text-align: center; border-right: 2px solid #e5e7eb; padding: 6px; font-size: 11px;">${row}</td>`;
+        range.forEach(col => {
+          const key = `${row}_${col}`;
+          const stat = statsMap[key];
+
+          let cellStyle = 'background-color: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb;';
+          let tooltipText = `Sem dados para ${row} ${opSymbol} ${col}`;
+          let cellValue = '';
+
+          if (selectedOp === 'addition') {
+            cellValue = (row + col).toString();
+          } else if (selectedOp === 'subtraction') {
+            if (row >= col) {
+              cellValue = (row - col).toString();
+            } else {
+              cellStyle = 'background-color: #f9fafb; color: #e5e7eb; border: 1px dashed #e5e7eb;';
+              cellValue = '-';
+            }
+          } else if (selectedOp === 'division') {
+            if (row % col === 0) {
+              cellValue = (row / col).toString();
+            } else {
+              cellStyle = 'background-color: #f9fafb; color: #e5e7eb; border: 1px dashed #e5e7eb;';
+              cellValue = '-';
+            }
+          } else {
+            cellValue = (row * col).toString();
+          }
+
+          if (stat && cellValue !== '-') {
+            const total = stat.correctCount + stat.errorCount;
+            const accuracy = total > 0 ? Math.round((stat.correctCount / total) * 100) : 0;
+            const avgTimeSec = (stat.averageTimeMs / total / 1000).toFixed(1);
+
+            if (accuracy < 70 || stat.errorCount >= 2) {
+              cellStyle = 'background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; font-weight: bold; cursor: help;';
+              tooltipText = `${row} ${opSymbol} ${col}: ${accuracy}% acerto, ${avgTimeSec}s médio (${stat.errorCount} erros)`;
+            } else if (accuracy >= 70 && (stat.averageTimeMs / total) > 4000) {
+              cellStyle = 'background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; cursor: help;';
+              tooltipText = `${row} ${opSymbol} ${col}: ${accuracy}% acerto, ${avgTimeSec}s médio (Lento)`;
+            } else {
+              cellStyle = 'background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-weight: bold; cursor: help;';
+              tooltipText = `${row} ${opSymbol} ${col}: ${accuracy}% acerto, ${avgTimeSec}s médio (Domínio)`;
+            }
+          }
+
+          rowCells += `<td title="${tooltipText}" style="${cellStyle} text-align: center; padding: 6px; font-size: 10px;">${cellValue}</td>`;
+        });
+
+        gridRowsHtml += `<tr>${rowCells}</tr>`;
+      });
+
+      const opName = selectedOp === 'addition' ? 'Adição' :
+                     selectedOp === 'subtraction' ? 'Subtração' :
+                     selectedOp === 'division' ? 'Divisão' : 'Multiplicação';
+
+      return `
+        <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-top: 15px;">
+          <h3 style="margin: 0 0 5px 0; color: #1e1b4b; font-size: 13px; font-weight: 700; text-transform: uppercase;">🗺️ Mapa Cognitivo de Lacunas (${opName})</h3>
+          <p style="margin: 0 0 12px 0; font-size: 11px; color: #4b5563; line-height: 1.4;">Visualização da matriz de fatos numéricos. Células mostram o resultado das equações.</p>
+          
+          <table style="width: auto; border: 2px solid #e5e7eb; margin: 0 auto; border-collapse: collapse;">
+            <thead>
+              <tr>${gridHeadersHtml}</tr>
+            </thead>
+            <tbody>
+              ${gridRowsHtml}
+            </tbody>
+          </table>
+
+          <div style="display: flex; justify-content: center; gap: 15px; font-size: 9px; margin-top: 10px; font-weight: 600; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 10px; height: 10px; background-color: #d1fae5; border: 1px solid #6ee7b7; border-radius: 2px;"></div> Domínio (&lt;4s e &gt;70%)</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 10px; height: 10px; background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 2px;"></div> Resolução Lenta (&gt;4s)</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 10px; height: 10px; background-color: #fee2e2; border: 1px solid #fca5a5; border-radius: 2px;"></div> Lacuna Crítica (Erros frequentes)</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 10px; height: 10px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 2px;"></div> Sem Dados</div>
+          </div>
+        </div>
+      `;
+    };
+
+    const cognitiveHeatmapHtml = generateCognitiveHeatmapHtml(mathStats, activeStats.state?.selectedOperation || 'multiplication');
 
     // Generate timeline rows and visualization
     let timelineHtml = '';
@@ -225,10 +436,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         const accuracy = Math.round((d.correct / d.total) * 100);
         const avgTimeSec = (d.timeSum / d.total / 1000).toFixed(1);
         
+        // Format to DD/MM/YYYY for presentation
+        const [year, month, dayStr] = date.split('-');
+        const formattedDate = `${dayStr}/${month}/${year}`;
+        
         return `
           <div style="margin-bottom: 12px; border-bottom: 1px dashed #e5e7eb; padding-bottom: 8px;">
             <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; margin-bottom: 4px;">
-              <span>📅 ${date}</span>
+              <span>📅 ${formattedDate}</span>
               <span style="color: #4b5563; font-weight: 500;">${d.total} resolvidas • Tempo Médio: ${avgTimeSec}s</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -281,14 +496,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
 
     // Category summary aggregation
     const categoryTotals: Record<string, { correct: number, total: number, timeSum: number }> = {};
-    timeline.forEach(t => {
-      if (!categoryTotals[t.category]) {
-        categoryTotals[t.category] = { correct: 0, total: 0, timeSum: 0 };
-      }
-      categoryTotals[t.category].total++;
-      if (t.correct) categoryTotals[t.category].correct++;
-      categoryTotals[t.category].timeSum += t.timeMs;
-    });
+    if (timeline.length > 0) {
+      timeline.forEach(t => {
+        if (!categoryTotals[t.category]) {
+          categoryTotals[t.category] = { correct: 0, total: 0, timeSum: 0 };
+        }
+        categoryTotals[t.category].total++;
+        if (t.correct) categoryTotals[t.category].correct++;
+        categoryTotals[t.category].timeSum += t.timeMs;
+      });
+    } else {
+      // Fallback: Populate categoryTotals using math stats
+      mathStats.forEach(stat => {
+        let category = 'Geral';
+        if (stat.questionKey.includes('+')) category = 'Adição';
+        else if (stat.questionKey.includes('-')) category = 'Subtração';
+        else if (stat.questionKey.includes('x') || stat.questionKey.includes('*')) category = 'Multiplicação';
+        else if (stat.questionKey.includes('/') || stat.questionKey.includes('÷')) category = 'Divisão';
+        else if (stat.questionKey.startsWith('Olimpíadas')) category = 'Olimpíadas';
+
+        if (!categoryTotals[category]) {
+          categoryTotals[category] = { correct: 0, total: 0, timeSum: 0 };
+        }
+        const totalAnswers = stat.correctCount + stat.errorCount;
+        categoryTotals[category].total += totalAnswers;
+        categoryTotals[category].correct += stat.correctCount;
+        categoryTotals[category].timeSum += (stat.averageTimeMs * totalAnswers);
+      });
+    }
 
     const categoryHtml = Object.entries(categoryTotals).map(([cat, val]) => {
       const accuracy = Math.round((val.correct / val.total) * 100);
@@ -330,32 +565,167 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       customizedTip = 'O aluno demonstra ótimo equilíbrio e precisão geral consistente nas operações básicas de matemática. Continue incentivando a prática contínua.';
     }
 
+    // --- NEW SECTIONS DATA ---
+    // Retrieve Olympic statistics
+    const rawScores = localStorage.getItem(`amq_olympic_scores_${selectedUserId}`);
+    const olympicScores: Record<string, number> = rawScores ? JSON.parse(rawScores) : {
+      'Lógica Matemática': 20,
+      'Reconhecimento de Padrões': 15,
+      'Resolução de Problemas': 10,
+      'Cálculo Mental': 30,
+      'Atenção aos Detalhes': 25,
+      'Geometria Visual': 15,
+      'Pensamento Estratégico': 10,
+      'Persistência': 15,
+      'Criatividade Matemática': 20,
+      'Velocidade de Resolução': 30
+    };
+
+    const rawWrong = localStorage.getItem(`amq_olympics_wrong_questions_${selectedUserId}`);
+    const olympicWrongCount = rawWrong ? JSON.parse(rawWrong).length : 0;
+
+    const rawHistory = localStorage.getItem(`amq_olympic_history_${selectedUserId}`);
+    const olympicHistory: Array<{ level: number; correct: boolean; timestamp: string }> = rawHistory ? JSON.parse(rawHistory) : [];
+
+    // Cyber Runner vehicles mapping
+    const runnerBoard = localStorage.getItem(`amq_runner_equipped_board_${selectedUserId}`) || 'light_skate';
+    const boardNames: Record<string, string> = {
+      'light_skate': '🛹 Skate de Luz (Básico)',
+      'tron_bike': '🏍️ Moto Tron',
+      'holo_board': '🛸 Prancha Holográfica',
+    };
+    const boardName = boardNames[runnerBoard] || runnerBoard;
+
+    // Calculate General stats
+    let overallTotalSolved = 0;
+    let overallTotalCorrect = 0;
+    let overallTimeMs = 0;
+    Object.values(categoryTotals).forEach(val => {
+      overallTotalSolved += val.total;
+      overallTotalCorrect += val.correct;
+      overallTimeMs += val.timeSum;
+    });
+
+    const generalAccuracy = overallTotalSolved > 0 ? Math.round((overallTotalCorrect / overallTotalSolved) * 100) : 0;
+    const generalAvgTime = overallTotalSolved > 0 ? (overallTimeMs / overallTotalSolved / 1000).toFixed(1) : '0.0';
+
+    const campaignZone = activeStats.state?.currentZone === 'volcano' ? '🌋 Vulcão de Fogo' : '🌲 Floresta Elemental';
+    const classId = activeStats.state?.classId;
+    const className = classId === 'warrior' ? '🛡️ Guerreiro' : classId === 'chronomancer' ? '⏳ Cronomante' : classId === 'alchemist' ? '🧪 Alquimista' : 'Nenhuma Selecionada';
+
+    // Effort, Resilience & Engagement Metrics
+    const weakQuestionsCorrected = mathStats.filter(s => s.errorCount > 0 && s.correctCount > s.errorCount).length;
+    const totalWeakQuestions = mathStats.filter(s => s.errorCount > 0).length;
+    const resilienceRatio = totalWeakQuestions > 0 ? Math.round((weakQuestionsCorrected / totalWeakQuestions) * 100) : 100;
+
+    const activeDays = datesSorted.length || 1;
+    const avgSessionTime = activeStats.state?.totalPlayTimeSeconds ? (activeStats.state.totalPlayTimeSeconds / activeDays) : 0;
+    const petsCount = pets.length;
+    const cosmeticsCount = activeStats.state?.purchasedCosmetics?.length || 0;
+
+    const resilienceHtml = `
+      <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-top: 15px;">
+        <h3 style="margin: 0 0 10px 0; color: #1e1b4b; font-size: 13px; font-weight: 700; text-transform: uppercase;">📊 Esforço, Resiliência e Consistência de Prática</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+          <div style="border: 1px solid #f3e8ff; padding: 12px; border-radius: 6px; background-color: #faf5ff;">
+            <div style="font-size: 20px; font-weight: 800; color: #7c3aed;">${resilienceRatio}%</div>
+            <div style="font-size: 11px; font-weight: 600; color: #5b21b6; margin-top: 3px;">Índice de Resiliência</div>
+            <div style="font-size: 9px; color: #6b7280; margin-top: 5px; line-height: 1.3;">Porcentagem de dificuldades superadas através do treino contínuo.</div>
+          </div>
+
+          <div style="border: 1px solid #ecfdf5; padding: 12px; border-radius: 6px; background-color: #f0fdf4;">
+            <div style="font-size: 20px; font-weight: 800; color: #10b981;">${activeDays} Dias</div>
+            <div style="font-size: 11px; font-weight: 600; color: #047857; margin-top: 3px;">Consistência de Treino</div>
+            <div style="font-size: 9px; color: #6b7280; margin-top: 5px; line-height: 1.3;">Média de ${(avgSessionTime / 60).toFixed(1)} min por dia de jogo ativo.</div>
+          </div>
+
+          <div style="border: 1px solid #fff7ed; padding: 12px; border-radius: 6px; background-color: #fff7ed;">
+            <div style="font-size: 20px; font-weight: 800; color: #f97316;">${petsCount} 🐾 • ${cosmeticsCount} 👑</div>
+            <div style="font-size: 11px; font-weight: 600; color: #c2410c; margin-top: 3px;">Engajamento de Gamificação</div>
+            <div style="font-size: 9px; color: #6b7280; margin-top: 5px; line-height: 1.3;">Recompensas e companheiros coletados que incentivam o loop de estudo.</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Render Olympic Skills
+    const olympicSkillsHtml = Object.entries(olympicScores).map(([skill, val]) => {
+      let badgeClass = 'danger';
+      let status = 'Iniciante';
+      if (val >= 80) {
+        badgeClass = 'success';
+        status = 'Mestrado';
+      } else if (val >= 50) {
+        badgeClass = 'warning';
+        status = 'Intermediário';
+      }
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+          <span style="font-weight: 600; color: #1e1b4b;">${skill}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 80px; background-color: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden; position: relative;">
+              <div style="background-color: #d97706; width: ${val}%; height: 100%;"></div>
+            </div>
+            <span style="font-weight: 700; width: 40px; text-align: right;">${val}/100</span>
+            <span class="badge ${badgeClass}" style="font-size: 8px; padding: 1px 4px;">${status}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Olympic Medals
+    const medals = activeStats.state?.olympicMedals || {};
+    const goldCount = Object.values(medals).filter(m => m === 'gold').length;
+    const silverCount = Object.values(medals).filter(m => m === 'silver').length;
+    const bronzeCount = Object.values(medals).filter(m => m === 'bronze').length;
+
+    // Olympic history rows
+    const olympicHistoryRowsHtml = olympicHistory.length > 0 ? olympicHistory.slice(-5).map(h => {
+      const statusBadge = h.correct ? 'success' : 'danger';
+      const statusText = h.correct ? 'Acerto' : 'Erro';
+      return `
+        <tr style="font-size: 11px;">
+          <td>Nível ${h.level === 999 ? 'Re-Treino' : h.level}</td>
+          <td><span class="badge ${statusBadge}">${statusText}</span></td>
+          <td style="color: #6b7280;">${h.timestamp}</td>
+        </tr>
+      `;
+    }).join('') : '<tr><td colspan="3" style="text-align: center; color: #9ca3af; font-style: italic; font-size: 11px;">Nenhum histórico de olimpíadas registrado ainda.</td></tr>';
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Relatório Pedagógico - ${activeStats.user.username}</title>
           <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1f2937; padding: 40px; line-height: 1.5; }
-            h1 { color: #4c1d95; font-size: 24px; margin: 0 0 5px 0; font-weight: 800; }
-            .header-info { margin-bottom: 25px; font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; background-color: #faf5ff; border: 1px solid #f3e8ff; padding: 15px; border-radius: 8px; }
-            .info-item { display: flex; justify-content: space-between; border-bottom: 1px solid #f3e8ff; padding-bottom: 4px; }
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1f2937; padding: 30px; line-height: 1.4; }
+            h1 { color: #4c1d95; font-size: 22px; margin: 0 0 5px 0; font-weight: 800; }
+            .header-info { margin-bottom: 20px; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; background-color: #faf5ff; border: 1px solid #f3e8ff; padding: 12px; border-radius: 8px; }
+            .info-item { display: flex; justify-content: space-between; border-bottom: 1px solid #f3e8ff; padding-bottom: 3px; }
             .info-label { color: #6b7280; font-weight: 500; }
             .info-val { font-weight: 700; color: #4c1d95; }
-            h2 { color: #1e1b4b; font-size: 14px; margin: 25px 0 10px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
-            th, td { padding: 8px 10px; text-align: left; font-size: 12px; border-bottom: 1px solid #e5e7eb; }
-            th { background-color: #f9fafb; color: #4b5563; font-weight: 600; text-transform: uppercase; font-size: 10px; }
-            .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-align: center; }
+            
+            h2 { color: #1e1b4b; font-size: 13px; margin: 20px 0 8px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+            table { width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 15px; }
+            th, td { padding: 6px 8px; text-align: left; font-size: 11px; border-bottom: 1px solid #e5e7eb; }
+            th { background-color: #f9fafb; color: #4b5563; font-weight: 600; text-transform: uppercase; font-size: 9px; }
+            
+            .badge { display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: 700; text-align: center; }
             .danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
             .warning { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
             .success { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-            .tip-box { margin-top: 25px; background-color: #f5f3ff; border-left: 4px solid #7c3aed; padding: 15px; border-radius: 6px; font-size: 12px; }
-            .grid-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px; }
+            
+            .tip-box { margin-top: 15px; background-color: #f5f3ff; border-left: 4px solid #7c3aed; padding: 12px; border-radius: 6px; font-size: 11px; }
+            .grid-layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; }
+            .modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+            .module-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; background-color: #f9fafb; }
+            .stat-badge-inline { font-weight: bold; background-color: #ede9fe; color: #5b21b6; padding: 1px 4px; border-radius: 3px; font-size: 10px; }
           </style>
         </head>
         <body>
           <h1>Relatório de Progresso Pedagógico 🌌</h1>
-          <p style="margin: 0 0 20px 0; font-size: 13px; color: #4b5563;">Acompanhamento pedagógico temporal do estudante e estatísticas cognitivas de matemática.</p>
+          <p style="margin: 0 0 15px 0; font-size: 12px; color: #4b5563;">Acompanhamento pedagógico temporal do estudante e estatísticas cognitivas de matemática.</p>
           
           <div class="header-info">
             <div class="info-item">
@@ -384,9 +754,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
             </div>
           </div>
 
+          <h2>📈 Resumo Geral de Desempenho (Tudo Incluído)</h2>
+          <table style="margin-bottom: 20px;">
+            <thead>
+              <tr>
+                <th>Total Respondido (Jogo)</th>
+                <th>Total Acertos</th>
+                <th>Acurácia Geral</th>
+                <th>Tempo Médio Geral</th>
+                <th>Classe Escolhida</th>
+                <th>Progresso na Campanha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: bold; font-size: 12px;">${overallTotalSolved}</td>
+                <td style="font-size: 12px; color: #059669;">${overallTotalCorrect}</td>
+                <td><span class="badge success" style="font-size: 11px;">${generalAccuracy}%</span></td>
+                <td style="font-size: 12px;">${generalAvgTime}s</td>
+                <td style="font-weight: 600;">${className}</td>
+                <td>${campaignZone} (Fase ${activeStats.state?.campaignStage || 1})</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>📉 Gráficos de Tendência Temporal & Curvas de Aprendizado</h2>
+          <div style="margin-bottom: 20px;">
+            ${evolutionChartHtml}
+          </div>
+
+          ${cognitiveHeatmapHtml}
+
+          ${resilienceHtml}
+
           <div class="grid-layout">
             <div>
-              <h2>📊 Resumo de Desempenho por Categoria</h2>
+              <h2>📊 Detalhado por Categoria Aritmética</h2>
               <table>
                 <thead>
                   <tr>
@@ -405,15 +808,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
             </div>
 
             <div>
-              <h2>📈 Linha do Tempo de Evolução</h2>
+              <h2>📅 Linha do Tempo de Evolução (Últimos 7 dias de treino)</h2>
               ${timelineHtml}
             </div>
           </div>
 
           ${progressionAnalysis}
 
+          <h2>🎮 Métricas Avançadas por Módulo do Jogo</h2>
+          <div class="modules-grid">
+            <div class="module-card">
+              <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #b45309; border-bottom: 1px solid #f59e0b; padding-bottom: 3px;">🏆 Olimpíadas dos Deuses (OBMEP & Lógica)</h3>
+              
+              <div style="display: flex; justify-content: space-around; margin-bottom: 10px; text-align: center; font-size: 11px;">
+                <div>🥇 <strong>${goldCount}</strong> Ouro</div>
+                <div>🥈 <strong>${silverCount}</strong> Prata</div>
+                <div>🥉 <strong>${bronzeCount}</strong> Bronze</div>
+              </div>
+
+              <div style="margin-top: 8px;">
+                <span style="font-size: 11px; font-weight: 500;">Perguntas na Fila de Re-Treino:</span>
+                <span class="stat-badge-inline" style="background-color: #fee2e2; color: #991b1b;">${olympicWrongCount} pendentes</span>
+              </div>
+
+              <h4 style="margin: 10px 0 5px 0; font-size: 10px; color: #4b5563; text-transform: uppercase;">Checklist de Especializações</h4>
+              ${olympicSkillsHtml}
+
+              <h4 style="margin: 12px 0 5px 0; font-size: 10px; color: #4b5563; text-transform: uppercase;">Histórico Olímpico Recente</h4>
+              <table style="margin-top: 3px;">
+                <thead>
+                  <tr>
+                    <th>Nível</th>
+                    <th>Resultado</th>
+                    <th>Hora</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${olympicHistoryRowsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="module-card">
+              <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #0891b2; border-bottom: 1px solid #06b6d4; padding-bottom: 3px;">🛹 Cyber Runner (Agilidade & Tabuada)</h3>
+              
+              <div style="font-size: 11px; margin-bottom: 8px;">
+                <strong>Veículo Equipado:</strong> <span style="font-weight: 600; color: #0891b2;">${boardName}</span>
+              </div>
+              <div style="font-size: 11px; line-height: 1.5; color: #4b5563;">
+                Este módulo foca na automatização dos fatos básicos de matemática em velocidade limite. O uso do veículo e a resolução em pistas estimulam o raciocínio sob pressão de tempo (memória de trabalho livre).
+              </div>
+              
+              <h3 style="margin: 15px 0 8px 0; font-size: 12px; color: #047857; border-bottom: 1px solid #10b981; padding-bottom: 3px;">🏟️ Arena de Combate e Sanctum</h3>
+              <div style="font-size: 11px; line-height: 1.4; color: #4b5563; margin-bottom: 6px;">
+                <strong>Mascote Equipado:</strong> <span style="font-weight: 600; color: #047857;">${activeStats.state?.equippedPetId ? '🐾 Ativo' : 'Nenhum'}</span>
+              </div>
+              <div style="font-size: 11px; line-height: 1.4; color: #4b5563;">
+                O progresso do jogador na campanha principal ajuda a praticar operações desafiadoras (missões do templo, SRS espaçado e bosses da zona).
+              </div>
+            </div>
+          </div>
+
           <div class="tip-box">
-            <h3 style="margin-top: 0; color: #7c3aed; font-size: 13px; font-weight: 700;">💡 Dicas Pedagógicas & Recomendações de Treino</h3>
+            <h3 style="margin-top: 0; color: #7c3aed; font-size: 12px; font-weight: 700;">💡 Dicas Pedagógicas & Recomendações de Treino</h3>
             <p style="margin: 0; line-height: 1.5; color: #374151;">${customizedTip}</p>
           </div>
         </body>
@@ -422,6 +879,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     printWindow.document.close();
     printWindow.print();
   };
+
+
 
   const getOpStats = (stats: any[]) => {
     const ops = [

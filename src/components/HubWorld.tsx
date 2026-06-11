@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { mockDb, PET_TYPES, COSMETIC_ITEMS, SKILL_TREE } from '../services/mockDb';
+import { mockDb, PET_TYPES, COSMETIC_ITEMS, SKILL_TREE, getPetEvolutionEmoji } from '../services/mockDb';
 import type { User, GameState, Clan } from '../services/mockDb';
 import { backendService } from '../services/backendService';
 import { ParticleCanvas } from './ParticleCanvas';
@@ -533,7 +533,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     const petType = PET_TYPES.find(pt => pt.id === equipped.petTypeId);
     return {
       ...equipped,
-      emoji: petType?.emoji || '🐶',
+      emoji: getPetEvolutionEmoji(petType?.emoji || '🐶', equipped.level),
       color: petType?.color || '#fff',
     };
   };

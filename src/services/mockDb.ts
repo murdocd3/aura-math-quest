@@ -148,6 +148,27 @@ export interface Pet {
   buffValue: number;
   createdAt: string;
   level: number;
+  xp?: number;
+}
+
+export function getPetEvolutionEmoji(baseEmoji: string, level: number): string {
+  if (level <= 2) return baseEmoji;
+  switch (baseEmoji) {
+    case '🐶': return level <= 4 ? '🐕' : '🐺';
+    case '🐱': return level <= 4 ? '🐈' : '🐅';
+    case '🐰': return level <= 4 ? '🐇' : '🦄';
+    case '🦉': return level <= 4 ? '🦉' : '🦅';
+    case '🐉': return level <= 4 ? '🐉' : '🦖';
+    case '🤖': return level <= 4 ? '🤖' : '🦾';
+    case '🧬': return level <= 4 ? '🧬' : '👾';
+    case '🐥': return level <= 4 ? '🐔' : '🦅';
+    case '🐢': return level <= 4 ? '🐢' : '🐉';
+    case '🦊': return level <= 4 ? '🦊' : '🦁';
+    default: {
+      if (level <= 4) return `${baseEmoji}✨`;
+      return `👑${baseEmoji}👑`;
+    }
+  }
 }
 
 export interface MathStatistic {
@@ -1612,6 +1633,7 @@ export const mockDb = {
       buffValue: petType.buffValue,
       createdAt: new Date().toISOString(),
       level: 1,
+      xp: 0,
     };
 
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
@@ -1661,6 +1683,38 @@ export const mockDb = {
     }
 
     return true;
+  },
+
+  updatePet(petId: string, updates: Partial<Pet>): Pet | null {
+    const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
+    const index = pets.findIndex(p => p.id === petId);
+    if (index === -1) return null;
+
+    pets[index] = {
+      ...pets[index],
+      ...updates
+    };
+
+    setStorageItem(STORAGE_KEYS.PETS, pets);
+
+    if (isSupabaseEnabled && supabase) {
+      const sbUpdates: any = {};
+      if (updates.nickname !== undefined) sbUpdates.nickname = updates.nickname;
+      if (updates.level !== undefined) sbUpdates.level = updates.level;
+      if (updates.buffValue !== undefined) sbUpdates.buff_value = updates.buffValue;
+      if (updates.xp !== undefined) sbUpdates.xp = updates.xp;
+
+      supabase.from('pets')
+        .update(sbUpdates)
+        .eq('id', petId)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[mockDb] Error updating pet in Supabase:', error);
+          }
+        });
+    }
+
+    return pets[index];
   },
 
   equipPet(userId: string, petId: string | null): boolean {
@@ -2049,7 +2103,8 @@ export const mockDb = {
           clanContributions: 0,
           totalPlayTimeSeconds: 0,
           selectedOperation: 'multiplication',
-          unlockedSkills: []
+          unlockedSkills: [],
+          updatedAt: new Date(0).toISOString()
         };
 
         let equippedCosmetics: Record<string, string> = state.equippedCosmetics || {};
@@ -2086,7 +2141,8 @@ export const mockDb = {
           clanContributions: state.clanContributions ?? 0,
           totalPlayTimeSeconds: state.totalPlayTimeSeconds ?? 0,
           selectedOperation: state.selectedOperation ?? 'multiplication',
-          unlockedSkillsCount: (state.unlockedSkills || []).length
+          unlockedSkillsCount: (state.unlockedSkills || []).length,
+          isOnline: (Date.now() - new Date(state.updatedAt || 0).getTime()) < 60000
         };
       })
       .sort((a, b) => {
@@ -2224,6 +2280,81 @@ export const mockDb = {
 
     // Force refresh game state to unequip both pets for safety
     return this.getGameState(userId);
+  },
+
+  addPetXp(userId: string, petId: string, xpGained: number): { pet: Pet | null, leveledUp: boolean } {
+    const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
+    const index = pets.findIndex(p => p.id === petId && p.userId === userId);
+    if (index === -1) return { pet: null, leveledUp: false };
+
+    const pet = pets[index];
+    let xp = (pet.xp || 0) + xpGained;
+    let level = pet.level;
+    let leveledUp = false;
+
+    if (level < 6) {
+      if (xp >= 100) {
+        level += 1;
+        xp = xp - 100;
+        leveledUp = true;
+      }
+    } else {
+      xp = 0;
+    }
+
+    const baseType = PET_TYPES.find(pt => pt.id === pet.petTypeId);
+    const baseBuffVal = baseType ? baseType.buffValue : pet.buffValue;
+    let scaledValue = pet.buffValue;
+
+    if (leveledUp) {
+      if (pet.buffType === 'time_bonus') {
+        scaledValue = baseBuffVal * level;
+      } else {
+        const increment = baseBuffVal - 1;
+        scaledValue = 1 + (increment * level);
+      }
+    }
+
+    let nickname = pet.nickname;
+    if (leveledUp) {
+      const stars = '★'.repeat(level - 1);
+      let baseName = pet.nickname.split(' ★')[0];
+      baseName = baseName.replace(/ (Flamejante 🔥|Voltaico ⚡|Glacial ❄️|Cósmico 🌌)/g, '');
+      let elementSuffix = '';
+      if (level === 3) elementSuffix = ' Flamejante 🔥';
+      else if (level === 4) elementSuffix = ' Voltaico ⚡';
+      else if (level === 5) elementSuffix = ' Glacial ❄️';
+      else if (level >= 6) elementSuffix = ' Cósmico 🌌';
+      nickname = `${baseName}${elementSuffix} ${stars}`;
+    }
+
+    pets[index] = {
+      ...pet,
+      xp,
+      level,
+      nickname,
+      buffValue: Math.round(scaledValue * 100) / 100
+    };
+
+    setStorageItem(STORAGE_KEYS.PETS, pets);
+
+    if (isSupabaseEnabled && supabase) {
+      supabase.from('pets')
+        .update({
+          level,
+          nickname,
+          buff_value: pets[index].buffValue,
+          xp
+        })
+        .eq('id', petId)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[mockDb] Error updating pet XP/Level in Supabase:', error);
+          }
+        });
+    }
+
+    return { pet: pets[index], leveledUp };
   },
 
   // Clan APIs

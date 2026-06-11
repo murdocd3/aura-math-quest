@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { mockDb, PET_TYPES } from '../services/mockDb';
+import { mockDb, PET_TYPES, getPetEvolutionEmoji } from '../services/mockDb';
 import type { Pet, GameState, TradeListing } from '../services/mockDb';
 import { backendService } from '../services/backendService';
 import { audioEngine } from './AudioEngine';
@@ -53,9 +53,20 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   const [fusionSuccessMsg, setFusionSuccessMsg] = useState<string | null>(null);
 
   // Training & Feeding States
-  const [trainingQuestion, setTrainingQuestion] = useState<{ num1: number; num2: number; op: string; answer: number } | null>(null);
-  const [trainingAnswerInput, setTrainingAnswerInput] = useState('');
-  const [trainingFeedback, setTrainingFeedback] = useState<string | null>(null);
+  const [selectedTrainingPetId, setSelectedTrainingPetId] = useState<string | null>(null);
+  const [trainingGameMode, setTrainingGameMode] = useState<'select' | 'food_chase' | 'memory_matrix'>('select');
+  const [levelUpMessage, setLevelUpMessage] = useState<{ name: string; level: number; emoji: string } | null>(null);
+
+  // Corrida dos Cálculos (Food Chase)
+  const [foodChaseStep, setFoodChaseStep] = useState<number>(0);
+  const [foodChaseQuestion, setFoodChaseQuestion] = useState<{ num1: number; num2: number; op: string; answer: number } | null>(null);
+  const [foodChaseInput, setFoodChaseInput] = useState<string>('');
+  const [foodChaseFeedback, setFoodChaseFeedback] = useState<string | null>(null);
+
+  // Matriz de Memória (Memory Matrix)
+  const [memoryMatrixQuestion, setMemoryMatrixQuestion] = useState<{ initial: number; steps: { op: string; val: number }[]; answer: number } | null>(null);
+  const [memoryMatrixInput, setMemoryMatrixInput] = useState<string>('');
+  const [memoryMatrixFeedback, setMemoryMatrixFeedback] = useState<string | null>(null);
 
   // Expedition States
   const [expeditionPetId, setExpeditionPetId] = useState<string | null>(null);
@@ -96,7 +107,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     setTradeListings(mockDb.getTradeListings());
   };
 
-  const generateTrainingQuestion = () => {
+  const generateFoodChaseQuestion = () => {
     const ops = ['+', '-', 'x'];
     const op = ops[Math.floor(Math.random() * ops.length)];
     let num1 = 0;
@@ -117,33 +128,129 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       answer = num1 * num2;
     }
     
-    setTrainingQuestion({ num1, num2, op, answer });
-    setTrainingAnswerInput('');
-    setTrainingFeedback(null);
+    setFoodChaseQuestion({ num1, num2, op, answer });
+    setFoodChaseInput('');
+    setFoodChaseFeedback(null);
   };
 
-  const handleCheckTrainingAnswer = async () => {
-    if (!trainingQuestion) return;
-    const userAnswer = parseInt(trainingAnswerInput);
-    if (userAnswer === trainingQuestion.answer) {
+  const handleCheckFoodChaseAnswer = async () => {
+    if (!foodChaseQuestion || !selectedTrainingPetId) return;
+    const userAnswer = parseInt(foodChaseInput);
+    if (userAnswer === foodChaseQuestion.answer) {
       audioEngine.playCorrect();
-      setTrainingFeedback('Correto! Você ganhou 1 Guloseima 🍖!');
+      setFoodChaseFeedback('Correto! O pet avança em direção à guloseima!');
       
+      const nextStep = foodChaseStep + 1;
+      setFoodChaseStep(nextStep);
+
+      if (nextStep >= 3) {
+        audioEngine.playLevelUp();
+        
+        const xpGained = 40;
+        const res = mockDb.addPetXp(userId, selectedTrainingPetId, xpGained);
+        setPets(mockDb.getPets(userId));
+
+        const currentTreats = gameState.treats || 0;
+        const updatedState = await backendService.updateGameState(userId, {
+          treats: currentTreats + 2
+        });
+        if (updatedState) {
+          onStateUpdate(updatedState);
+        }
+
+        if (res.leveledUp && res.pet) {
+          const pt = PET_TYPES.find(p => p.id === res.pet?.petTypeId);
+          setLevelUpMessage({
+            name: res.pet.nickname,
+            level: res.pet.level,
+            emoji: pt?.emoji || '🐾'
+          });
+        }
+
+        setFoodChaseFeedback(`Parabéns! Seu pet alcançou a Guloseima 🍖! Ganhou +40 XP e +2 Guloseimas!`);
+        setTimeout(() => {
+          setTrainingGameMode('select');
+          setFoodChaseStep(0);
+          setFoodChaseFeedback(null);
+        }, 4000);
+      } else {
+        setTimeout(() => {
+          generateFoodChaseQuestion();
+        }, 1500);
+      }
+    } else {
+      audioEngine.playError();
+      setFoodChaseFeedback(`Ops! Tente novamente. A resposta certa era ${foodChaseQuestion.answer}.`);
+      setTimeout(() => {
+        generateFoodChaseQuestion();
+      }, 2000);
+    }
+  };
+
+  const generateMemoryMatrixQuestion = () => {
+    const initial = Math.floor(Math.random() * 10) + 2;
+    const steps: { op: string; val: number }[] = [];
+    let currentVal = initial;
+
+    for (let i = 0; i < 3; i++) {
+      const ops = ['+', '-', 'x'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let val = 0;
+      if (op === '+') {
+        val = Math.floor(Math.random() * 8) + 2;
+        currentVal += val;
+      } else if (op === '-') {
+        val = Math.floor(Math.random() * (currentVal - 1)) + 1;
+        currentVal -= val;
+      } else {
+        val = Math.floor(Math.random() * 3) + 2;
+        currentVal *= val;
+      }
+      steps.push({ op, val });
+    }
+
+    setMemoryMatrixQuestion({ initial, steps, answer: currentVal });
+    setMemoryMatrixInput('');
+    setMemoryMatrixFeedback(null);
+  };
+
+  const handleCheckMemoryMatrixAnswer = async () => {
+    if (!memoryMatrixQuestion || !selectedTrainingPetId) return;
+    const userAnswer = parseInt(memoryMatrixInput);
+    if (userAnswer === memoryMatrixQuestion.answer) {
+      audioEngine.playCorrect();
+      setMemoryMatrixFeedback('Incrível! Resposta correta! Matriz Sincronizada.');
+
+      const xpGained = 50;
+      const res = mockDb.addPetXp(userId, selectedTrainingPetId, xpGained);
+      setPets(mockDb.getPets(userId));
+
       const currentTreats = gameState.treats || 0;
       const updatedState = await backendService.updateGameState(userId, {
-        treats: currentTreats + 1
+        treats: currentTreats + 3
       });
       if (updatedState) {
         onStateUpdate(updatedState);
       }
+
+      if (res.leveledUp && res.pet) {
+        const pt = PET_TYPES.find(p => p.id === res.pet?.petTypeId);
+        setLevelUpMessage({
+          name: res.pet.nickname,
+          level: res.pet.level,
+          emoji: pt?.emoji || '🐾'
+        });
+      }
+
       setTimeout(() => {
-        generateTrainingQuestion();
-      }, 2000);
+        setTrainingGameMode('select');
+        setMemoryMatrixFeedback(null);
+      }, 4000);
     } else {
       audioEngine.playError();
-      setTrainingFeedback(`Ops! Tente novamente. A resposta certa era ${trainingQuestion.answer}.`);
+      setMemoryMatrixFeedback(`Ops! Conexão falhou. A resposta era ${memoryMatrixQuestion.answer}.`);
       setTimeout(() => {
-        generateTrainingQuestion();
+        generateMemoryMatrixQuestion();
       }, 2500);
     }
   };
@@ -243,12 +350,6 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       setTimeout(() => setPetSuccessMsg(null), 4000);
     }
   };
-
-  useEffect(() => {
-    if (activeTab === 'train' && !trainingQuestion) {
-      generateTrainingQuestion();
-    }
-  }, [activeTab]);
 
   useEffect(() => {
     setPets(mockDb.getPets(userId));
@@ -776,124 +877,300 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
           {/* Tutorial / Help header */}
           <div className="cyber-card" style={{ borderColor: '#ea580c', background: 'rgba(234, 88, 12, 0.03)', padding: '16px' }}>
             <h3 style={{ color: '#ea580c', fontSize: '1.2rem', marginBottom: '6px', fontWeight: 'bold' }}>
-              🍖 Como Treinar e Alimentar seus Pets?
+              🍖 Centro de Treinamento Holográfico de Pets
             </h3>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', lineHeight: '1.3rem', margin: 0 }}>
-              1. Resolva as contas do <strong>Treino Matemático</strong> abaixo para ganhar <strong>Guloseimas 🍖</strong>!<br />
-              2. Junte <strong>5 Guloseimas 🍖</strong> e alimente qualquer pet para ativar o <strong>Super Bônus Elemental</strong> (+50% bônus de XP/Gemas) por 2 horas!
+              Treine seus pets para ganhar <strong>XP</strong> e evoluí-los visualmente e em poder! Escolha um pet e jogue mini-jogos matemáticos ou use suas Guloseimas 🍖 para alimentá-lo!
             </p>
           </div>
 
-          <div className="grid-cols-2">
-            {/* Left Card: Training challenges */}
-            <div className="cyber-card" style={{ borderColor: '#ea580c', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
-              <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
-                🎯 Treino Matemático Rápido
-              </h3>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '12px 18px', borderRadius: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>Minhas Guloseimas:</span>
-                <strong style={{ fontSize: '1.4rem', color: '#ea580c' }}>🍖 {gameState.treats || 0}</strong>
-              </div>
-
-              {trainingQuestion ? (
-                <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 8px 0' }}>Quanto é:</p>
-                  <h2 style={{ fontSize: '2.5rem', color: '#fff', fontWeight: 900, letterSpacing: '2px', margin: '0 0 16px 0' }}>
-                    {trainingQuestion.num1} {trainingQuestion.op === 'x' ? '×' : trainingQuestion.op} {trainingQuestion.num2}
-                  </h2>
-                  
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', maxWidth: '300px', margin: '0 auto 12px auto' }}>
-                    <input
-                      type="number"
-                      value={trainingAnswerInput}
-                      onChange={(e) => setTrainingAnswerInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleCheckTrainingAnswer(); }}
-                      placeholder="Resposta"
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        fontSize: '1.2rem',
-                        textAlign: 'center',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        backgroundColor: '#0b0f19',
-                        color: '#fff'
-                      }}
-                    />
-                    <button className="cyber-btn" onClick={handleCheckTrainingAnswer} style={{ padding: '0 16px', background: 'rgba(234, 88, 12, 0.1)', borderColor: '#ea580c' }}>
-                      Enviar
-                    </button>
-                  </div>
-
-                  {trainingFeedback && (
-                    <div style={{ fontSize: '0.9rem', color: trainingFeedback.includes('Correto') ? 'var(--neon-green)' : 'var(--neon-pink)', fontWeight: 'bold', marginTop: '10px' }}>
-                      {trainingFeedback}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <button className="cyber-btn" onClick={generateTrainingQuestion} style={{ padding: '10px 20px' }}>
-                    Começar Treino 🚀
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Right Card: Pet inventory & feeding panel */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            {/* Left Card: Pet Selection and XP Info */}
             <div className="cyber-card" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
-                🍪 Escolha o Pet para Alimentar
+                🐾 Selecione o Pet para Treinar
               </h3>
 
-              {petSuccessMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', fontSize: '0.8rem', marginBottom: '12px' }}>{petSuccessMsg}</div>}
-              {petErrorMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.8rem', marginBottom: '12px' }}>{petErrorMsg}</div>}
-
-              {gameState.fedBonusUntil && new Date(gameState.fedBonusUntil) > new Date() ? (
-                <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '10px', borderRadius: '6px', color: '#22c55e', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <span>🔥 Super Bônus Elemental de 1.5x Ativo!</span>
-                  <span>Expira às {new Date(gameState.fedBonusUntil).toLocaleTimeString()}</span>
-                </div>
-              ) : (
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginBottom: '14px' }}>
-                  Pet com fome! Alimente-o com 5 Guloseimas 🍖 para ativar o Super Bônus de 1.5x.
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', marginBottom: '20px' }}>
                 {pets.length === 0 ? (
                   <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Você não tem pets ainda. Hatch no gacha para conseguir!</p>
                 ) : (
                   pets.map(pet => {
                     const pt = PET_TYPES.find(p => p.id === pet.petTypeId);
-                    const isEquipped = gameState.equippedPetId === pet.id;
+                    const isSelected = selectedTrainingPetId === pet.id;
                     
                     return (
-                      <div key={pet.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '6px', border: isEquipped ? '1px solid var(--neon-pink)' : '1px solid rgba(255,255,255,0.05)' }}>
+                      <div
+                        key={pet.id}
+                        onClick={() => {
+                          audioEngine.playHatchRoll();
+                          setSelectedTrainingPetId(pet.id);
+                          setTrainingGameMode('select');
+                        }}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: isSelected ? 'rgba(234, 88, 12, 0.1)' : 'rgba(255,255,255,0.02)',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: isSelected ? '1px solid #ea580c' : '1px solid rgba(255,255,255,0.05)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '2rem' }}>{pt?.emoji || '🐾'}</span>
+                          <span style={{ fontSize: '2rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', pet.level)}</span>
                           <div>
                             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff' }}>
-                              {pet.nickname} {isEquipped ? ' (Equipado)' : ''}
+                              {pet.nickname}
                             </div>
                             <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
-                              Nvl {pet.level} • {pt ? getBuffDescription(pt) : ''}
+                              Nvl {pet.level} • XP: {pet.xp || 0}/100
                             </div>
                           </div>
                         </div>
-                        <button
-                          className="cyber-btn"
-                          onClick={() => handleFeedPet(pet.id)}
-                          style={{ padding: '4px 8px', fontSize: '0.75rem', height: '28px', background: 'rgba(234, 88, 12, 0.1)', borderColor: '#ea580c' }}
-                        >
-                          Alimentar 🍖
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#ea580c', fontWeight: 900 }}>
+                            {isSelected ? 'ATIVO' : 'SELECIONAR'}
+                          </span>
+                        </div>
                       </div>
                     );
                   })
                 )}
               </div>
+
+              {selectedTrainingPetId && (
+                (() => {
+                  const activePet = pets.find(p => p.id === selectedTrainingPetId);
+                  if (!activePet) return null;
+                  const pt = PET_TYPES.find(p => p.id === activePet.petTypeId);
+                  return (
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '3rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', activePet.level)}</span>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: 0, color: '#fff', fontSize: '1.05rem' }}>{activePet.nickname}</h4>
+                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Nível {activePet.level}/6 • {activePet.rarity}</span>
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
+                          <span>Experiência (XP):</span>
+                          <span>{activePet.xp || 0}/100</span>
+                        </div>
+                        <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${activePet.xp || 0}%`, height: '100%', background: 'linear-gradient(90deg, #ea580c, #f97316)', boxShadow: '0 0 8px rgba(234, 88, 12, 0.5)', transition: 'width 0.4s ease' }} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                        <button
+                          className="cyber-btn"
+                          onClick={() => handleFeedPet(activePet.id)}
+                          style={{ flex: 1, padding: '8px', fontSize: '0.8rem', background: 'rgba(234, 88, 12, 0.1)', borderColor: '#ea580c' }}
+                        >
+                          Alimentar 🍖 (5 Guloseimas)
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Right Card: Training Minigame Area */}
+            <div className="cyber-card" style={{ borderColor: '#ea580c', background: 'rgba(15, 23, 42, 0.65)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#fff', margin: 0 }}>
+                  🎮 Arena de Jogos de Lógica e Aritmética
+                </h3>
+                <strong style={{ fontSize: '1rem', color: '#ea580c' }}>🍖 {gameState.treats || 0} Guloseimas</strong>
+              </div>
+
+              {petSuccessMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', fontSize: '0.8rem', marginBottom: '12px' }}>{petSuccessMsg}</div>}
+              {petErrorMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.8rem', marginBottom: '12px' }}>{petErrorMsg}</div>}
+
+              {!selectedTrainingPetId ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', padding: '40px' }}>
+                  Selecione um pet da lista ao lado para iniciar as atividades de treinamento matemático!
+                </div>
+              ) : trainingGameMode === 'select' ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '16px' }}>
+                  <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
+                    Escolha um minijogo abaixo para treinar seu pet selecionado e ganhar bônus de XP e Guloseimas!
+                  </p>
+
+                  <div
+                    onClick={() => {
+                      audioEngine.playHatchRoll();
+                      setTrainingGameMode('food_chase');
+                      setFoodChaseStep(0);
+                      generateFoodChaseQuestion();
+                    }}
+                    style={{
+                      border: '1.5px solid rgba(234, 88, 12, 0.3)',
+                      background: 'rgba(234, 88, 12, 0.03)',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    className="cyber-hover"
+                  >
+                    <h4 style={{ margin: '0 0 4px 0', color: '#ea580c', fontSize: '1.05rem', fontWeight: 'bold' }}>🏃‍♂️ Corrida dos Cálculos (Food Chase)</h4>
+                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>
+                      Ajude seu pet a alcançar a guloseima 🍖 resolvendo 3 contas aritméticas rápidas em sequência. Concede <strong>+40 XP</strong> e <strong>+2 Guloseimas</strong>!
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      audioEngine.playHatchRoll();
+                      setTrainingGameMode('memory_matrix');
+                      generateMemoryMatrixQuestion();
+                    }}
+                    style={{
+                      border: '1.5px solid rgba(168, 85, 247, 0.3)',
+                      background: 'rgba(168, 85, 247, 0.03)',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    className="cyber-hover"
+                  >
+                    <h4 style={{ margin: '0 0 4px 0', color: 'var(--neon-purple)', fontSize: '1.05rem', fontWeight: 'bold' }}>🌌 Matriz de Memória Aritmética</h4>
+                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>
+                      Calcule mentalmente a cadeia de operações exibidas na tela cyberpunk e informe o resultado final. Concede <strong>+50 XP</strong> e <strong>+3 Guloseimas</strong>!
+                    </p>
+                  </div>
+                </div>
+              ) : trainingGameMode === 'food_chase' ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#ea580c', fontWeight: 'bold' }}>🏃‍♂️ Corrida dos Cálculos</span>
+                    <button className="cyber-btn" onClick={() => setTrainingGameMode('select')} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Sair</button>
+                  </div>
+
+                  {/* Visual progress bar / chase track */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.4)', padding: '16px', borderRadius: '10px', margin: '12px 0', border: '1px dashed rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', width: '100%', position: 'relative', height: '40px', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: `${(foodChaseStep / 3) * 78}%`,
+                          transition: 'all 0.4s ease',
+                          fontSize: '2.5rem',
+                          zIndex: 1
+                        }}
+                      >
+                        {getPetEvolutionEmoji(PET_TYPES.find(p => p.id === pets.find(x => x.id === selectedTrainingPetId)?.petTypeId)?.emoji || '🐾', pets.find(x => x.id === selectedTrainingPetId)?.level || 1)}
+                      </div>
+                      <div style={{ position: 'absolute', right: '5%', fontSize: '2.5rem', animation: 'pulse-ring 1s infinite alternate', zIndex: 1 }}>
+                        🍖
+                      </div>
+                    </div>
+                  </div>
+
+                  {foodChaseQuestion ? (
+                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 6px 0' }}>Resolva para avançar (Passo {foodChaseStep + 1}/3):</p>
+                      <h2 style={{ fontSize: '2.4rem', color: '#fff', fontWeight: 900, letterSpacing: '2px', margin: '0 0 12px 0' }}>
+                        {foodChaseQuestion.num1} {foodChaseQuestion.op === 'x' ? '×' : foodChaseQuestion.op} {foodChaseQuestion.num2}
+                      </h2>
+                      
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', maxWidth: '300px', margin: '0 auto 10px auto' }}>
+                        <input
+                          type="number"
+                          value={foodChaseInput}
+                          onChange={(e) => setFoodChaseInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleCheckFoodChaseAnswer(); }}
+                          placeholder="Resposta"
+                          style={{
+                            flex: 1,
+                            padding: '10px',
+                            fontSize: '1.2rem',
+                            textAlign: 'center',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            backgroundColor: '#0b0f19',
+                            color: '#fff'
+                          }}
+                        />
+                        <button className="cyber-btn" onClick={handleCheckFoodChaseAnswer} style={{ padding: '0 16px', background: 'rgba(234, 88, 12, 0.1)', borderColor: '#ea580c' }}>
+                          Enviar
+                        </button>
+                      </div>
+
+                      {foodChaseFeedback && (
+                        <div style={{ fontSize: '0.85rem', color: foodChaseFeedback.includes('Correto') || foodChaseFeedback.includes('Parabéns') ? 'var(--neon-green)' : 'var(--neon-pink)', fontWeight: 'bold', marginTop: '6px' }}>
+                          {foodChaseFeedback}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              ) : trainingGameMode === 'memory_matrix' ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--neon-purple)', fontWeight: 'bold' }}>🌌 Matriz de Memória</span>
+                    <button className="cyber-btn" onClick={() => setTrainingGameMode('select')} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Sair</button>
+                  </div>
+
+                  {memoryMatrixQuestion ? (
+                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', margin: '0 0 10px 0' }}>Calcule mentalmente toda a sequência:</p>
+                      
+                      {/* Cyberpunk matrix pipeline layout */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', alignItems: 'center', margin: '16px 0', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                        <div style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '6px 12px', borderRadius: '4px', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          Valor Inicial: {memoryMatrixQuestion.initial}
+                        </div>
+                        {memoryMatrixQuestion.steps.map((step, idx) => (
+                          <React.Fragment key={idx}>
+                            <span style={{ color: 'rgba(255,255,255,0.4)' }}>➔</span>
+                            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '4px', color: '#fff', fontSize: '0.9rem' }}>
+                              {step.op === 'x' ? '×' : step.op} {step.val}
+                            </div>
+                          </React.Fragment>
+                        ))}
+                      </div>
+
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', margin: '14px 0 6px 0' }}>Qual é o resultado final?</p>
+                      
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', maxWidth: '300px', margin: '0 auto 10px auto' }}>
+                        <input
+                          type="number"
+                          value={memoryMatrixInput}
+                          onChange={(e) => setMemoryMatrixInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleCheckMemoryMatrixAnswer(); }}
+                          placeholder="Resultado Final"
+                          style={{
+                            flex: 1,
+                            padding: '10px',
+                            fontSize: '1.2rem',
+                            textAlign: 'center',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            backgroundColor: '#0b0f19',
+                            color: '#fff'
+                          }}
+                        />
+                        <button className="cyber-btn" onClick={handleCheckMemoryMatrixAnswer} style={{ padding: '0 16px', background: 'rgba(168, 85, 247, 0.1)', borderColor: 'var(--neon-purple)' }}>
+                          Enviar
+                        </button>
+                      </div>
+
+                      {memoryMatrixFeedback && (
+                        <div style={{ fontSize: '0.85rem', color: memoryMatrixFeedback.includes('Incrível') ? 'var(--neon-green)' : 'var(--neon-pink)', fontWeight: 'bold', marginTop: '6px' }}>
+                          {memoryMatrixFeedback}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -931,7 +1208,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     {pets
                       .filter(p => p.id !== gameState.equippedPetId && !(gameState.activeExpeditions || []).some(e => e.petId === p.id))
                       .map(p => {
-                        const emoji = PET_TYPES.find(x => x.id === p.petTypeId)?.emoji || '🐾';
+                        const emoji = getPetEvolutionEmoji(PET_TYPES.find(x => x.id === p.petTypeId)?.emoji || '🐾', p.level);
                         return (
                           <option key={p.id} value={p.id}>{emoji} {p.nickname} (Nvl {p.level})</option>
                         );
@@ -1018,7 +1295,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     return (
                       <div key={exp.petId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '2rem' }}>{pt?.emoji || '🐾'}</span>
+                          <span style={{ fontSize: '2rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', pet.level)}</span>
                           <div>
                             <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#fff' }}>{pet.nickname}</div>
                             <div style={{ fontSize: '0.7rem', color: isFinished ? '#22c55e' : 'rgba(255,255,255,0.5)' }}>
@@ -1198,7 +1475,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     const pt = PET_TYPES.find(p => p.id === pet?.petTypeId);
                     return (
                       <>
-                        <span style={{ fontSize: '2.5rem' }}>{pt?.emoji}</span>
+                        <span style={{ fontSize: '2.5rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', pet?.level || 1)}</span>
                         <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff', marginTop: '6px' }}>{pet?.nickname}</div>
                         <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Clique para remover</div>
                       </>
@@ -1240,7 +1517,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     const pt = PET_TYPES.find(p => p.id === pet?.petTypeId);
                     return (
                       <>
-                        <span style={{ fontSize: '2.5rem' }}>{pt?.emoji}</span>
+                        <span style={{ fontSize: '2.5rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', pet?.level || 1)}</span>
                         <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff', marginTop: '6px' }}>{pet?.nickname}</div>
                         <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Clique para remover</div>
                       </>
@@ -1661,7 +1938,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         className={isEquipped ? 'animate-float' : ''}
                         style={{ fontSize: '2.2rem', display: 'inline-block' }}
                       >
-                        {petType?.emoji || '🐶'}
+                        {getPetEvolutionEmoji(petType?.emoji || '🐶', pet.level)}
                       </span>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1793,6 +2070,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       {/* Hatch Overlay / Modal Animation */}
       {isHatching && (
         <div
+          className={hatchStage === 'shaking' ? 'screen-shake-anim' : ''}
           style={{
             position: 'fixed',
             top: 0,
@@ -1806,6 +2084,78 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             justifyContent: 'center',
           }}
         >
+          <style>{`
+            @keyframes cyber-hatch-shake {
+              0% { transform: translate(0, 0) rotate(0deg) scale(1); filter: drop-shadow(0 0 5px rgba(251, 113, 133, 0.5)); }
+              10% { transform: translate(-4px, -2px) rotate(-3deg) scale(1.05); filter: drop-shadow(0 0 15px rgba(251, 113, 133, 0.8)); }
+              20% { transform: translate(3px, 2px) rotate(4deg); }
+              30% { transform: translate(-5px, 0px) rotate(-4deg); }
+              40% { transform: translate(4px, -1px) rotate(3deg) scale(1.1); filter: drop-shadow(0 0 25px rgba(234, 179, 8, 0.9)); }
+              50% { transform: translate(-3px, 2px) rotate(-3deg); }
+              60% { transform: translate(4px, 1px) rotate(4deg); }
+              70% { transform: translate(-4px, -2px) rotate(-4deg) scale(1.15); }
+              80% { transform: translate(3px, 2px) rotate(3deg); }
+              90% { transform: translate(-2px, -1px) rotate(-2deg); }
+              100% { transform: translate(0, 0) rotate(0deg) scale(1.2); filter: drop-shadow(0 0 40px rgba(234, 179, 8, 1)); }
+            }
+
+            @keyframes cyber-hatch-glow {
+              0% { transform: rotate(0deg) scale(1.2); filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.6)); }
+              50% { transform: rotate(180deg) scale(1.4); filter: drop-shadow(0 0 50px rgba(236, 72, 153, 1)); }
+              100% { transform: rotate(360deg) scale(1.6); filter: drop-shadow(0 0 80px rgba(253, 224, 71, 1)); }
+            }
+
+            @keyframes cyber-reveal-burst {
+              0% { transform: scale(0.1) rotate(-45deg); opacity: 0; filter: brightness(3) blur(10px); }
+              50% { transform: scale(1.3) rotate(10deg); opacity: 0.9; filter: brightness(1.5) blur(0px); }
+              75% { transform: scale(0.9) rotate(-5deg); opacity: 1; }
+              100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            }
+
+            @keyframes screen-shake-severe {
+              0%, 100% { transform: translate(0, 0); }
+              10% { transform: translate(-4px, -4px); }
+              20% { transform: translate(4px, 3px); }
+              30% { transform: translate(-4px, 4px); }
+              40% { transform: translate(3px, -3px); }
+              50% { transform: translate(-4px, 3px); }
+              60% { transform: translate(4px, -3px); }
+              70% { transform: translate(-3px, 4px); }
+              80% { transform: translate(3px, -4px); }
+              90% { transform: translate(-4px, 3px); }
+            }
+
+            @keyframes particle-drift {
+              0% { transform: translate(0, 0) scale(1); opacity: 0; }
+              10% { opacity: 1; }
+              90% { opacity: 1; }
+              100% { transform: translate(var(--tx), var(--ty)) scale(0.5); opacity: 0; }
+            }
+
+            .screen-shake-anim {
+              animation: screen-shake-severe 0.25s infinite;
+            }
+
+            .cyber-hatch-shake-class {
+              animation: cyber-hatch-shake 0.35s infinite;
+            }
+
+            .cyber-hatch-glow-class {
+              animation: cyber-hatch-glow 1.2s infinite linear;
+            }
+
+            .cyber-reveal-burst-class {
+              animation: cyber-reveal-burst 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            }
+
+            .confetti-particle {
+              position: absolute;
+              animation: particle-drift 1.8s ease-out forwards;
+              font-size: 1.5rem;
+              pointer-events: none;
+            }
+          `}</style>
+
           <div
             className="cyber-card"
             style={{
@@ -1813,22 +2163,24 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
               maxWidth: '450px',
               textAlign: 'center',
               padding: '40px 30px',
-              border: '2px solid var(--neon-cyan)',
-              boxShadow: '0 0 35px rgba(0, 255, 204, 0.2)',
+              border: hatchStage === 'shaking' ? '2px solid var(--neon-pink)' : hatchStage === 'spinning' ? '2px solid var(--neon-purple)' : '2px solid var(--neon-yellow)',
+              boxShadow: hatchStage === 'shaking' ? '0 0 35px rgba(244, 63, 94, 0.3)' : hatchStage === 'spinning' ? '0 0 35px rgba(168, 85, 247, 0.3)' : '0 0 35px rgba(234, 179, 8, 0.4)',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
             {hatchStage === 'shaking' && (
               <div>
-                <h2 className="text-glow-cyan" style={{ color: 'var(--neon-cyan)', fontSize: '1.8rem', marginBottom: '24px' }}>
+                <h2 className="text-glow-pink" style={{ color: 'var(--neon-pink)', fontSize: '1.8rem', marginBottom: '24px' }}>
                   Comprando Ovo Matemático...
                 </h2>
                 <div
-                  className="animate-float"
+                  className="cyber-hatch-shake-class"
                   style={{
                     fontSize: '6rem',
                     margin: '30px 0',
                     display: 'inline-block',
-                    animationDuration: '0.4s',
                   }}
                 >
                   {getEggEmoji(eggTypeSelected)}
@@ -1838,26 +2190,68 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             )}
 
             {hatchStage === 'spinning' && (
-              <div>
-                <h2 className="text-glow-purple" style={{ color: 'var(--neon-purple)', fontSize: '1.8rem', marginBottom: '24px' }}>
+              <div style={{ position: 'relative' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '200px',
+                    height: '200px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%)',
+                    animation: 'pulse-ring 1.5s infinite alternate',
+                    zIndex: 0
+                  }}
+                />
+                <h2 className="text-glow-purple" style={{ color: 'var(--neon-purple)', fontSize: '1.8rem', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
                   Rachando o Ovo...
                 </h2>
                 <div
+                  className="cyber-hatch-glow-class"
                   style={{
                     fontSize: '6rem',
                     margin: '30px 0',
                     display: 'inline-block',
-                    animation: 'pulse-ring 0.3s infinite alternate',
+                    position: 'relative',
+                    zIndex: 1
                   }}
                 >
                   {spinEmoji}
                 </div>
-                <p style={{ color: 'rgba(255,255,255,0.7)' }}>Calculando probabilidade cósmica...</p>
+                <p style={{ color: 'rgba(255,255,255,0.7)', position: 'relative', zIndex: 1 }}>Calculando probabilidade cósmica...</p>
               </div>
             )}
 
             {hatchStage === 'revealed' && hatchedPet && (
-              <div>
+              <div style={{ position: 'relative' }}>
+                {/* Emitter of emoji sparks / confetti */}
+                {Array.from({ length: 15 }).map((_, i) => {
+                  const tx = (Math.random() - 0.5) * 260 + 'px';
+                  const ty = -100 - Math.random() * 120 + 'px';
+                  const delay = Math.random() * 0.4 + 's';
+                  const emojis = ['✨', '⭐', '🎉', '💥', '🌟', '🍭', '💖'];
+                  const randomEmoji = emojis[i % emojis.length];
+                  return (
+                    <span
+                      key={i}
+                      className="confetti-particle"
+                      style={{
+                        left: '50%',
+                        top: '40%',
+                        animationDelay: delay,
+                        // @ts-ignore
+                        '--tx': tx,
+                        // @ts-ignore
+                        '--ty': ty,
+                      }}
+                    >
+                      {randomEmoji}
+                    </span>
+                  );
+                })}
+
                 <h2
                   className="text-glow-yellow"
                   style={{
@@ -1870,7 +2264,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                   ¡PET DESBLOQUEADO!
                 </h2>
                 
-                <div style={{ fontSize: '7rem', margin: '20px 0' }} className="animate-float">
+                <div style={{ fontSize: '7rem', margin: '20px 0' }} className="cyber-reveal-burst-class">
                   {PET_TYPES.find(p => p.id === hatchedPet.petTypeId)?.emoji}
                 </div>
 
@@ -1937,6 +2331,69 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Level Up Overlay */}
+      {levelUpMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(3, 7, 18, 0.95)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            className="cyber-card"
+            style={{
+              width: '90%',
+              maxWidth: '450px',
+              textAlign: 'center',
+              padding: '40px 30px',
+              border: '2px solid var(--neon-green)',
+              boxShadow: '0 0 35px rgba(34, 197, 94, 0.4)',
+            }}
+          >
+            <h2 className="text-glow-green" style={{ color: 'var(--neon-green)', fontSize: '2rem', marginBottom: '10px', textTransform: 'uppercase' }}>
+              💥 EVOLUÇÃO COMPLETA! 💥
+            </h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem', marginBottom: '20px' }}>
+              Seu pet alcançou um novo patamar de poder matemático!
+            </p>
+            
+            <div style={{ fontSize: '7.5rem', margin: '20px 0' }} className="animate-float">
+              {levelUpMessage.emoji}
+            </div>
+
+            <h3 style={{ fontSize: '1.6rem', color: '#fff', marginBottom: '6px' }}>
+              {levelUpMessage.name}
+            </h3>
+            <p style={{ color: 'var(--neon-yellow)', fontWeight: 800, fontSize: '1.2rem', marginBottom: '30px' }}>
+              NÍVEL ATUAL: {levelUpMessage.level}
+            </p>
+
+            <button
+              className="cyber-btn"
+              onClick={() => setLevelUpMessage(null)}
+              style={{
+                padding: '12px 30px',
+                fontSize: '1rem',
+                fontWeight: 800,
+                width: '100%',
+                background: 'rgba(34, 197, 94, 0.15)',
+                borderColor: 'var(--neon-green)'
+              }}
+            >
+              Continuar Treino ➔
+            </button>
           </div>
         </div>
       )}

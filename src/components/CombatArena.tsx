@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { mockDb, PET_TYPES } from '../services/mockDb';
+import { mockDb, PET_TYPES, getPetEvolutionEmoji } from '../services/mockDb';
 import { backendService } from '../services/backendService';
 import type { User, GameState } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
@@ -1713,7 +1713,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                             }}
                             title={`Pet ${pet.nickname} flutuando no combate!`}
                           >
-                            {pt.emoji}
+                            {getPetEvolutionEmoji(pt.emoji, pet.level)}
                           </div>
                         );
                       }
@@ -1743,7 +1743,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                       const pet = pets.find(p => p.id === gameState.equippedPetId);
                       if (pet) {
                         const pt = PET_TYPES.find(x => x.id === pet.petTypeId);
-                        const emoji = pt?.emoji || '🐾';
+                        const emoji = getPetEvolutionEmoji(pt?.emoji || '🐾', pet.level);
                         const pElem = getPetElement();
                         const elementLabel = pElem === 'fire' ? '🔥 Fogo' : pElem === 'ice' ? '❄️ Gelo' : pElem === 'electric' ? '⚡ Raio' : pElem === 'cosmic' ? '🌌 Cósmico' : null;
                         const elementColor = pElem === 'fire' ? 'var(--neon-pink)' : pElem === 'ice' ? 'var(--neon-cyan)' : pElem === 'electric' ? 'var(--neon-yellow)' : 'var(--neon-purple)';

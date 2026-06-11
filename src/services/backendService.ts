@@ -845,7 +845,7 @@ export const backendService = {
         const [usersRes, statesRes, petsRes, clansRes] = await Promise.race([
           Promise.all([
             supabase.from('users').select('id, username').eq('role', 'player'),
-            supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills'),
+            supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at'),
             supabase.from('pets').select('*'),
             supabase.from('clans').select('id, name')
           ]),
@@ -919,6 +919,9 @@ export const backendService = {
 
             const clan = state.clan_id ? dbClans.find((c: any) => c.id === state.clan_id) : null;
 
+            const lastActiveTime = new Date(state.updated_at || 0).getTime();
+            const isOnline = (Date.now() - lastActiveTime) < 60000;
+
             return {
               username: u.username,
               level: state.aura_level ?? 1,
@@ -937,7 +940,8 @@ export const backendService = {
               totalPlayTimeSeconds: state.total_play_time_seconds ?? 0,
               selectedOperation: state.selected_operation ?? 'multiplication',
               unlockedSkillsCount: (state.unlocked_skills || []).length,
-              olympicMedals: state.olympicMedals
+              olympicMedals: state.olympicMedals,
+              isOnline
             };
           })
           .sort((a: any, b: any) => {

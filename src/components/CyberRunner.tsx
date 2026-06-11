@@ -88,8 +88,8 @@ const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 200;
 
 const RUNNER_CONFIG = {
-  initialSpeed: 3.5,
-  maxSpeed: 11.0,
+  initialSpeed: 2.2,
+  maxSpeed: 7.0,
   speedIncrement: 0.25,
   obstacleSpawnRate: 3000,
   gateSpawnRate: 10000,
@@ -601,7 +601,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
       // Continuous speed ramping based on distance
       if (!bossActiveRef.current) {
-        currentSpeedRef.current = Math.min(RUNNER_CONFIG.initialSpeed + (distanceRef.current / 150), RUNNER_CONFIG.maxSpeed);
+        currentSpeedRef.current = Math.min(RUNNER_CONFIG.initialSpeed + (distanceRef.current / 800), RUNNER_CONFIG.maxSpeed);
       }
 
       // Base game speed with slow-mo & Fever modifiers
@@ -629,9 +629,9 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
       // Theme detection
       let theme: 'city' | 'forest' | 'desert' | 'space' = 'city';
-      if (distanceRef.current >= 900) theme = 'space';
-      else if (distanceRef.current >= 600) theme = 'desert';
-      else if (distanceRef.current >= 300) theme = 'forest';
+      if (distanceRef.current >= 4500) theme = 'space';
+      else if (distanceRef.current >= 3000) theme = 'desert';
+      else if (distanceRef.current >= 1500) theme = 'forest';
 
       if (theme !== currentThemeRef.current) {
         currentThemeRef.current = theme;
