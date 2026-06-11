@@ -289,17 +289,11 @@ export const AuraPass: React.FC<AuraPassProps> = ({
     { id: 'q4', desc: 'Desafiar a Olimpíada dos Deuses', xpReward: 45, action: 'Olimpíadas', target: 'olympics' },
   ];
 
-  const handleQuestSimulate = async (xpReward: number) => {
-    audioEngine.playHatchSuccess();
-    const updated = await backendService.updateGameState(userId, {
-      auraPassXp: currentXp + xpReward,
-    });
-    if (updated) {
-      onStateUpdate(updated);
-    }
-  };
-
   const handleBuyPremium = async () => {
+    if (gameState.hasElitePass) {
+      alert("Seu Passe Elite já está ativo!");
+      return;
+    }
     if (gameState.gems < 50) {
       audioEngine.playError();
       alert("Você precisa de 50 Gemas de Matemática para desbloquear o Passe Elite!");
@@ -717,19 +711,6 @@ export const AuraPass: React.FC<AuraPassProps> = ({
                 }}
               >
                 🎮 Jogar
-              </button>
-              
-              <button
-                className="cyber-btn"
-                onClick={() => handleQuestSimulate(q.xpReward)}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '0.75rem',
-                  borderColor: 'var(--neon-purple)',
-                  background: 'rgba(168,85,247,0.05)'
-                }}
-              >
-                ⚡ Simular Missão
               </button>
             </div>
           </div>

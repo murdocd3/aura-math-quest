@@ -1559,8 +1559,13 @@ export const mockDb = {
     const index = states.findIndex(gs => gs.userId === userId);
     if (index === -1) return null;
 
+    const existingState = states[index];
+    if (existingState.auraPassXp === undefined) existingState.auraPassXp = 0;
+    if (existingState.hasElitePass === undefined) existingState.hasElitePass = false;
+    if (existingState.claimedPassTiers === undefined) existingState.claimedPassTiers = [];
+
     const updatedState = {
-      ...states[index],
+      ...existingState,
       ...updates,
       updatedAt: new Date().toISOString(),
     };
