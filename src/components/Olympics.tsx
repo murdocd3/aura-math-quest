@@ -51,7 +51,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Ana, Beatriz e Carla vestem camisetas de cores diferentes: azul, verde e vermelho. Ana não veste vermelho. Carla veste verde. Qual é a cor da camiseta de Beatriz?',
     options: ['Azul', 'Vermelho', 'Verde', 'Não é possível saber'],
     answer: 'Vermelho',
-    explanation: 'Se Carla veste verde, sobram azul e vermelho. Como Ana não veste vermelho, Ana veste azul. Logo, Beatriz veste vermelho.'
+    explanation: 'Vamos desvendar esse enigma juntos! 🕵️‍♂️\n1) A Carla veste verde. Então, as cores azul e vermelha sobram para a Ana e a Beatriz.\n2) O enigma diz que a Ana não veste vermelho. Se ela não veste vermelho, ela só pode vestir azul!\n3) Agora só sobrou a cor vermelha para a Beatriz. Que legal!'
   },
   {
     level: 2,
@@ -59,7 +59,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Nícolas tem duas peças de papelão formato retangular com medidas 3 cm por 4 cm. Ele junta essas duas peças de várias formas sem sobreposição. Qual das seguintes figuras NÃO pode ser formada por essas duas peças?',
     options: ['Retângulo de 3 cm por 8 cm', 'Retângulo de 6 cm por 4 cm', 'Retângulo de 6 cm por 8 cm', 'Uma figura em formato de L com lados alternados'],
     answer: 'Retângulo de 6 cm por 8 cm',
-    explanation: 'A área total das duas peças juntas é 3*4 + 3*4 = 24 cm². Um retângulo de 6 cm por 8 cm teria área de 48 cm², o que é o dobro da área disponível. Portanto, é impossível formá-lo.',
+    explanation: 'Imagine que cada pedacinho de papelão é feito de quadradinhos! ⬜\n1) Um retângulo de 3 cm por 4 cm tem 12 quadradinhos (3 x 4 = 12).\n2) Como temos duas peças, temos no total 12 + 12 = 24 quadradinhos para brincar.\n3) Se tentarmos montar um retângulo grande de 6 cm por 8 cm, precisaríamos de 48 quadradinhos (6 x 8 = 48).\n4) Como só temos 24 quadradinhos no total, é impossível montar essa figura gigante!',
     origin: 'OBMEP 2023 (Nível 1)'
   },
   {
@@ -68,7 +68,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um sorvete custa 6 reais. Se você comprar 4 sorvetes e pagar com uma nota de 50 reais, quanto receberá de troco?',
     options: ['24 reais', '26 reais', '30 reais', '34 reais'],
     answer: '26 reais',
-    explanation: 'O custo total dos sorvetes é 4 * 6 = 24 reais. O troco será 50 - 24 = 26 reais.',
+    explanation: 'Vamos calcular as moedas no bolso! 🍦\n1) Se cada sorvete custa 6 reais e você compra 4, o total gasto é: 6 + 6 + 6 + 6 = 24 reais (ou 4 x 6 = 24).\n2) Você pagou com uma nota de 50 reais.\n3) Para descobrir o troco, fazemos a continha de menos: 50 - 24 = 26 reais. Prontinho!',
     origin: 'Canguru Matemático'
   },
   {
@@ -77,7 +77,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Vítor tem uma fita adesiva de 1 metro de comprimento. Ele usou pedaços de 15 centímetros para fechar caixas de presente. Qual é o maior número de caixas de presente que ele conseguiu fechar com essa fita?',
     options: ['5 caixas', '6 caixas', '7 caixas', '8 caixas'],
     answer: '6 caixas',
-    explanation: '1 metro equivale a 100 centímetros. Dividindo 100 por 15, temos 100 = 6 * 15 + 10. Portanto, ele consegue fechar no máximo 6 caixas completas.',
+    explanation: 'Vamos medir com atenção! 📏\n1) Primeiro, lembre-se de que 1 metro é a mesma coisa que 100 centímetros.\n2) Cada caixa de presente precisa de 15 centímetros de fita.\n3) Vamos somando de 15 em 15 para ver quantas caixas conseguimos fechar: 15, 30, 45, 60, 75, 90... Se tentarmos mais uma, daria 105 centímetros, o que passa do tamanho da fita!\n4) Então conseguimos fechar exatamente 6 caixas de presente e ainda sobram 10 centímetros de fita.',
     origin: 'OBMEP 2023 (Nível A)'
   },
   {
@@ -86,7 +86,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Observe a sequência de figuras formadas por palitos: Figura 1 tem 4 palitos (um quadrado). Figura 2 tem 7 palitos (dois quadrados grudados). Quantos palitos terá a Figura 4?',
     options: ['10 palitos', '11 palitos', '13 palitos', '14 palitos'],
     answer: '13 palitos',
-    explanation: 'A cada nova figura adicionamos 3 palitos (um quadrado que compartilha uma parede). Sequência: 4, 7, 10, 13.'
+    explanation: 'Vamos contar os palitos com cuidado! 🥢\n1) A Figura 1 tem 4 palitos (forma 1 quadrado).\n2) Para fazer a Figura 2, grudamos mais um quadrado ao lado. Como eles compartilham uma parede de palito, precisamos só de mais 3 palitos (4 + 3 = 7).\n3) Para a Figura 3, somamos mais 3 palitos: 7 + 3 = 10.\n4) E para a Figura 4, somamos mais 3 palitos: 10 + 3 = 13 palitos!'
   },
   {
     level: 6,
@@ -94,7 +94,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma fila de 10 pessoas, cada um a partir do segundo na fila tem 2 anos a mais que o anterior. Se a primeira pessoa da fila tem 8 anos, qual é a idade da última pessoa da fila?',
     options: ['24 anos', '26 anos', '28 anos', '30 anos'],
     answer: '26 anos',
-    explanation: 'A idade do n-ésimo termo é dada por 8 + (n-1)*2. Para n=10, temos 8 + 9 * 2 = 8 + 18 = 26 anos.',
+    explanation: 'Vamos contar as idades na fila! 🧑‍🤝‍🧑\n1) A primeira pessoa tem 8 anos.\n2) A cada passo na fila, a próxima pessoa tem 2 anos a mais: a 2ª tem 10 anos, a 3ª tem 12 anos, e assim por diante.\n3) Para chegar até a 10ª pessoa (o último da fila), nós damos 9 pulos de 2 anos a partir do primeiro.\n4) Multiplicamos esses pulos: 9 x 2 = 18 anos de diferença.\n5) Somamos isso à idade do primeiro: 8 + 18 = 26 anos!',
     origin: 'OBMEP 2017 (Nível 1)'
   },
   {
@@ -103,7 +103,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Para pintar um muro, 3 pintores levam 6 dias. Quantos dias levariam 9 pintores para pintar o mesmo muro no mesmo ritmo?',
     options: ['2 dias', '3 dias', '4 dias', '18 dias'],
     answer: '2 dias',
-    explanation: 'Se triplicamos o número de pintores (de 3 para 9), o tempo necessário cai para um terço: 6 / 3 = 2 dias.',
+    explanation: 'Pense em trabalho em equipe! 🎨\n1) 3 pintores trabalhando juntos levam 6 dias.\n2) Se tivermos 9 pintores, temos 3 vezes mais mãos ajudando (pois 3 x 3 = 9).\n3) Como há muito mais gente ajudando, o trabalho será feito 3 vezes mais rápido!\n4) Dividimos o tempo inicial por 3: 6 dias dividido por 3 é igual a 2 dias.',
     origin: 'Olimpíada de Maio'
   },
   {
@@ -112,7 +112,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Na malha quadriculada de quadradinhos de 1 cm x 1 cm, desenhamos uma letra O estilizada constituída por uma moldura externa de 4 cm x 4 cm de onde foi retirado um quadrado central de 2 cm x 2 cm. Qual é a área dessa letra O?',
     options: ['8 cm²', '12 cm²', '14 cm²', '16 cm²'],
     answer: '12 cm²',
-    explanation: 'Área da moldura total: 4 * 4 = 16 cm². Área do quadrado retirado: 2 * 2 = 4 cm². Área restante da letra O: 16 - 4 = 12 cm².',
+    explanation: 'Vamos montar essa letra O cortando papel! ✂️\n1) Imagine um quadrado de papelão grande de 4 cm por 4 cm. A área dele é: 4 x 4 = 16 quadradinhos (ou cm²).\n2) Agora, recortamos um quadrado menor bem no meio dele de 2 cm por 2 cm. A área recortada é: 2 x 2 = 4 quadradinhos.\n3) Para saber a área que sobrou (que forma a letra O), tiramos o quadradinho do meio: 16 - 4 = 12 cm².',
     origin: 'OBMEP 2023 (Nível A)'
   },
   {
@@ -121,16 +121,16 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um suco de laranja é feito misturando-se 2 copos de suco concentrado com 5 copos de água. Para fazer uma jarra maior mantendo o mesmo sabor, quantos copos de água devem ser misturados com 6 copos de suco concentrado?',
     options: ['10 copos de água', '12 copos de água', '15 copos de água', '18 copos de água'],
     answer: '15 copos de água',
-    explanation: 'A proporção é de 2 partes de suco para 5 de água. Se triplicamos a quantidade de suco concentrado (de 2 para 6 copos), devemos triplicar a água: 5 * 3 = 15 copos.',
+    explanation: 'Vamos preparar um suco delicioso! 🍹\n1) A receita diz que para cada 2 copos de suco concentrado, precisamos de 5 copos de água.\n2) Se agora vamos usar 6 copos de suco concentrado, isso é o triplo da receita original (pois 2 x 3 = 6).\n3) Para manter o sabor gostoso sem ficar fraco nem forte, precisamos triplicar a água também!\n4) Multiplicamos a água por 3: 5 copos x 3 = 15 copos de água.',
     origin: 'OBMEP 2018 (Nível A)'
   },
   {
     level: 10,
     category: 'Resolução de Problemas',
-    question: 'Beto comprou um brinquedo por 35 reais e pagou com uma nota de 50 reais. Ele recebeu o troco em moedas de 5 reais. Quantas moedas ele recebeu?',
+    question: 'Beto comprou um brinquedo por 35 reais and pagou com uma nota de 50 reais. Ele recebeu o troco em moedas de 5 reais. Quantas moedas ele recebeu?',
     options: ['2 moedas', '3 moedas', '4 moedas', '5 moedas'],
     answer: '3 moedas',
-    explanation: 'O troco é 50 - 35 = 15 reais. Dividindo esse valor pelas moedas de 5 reais: 15 / 5 = 3 moedas.'
+    explanation: 'Vamos fazer compras! 🪙\n1) Beto pagou 50 reais por um brinquedo de 35 reais.\n2) O troco que ele deve receber é: 50 - 35 = 15 reais.\n3) Como ele recebeu todo o troco em moedas de 5 reais, vamos contar de 5 em 5 até chegar a 15: 5, 10, 15! Isso dá exatamente 3 moedas de 5 reais (15 dividido por 5 = 3).'
   },
   {
     level: 11,
@@ -138,7 +138,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Sofia escreveu uma palavra repetidamente: AURAURAURA... seguindo o mesmo padrão de repetição. Qual será a 50ª letra escrita por Sofia?',
     options: ['A', 'U', 'R', 'Não é possível saber'],
     answer: 'U',
-    explanation: 'O padrão "AUR" tem tamanho 3. Dividindo 50 por 3, temos 50 = 16 * 3 + 2. O resto é 2, o que significa que a 50ª letra corresponde à 2ª letra do padrão, que é "U".',
+    explanation: 'Olha que padrão legal! 🌀\n1) Sofia repete sempre o mesmo grupinho de 3 letras: "A", "U", "R".\n2) Para saber qual é a 50ª letra, dividimos 50 por 3. Isso dá 16 repetições completas do grupinho e sobram 2 letras de resto (16 x 3 = 48 letras, mais as 2 de sobra = 50).\n3) Essas 2 letras que sobram representam o início do próximo grupo: a 1ª letra é "A" e a 2ª letra é "U".\n4) Portanto, a 50ª letra é "U"!',
     origin: 'OBMEP 2021 (Nível A)'
   },
   {
@@ -147,7 +147,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'A formiguinha da OBMEP quer andar do ponto A (canto inferior esquerdo) ao ponto B (canto superior direito) seguindo as linhas de uma grade de 2x2. Ela só pode andar para a direita ou para cima. De quantas maneiras diferentes ela pode fazer esse trajeto?',
     options: ['4 caminhos', '6 caminhos', '8 caminhos', '10 caminhos'],
     answer: '6 caminhos',
-    explanation: 'Para ir de (0,0) a (2,2) dando 4 passos (2 para a direita e 2 para cima), o número de caminhos é a combinação de 4 elementos 2 a 2: C(4,2) = 6 caminhos (D-D-C-C, D-C-D-C, D-C-C-D, C-D-D-C, C-D-C-D, C-C-D-D).',
+    explanation: 'Imagine o caminho da formiguinha como setas! Ela só pode andar para a Direita (👉) e para Cima (👆) e precisa dar exatamente 4 passos no total.\nVamos listar todas as opções de caminhos possíveis:\n1. 👉👉👆👆 (Direita, Direita, Cima, Cima)\n2. 👉👆👉👆 (Direita, Cima, Direita, Cima)\n3. 👉👆👆👉 (Direita, Cima, Cima, Direita)\n4. 👆👉👉👆 (Cima, Direita, Direita, Cima)\n5. 👆👉👆👉 (Cima, Direita, Cima, Direita)\n6. 👆👆👉👉 (Cima, Cima, Direita, Direita)\nContando todas elas, são exatamente 6 caminhos divertidos!',
     origin: 'OBMEP 2022 (Nível 1)'
   },
   {
@@ -156,7 +156,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o próximo número na sequência numérica: 2, 4, 8, 16, 32, ...?',
     options: ['40', '48', '64', '80'],
     answer: '64',
-    explanation: 'Cada termo é o dobro do termo anterior na progressão geométrica. Portanto, 32 * 2 = 64.',
+    explanation: 'Essa sequência é um jogo de dobrar! ✖️2\n1) O primeiro número é 2.\n2) O próximo é o dobro dele: 2 x 2 = 4.\n3) O próximo é o dobro de 4: 4 x 2 = 8.\n4) O próximo é o dobro de 8: 8 x 2 = 16.\n5) O próximo é o dobro de 16: 16 x 2 = 32.\n6) Para achar o próximo, dobramos o 32: 32 x 2 = 64!',
     origin: 'Canguru Matemático'
   },
   {
@@ -165,7 +165,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Joãozinho escreveu os números de 1 a 20 em uma folha. Ele apagou todos os números pares e, em seguida, apagou todos os múltiplos de 3 que restaram. Quantos números sobraram escritos na folha?',
     options: ['7 números', '8 números', '9 números', '10 números'],
     answer: '7 números',
-    explanation: 'Ímpares de 1 a 20: 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 (10 números). Apagando múltiplos de 3 (3, 9, 15): restam 1, 5, 7, 11, 13, 17, 19. Total de 7 números.',
+    explanation: 'Vamos brincar de detetive de números! 🔍\n1) Primeiro, escrevemos todos os números de 1 a 20.\n2) Apagamos os pares (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Sobram os ímpares: 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 (10 números).\n3) Agora, desses ímpares que sobraram, apagamos os múltiplos de 3 (os que estão na tabuada do 3: 3, 9, 15).\n4) Sobram na folha: 1, 5, 7, 11, 13, 17, 19. Se você contar, são exatamente 7 números!',
     origin: 'OBMEP 2021 (Nível 1)'
   },
   {
@@ -174,7 +174,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o resultado da operação: 45 + 37 - 12?',
     options: ['60', '70', '72', '80'],
     answer: '70',
-    explanation: 'Somando mentalmente: 45 + 37 = 82. Subtraindo 12: 82 - 12 = 70.'
+    explanation: 'Vamos fazer essa conta na mente por partes! ⚡\n1) Primeiro, somamos 45 + 37. Dica: 40 + 30 = 70, e 5 + 7 = 12. Então, 70 + 12 = 82.\n2) Agora, subtraímos 12 do resultado: 82 - 12 = 70. Muito bem!'
   },
   {
     level: 16,
@@ -182,7 +182,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um vaso cheio de água pesa 900 gramas. Se jogarmos metade da água fora, o vaso com o restante da água passa a pesar 500 gramas. Quanto pesa o vaso vazio?',
     options: ['100 gramas', '200 gramas', '300 gramas', '400 gramas'],
     answer: '100 gramas',
-    explanation: 'A metade da água pesa 900 - 500 = 400g. Logo, a água toda pesa 800g. O vaso vazio pesa 900 - 800 = 100g.',
+    explanation: 'Vamos desvendar esse mistério dos pesos! 🏺\n1) O vaso cheio de água pesa 900 gramas. Se tirarmos a metade da água, o peso cai para 500 gramas.\n2) A diferença de peso foi de: 900 - 500 = 400 gramas. Essa diferença é exatamente o peso da metade da água que jogamos fora!\n3) Se metade da água pesa 400 gramas, a água toda pesa: 400 + 400 = 800 gramas.\n4) Agora, para descobrir o peso do vaso vazio, pegamos o peso total e tiramos toda a água: 900 - 800 = 100 gramas!',
     origin: 'OBMEP 2022 (Nível A)'
   },
   {
@@ -191,7 +191,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma caixa temos 5 bolas azuis, 5 bolas vermelhas e 5 bolas amarelas. Retiramos bolas de olhos vendados. Qual é o menor número de bolas que devemos retirar para ter certeza de que pegamos pelo menos duas da mesma cor?',
     options: ['3 bolas', '4 bolas', '5 bolas', '6 bolas'],
     answer: '4 bolas',
-    explanation: 'Pelo Princípio da Casa dos Pombos, ao retirar 3 bolas, podemos pegar uma de cada cor. Ao retirar a 4ª bola, ela obrigatoriamente repetirá uma das cores das bolas já retiradas.',
+    explanation: 'Vamos imaginar o pior caso possível! 🔮\n1) Você quer tirar duas bolas de cores iguais de olhos vendados. Imagine que você tem muito "azar":\n- A 1ª bola que você tira é azul.\n- A 2ª bola que você tira é vermelha.\n- A 3ª bola que você tira é amarela.\nNesse momento, você tem 1 bola de cada cor na mão.\n2) A próxima bola (a 4ª) necessariamente terá que ser azul, vermelha ou amarela, pois só existem essas três cores! Então, não importa qual você tirar, ela vai fazer par com uma das três primeiras.\n3) Por isso, precisamos retirar no mínimo 4 bolas para termos certeza absoluta de formar um par!',
     origin: 'OBMEP 2019 (Nível A)'
   },
   {
@@ -200,7 +200,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Três cartões numerados com 1, 2 e 3 são colocados em uma linha. Podemos trocar a posição de dois cartões vizinhos por vez. Qual é o número mínimo de trocas necessárias para inverter completamente a ordem dos cartões, deixando-os como 3, 2, 1?',
     options: ['2 trocas', '3 trocas', '4 trocas', '5 trocas'],
     answer: '3 trocas',
-    explanation: 'Começando em [1, 2, 3]: Troca vizinhos 1 e 2 -> [2, 1, 3]. Troca vizinhos 1 e 3 -> [2, 3, 1]. Troca vizinhos 2 e 3 -> [3, 2, 1]. Portanto, o mínimo de trocas necessárias é 3.',
+    explanation: 'Vamos fazer os cartões dançarem passo a passo! 🃏\nComeçamos com os cartões na ordem: [1, 2, 3]\n1) Primeiro, trocamos os vizinhos 1 e 2. A ordem fica: [2, 1, 3]\n2) Depois, trocamos os vizinhos 1 e 3 (que agora estão no meio e na ponta). A ordem fica: [2, 3, 1]\n3) Por fim, trocamos os vizinhos 2 e 3. A ordem fica: [3, 2, 1]\nConseguimos inverter tudo com exatamente 3 trocas!',
     origin: 'OBMEP 2019 (Nível 1)'
   },
   {
@@ -209,7 +209,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Uma pizza foi cortada em 8 fatias iguais. Se você comer 3 fatias, que fração da pizza restará no prato?',
     options: ['3/8', '5/8', '1/2', '8/5'],
     answer: '5/8',
-    explanation: 'Se comemos 3 fatias de 8, restam 8 - 3 = 5 fatias. Em forma de fração, representamos por 5/8.',
+    explanation: 'Hora do lanche! 🍕\n1) Uma pizza inteira foi dividida em 8 fatias iguais. Isso significa que o total de fatias é 8.\n2) Se você comer 3 fatias, as fatias que sobram são: 8 - 3 = 5 fatias.\n3) Para representar isso como fração, colocamos as fatias que restaram em cima e o total de fatias embaixo: 5 de 8, que escrevemos como 5/8!',
     origin: 'Canguru Matemático'
   },
   {
@@ -218,7 +218,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quantos números contendo o algarismo 7 existem entre os números de 1 a 50?',
     options: ['5', '14', '15', '20'],
     answer: '5',
-    explanation: 'Listando com atenção: 7, 17, 27, 37, 47. Logo, existem exatamente 5 números com o algarismo 7 nesse intervalo.'
+    explanation: 'Vamos procurar os números que têm o algarismo 7! 🕵️‍♂️\nListamos todos eles de 1 a 50:\n- O número 7\n- O número 17\n- O número 27\n- O número 37\n- O número 47\nNão há dezenas inteiras de 70 porque paramos no 50. Contando na nossa lista, são exatamente 5 números!'
   },
   {
     level: 21,
@@ -226,7 +226,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Teresa quer preencher uma tabela 3x3 com os números 1, 2 e 3 de forma que a soma de cada linha e de cada coluna seja a mesma. Qual deve ser o valor da soma de cada linha e coluna?',
     options: ['5', '6', '7', '9'],
     answer: '6',
-    explanation: 'Os números usados em cada linha/coluna devem somar 6 (uma combinação possível é usar 1, 2, 3 em cada linha e coluna. A soma é 1+2+3=6).',
+    explanation: 'Vamos preencher a tabelinha mágica! 🧮\n1) Temos uma tabela de 3 por 3 de espaço e precisamos usar os números 1, 2 e 3.\n2) Em cada linha e cada coluna, devemos colocar esses três números sem repetir nenhum.\n3) Então, cada linha e cada coluna vai ter exatamente os números 1, 2 e 3.\n4) Para descobrir a soma de cada linha e coluna, basta somar esses três números: 1 + 2 + 3 = 6!',
     origin: 'OBMEP 2024 (Nível 1)'
   },
   {
@@ -235,7 +235,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Manuela quer pintar as quatro regiões de uma bandeira em linha (R1, R2, R3, R4) usando três cores: azul, vermelho e amarelo. Regiões vizinhas não podem ter a mesma cor. Se ela pintar R1 de azul, de quantas maneiras pode pintar o resto?',
     options: ['4 maneiras', '6 maneiras', '8 maneiras', '12 maneiras'],
     answer: '8 maneiras',
-    explanation: 'R1 é azul. Para R2 sobram 2 cores. Para R3 sobram 2 cores (diferentes de R2). Para R4 sobram 2 cores (diferentes de R3). Multiplicando as possibilidades: 1 * 2 * 2 * 2 = 8 maneiras.',
+    explanation: 'Vamos colorir a bandeira sem repetir cores vizinhas! 🎨\nTemos 3 cores (Azul, Vermelho, Amarelo) e 4 regiões (R1, R2, R3, R4) em linha:\n1) R1 já está pintada de Azul (1 possibilidade).\n2) Para R2, não podemos usar Azul. Então sobram 2 opções (Vermelho ou Amarelo).\n3) Para R3, não podemos usar a cor que escolhemos para R2. Sobram 2 opções (uma das outras duas).\n4) Para R4, não podemos usar a cor de R3. Sobram também 2 opções.\n5) Multiplicando todas as opções: 1 x 2 x 2 x 2 = 8 maneiras diferentes!',
     origin: 'OBMEP 2023 (Nível A)'
   },
   {
@@ -244,7 +244,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quantas vezes o algarismo 9 aparece ao escrevermos todos os números inteiros de 1 a 100?',
     options: ['10 vezes', '19 vezes', '20 vezes', '21 vezes'],
     answer: '20 vezes',
-    explanation: 'Aparece nas unidades de: 9, 19, 29, 39, 49, 59, 69, 79, 89, 99 (10 vezes, sendo 2 no 99) e nas dezenas de 90 a 99 (10 vezes). Total de 20 vezes.',
+    explanation: 'Vamos procurar o algarismo 9 em todos os números de 1 a 100! 🕵️‍♂️\nEle aparece em duas posições:\n1) Na posição das unidades: 9, 19, 29, 39, 49, 59, 69, 79, 89, 99. Se contarmos, são 10 vezes (o 99 tem um 9 na unidade).\n2) Na posição das dezenas (família do noventa): 90, 91, 92, 93, 94, 95, 96, 97, 98, 99. Aqui são mais 10 vezes (o 99 tem outro 9 na dezena).\n3) Somando todas as aparições: 10 + 10 = 20 vezes!',
     origin: 'OBMEP 2015 (Nível 1)'
   },
   {
@@ -253,7 +253,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Uma formiguinha caminha pelas arestas de um cubo de arame de 10 cm de aresta. Ela quer ir de um vértice A a um vértice B oposto pelo caminho mais curto seguindo as arestas. Qual a distância percorrida por ela?',
     options: ['20 cm', '30 cm', '40 cm', '50 cm'],
     answer: '30 cm',
-    explanation: 'Em um cubo, o caminho mais curto sobre as arestas de um vértice ao seu oposto exige percorrer exatamente 3 arestas distintas. Logo, 3 * 10 cm = 30 cm.',
+    explanation: 'A caminhada da formiguinha no cubo de arame! 🧊🐜\n1) Para ir de um canto (vértice) ao canto completamente oposto de um cubo caminhando apenas pelas arestas, a formiguinha precisa andar no mínimo 3 arestas (por exemplo: 1 para o lado, 1 para cima e 1 para o fundo).\n2) Cada aresta do cubo mede 10 centímetros.\n3) Multiplicando o comprimento pelo número de arestas: 3 x 10 cm = 30 cm!',
     origin: 'OBMEP 2016 (Nível A)'
   },
   {
@@ -262,7 +262,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se juntarmos dois triângulos equiláteros idênticos colando-os por um de seus lados comuns, qual nova figura plana formamos?',
     options: ['Um quadrado', 'Um losango', 'Um pentágono', 'Um hexágono'],
     answer: 'Um losango',
-    explanation: 'Dois triângulos equiláteros unidos por um lado formam uma figura de 4 lados iguais cujos ângulos opostos são iguais, caracterizando um losango.'
+    explanation: 'Vamos juntar pecinhas geométricas! 📐\n1) Um triângulo equilátero tem 3 lados iguais.\n2) Ao encostar dois desses triângulos lado a lado, o lado da junção fica escondido lá dentro.\n3) A nova figura de fora fica com exatamente 4 lados, todos com o mesmo tamanho.\n4) Uma figura de 4 lados iguais que parece um balãozinho ou pipa é chamada de losango!'
   },
   {
     level: 26,
@@ -270,7 +270,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um número inteiro de três algarismos tem a propriedade de que o algarismo das centenas é igual ao algarismo das unidades. Quantos números assim existem entre 100 e 999?',
     options: ['90 números', '100 números', '900 números', '99 números'],
     answer: '90 números',
-    explanation: 'O número tem a forma ABA. O algarismo das centenas A pode ser escolhido de 1 a 9 (9 opções). O algarismo das dezenas B pode ser de 0 a 9 (10 opções). O algarismo das unidades é igual a A (1 opção). Total = 9 * 10 * 1 = 90 números.',
+    explanation: 'Vamos descobrir números espelhados de 3 algarismos (como 121 ou 353)! 🪞\nEsses números têm a forma ABA:\n1) O primeiro algarismo (A) não pode ser 0, senão o número não teria 3 algarismos. Então temos 9 opções (de 1 a 9).\n2) O segundo algarismo (B) pode ser qualquer número, inclusive o 0. Então temos 10 opções (de 0 a 9).\n3) O terceiro algarismo (A) deve ser obrigatoriamente igual ao primeiro. Então temos apenas 1 opção.\n4) Multiplicando as opções para descobrir o total: 9 x 10 x 1 = 90 números diferentes!',
     origin: 'OBMEP 2023 (Nível 1)'
   },
   {
@@ -279,7 +279,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma gaveta há 10 meias pretas e 10 meias brancas. Se você retirar as meias no escuro, qual o menor número de meias que precisa tirar para garantir que terá pelo menos um par de meias da mesma cor?',
     options: ['2 meias', '3 meias', '11 meias', '12 meias'],
     answer: '3 meias',
-    explanation: 'Retirando 3 meias, pelo menos duas devem ser pretas ou duas brancas, pois só temos duas cores disponíveis (Princípio da Casa dos Pombos).',
+    explanation: 'Vamos brincar de se vestir no escuro! 🧦\n1) Você quer tirar um par de meias da mesma cor e só tem meias pretas e brancas na gaveta.\n2) Imagine que você tire a 1ª meia e ela seja preta. E a 2ª meia seja branca.\n3) Quando você tirar a 3ª meia, não importa a cor dela (preta ou branca), ela vai formar um par com uma das duas primeiras!\n4) Portanto, tirando apenas 3 meias você garante 100% que terá pelo menos um par da mesma cor.',
     origin: 'Canguru Matemático'
   },
   {
@@ -288,7 +288,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma escola, os alunos da Olimpíada de Matemática foram divididos em salas. Se colocarmos 3 alunos em cada sala, sobra 1 aluno. Se colocarmos 4 alunos em cada sala, uma sala fica vazia. Quantos alunos participam dessa Olimpíada?',
     options: ['10 alunos', '13 alunos', '16 alunos', '20 alunos'],
     answer: '16 alunos',
-    explanation: 'Equacionando: a = 3s + 1 e a = 4(s - 1) = 4s - 4. Igualando: 3s + 1 = 4s - 4 => s = 5. Logo, a = 3(5) + 1 = 16 alunos.',
+    explanation: 'Vamos usar a imaginação para resolver esse desafio! 🏫\n1) Se colocarmos 3 alunos por sala, sobra 1 aluno de fora.\n2) Se colocarmos 4 alunos por sala, uma sala fica vazia. Isso significa que se trouxermos de volta os alunos que caberiam naquela sala vazia (que seriam 4), mais o aluno que estava sobrando (1), teremos 5 alunos no total que foram redistribuídos!\n3) Para redistribuir 5 alunos colocando 1 a mais em cada sala (passando de 3 para 4 alunos), precisamos ter exatamente 5 salas ativas!\n4) Com 5 salas e colocando 3 alunos em cada uma (3 x 5 = 15) mais o 1 aluno que sobrou, temos 16 alunos no total!',
     origin: 'OBMEP 2018 (Nível 1)'
   },
   {
@@ -297,7 +297,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um sapo sobe 2 metros de uma parede de dia e escorrega 1 metro à noite. Se a parede tem 5 metros de altura, em qual dia o sapo chegará ao topo da parede?',
     options: ['3º dia', '4º dia', '5º dia', '6º dia'],
     answer: '4º dia',
-    explanation: 'No fim do 3º dia ele está na marca de 3 metros. No 4º dia, ele sobe 2 metros, atingindo a marca de 5 metros e saindo da parede antes de escorregar.',
+    explanation: 'Acompanhe a subida do sapinho! 🐸\n- No Dia 1: ele sobe 2m de dia e escorrega 1m à noite. Termina na marca de 1 metro.\n- No Dia 2: ele sobe 2m (chega em 3m) e escorrega 1m. Termina na marca de 2 metros.\n- No Dia 3: ele sobe 2m (chega em 4m) e escorrega 1m. Termina na marca de 3 metros.\n- No Dia 4: ele começa na marca de 3 metros e sobe 2 metros durante o dia. Ele alcança os 5 metros (o topo da parede)! Como ele já chegou lá em cima, ele sai da parede e não escorrega mais.',
     origin: 'Canguru Matemático'
   },
   {
@@ -315,7 +315,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em um jogo de tabuleiro, se você der um passo para frente avança 2 casas. Se der um passo para trás volta 1 casa. Qual a melhor sequência estratégica para avançar exatamente 5 casas no menor número de passos?',
     options: ['3 passos para frente', '4 passos para frente e 3 para trás', '3 passos para frente e 1 para trás', '2 passos para frente e 1 para trás'],
     answer: '3 passos para frente e 1 para trás',
-    explanation: '3 passos para frente dão 6 casas. 1 para trás volta para 5. Total de 4 passos. 3 passos para frente dão 6 (passou). 2 para frente e 1 para trás dá 3.'
+    explanation: 'Vamos planejar a melhor estratégia de passos! 🎲\n1) Cada passo para frente avança 2 casas. Se dermos 3 passos para frente, avançamos: 2 + 2 + 2 = 6 casas (passamos um pouco de 5).\n2) Agora, damos 1 passo para trás, o que nos faz voltar 1 casa: 6 - 1 = 5 casas!\n3) Conseguimos chegar exatamente na casa 5 usando o menor número de passos (4 passos no total).'
   },
   {
     level: 32,
@@ -332,7 +332,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é a metade de 2 mais 2?',
     options: ['2', '3', '4', '1'],
     answer: '3',
-    explanation: 'A expressão verbal "metade de 2, mais 2" representa (2 / 2) + 2 = 1 + 2 = 3.',
+    explanation: 'Atenção à pegadinha da vírgula e da ordem das palavras! 🎙️\n1) Quando dizemos "a metade de 2, mais 2", primeiro calculamos a metade de 2.\n2) A metade de 2 é igual a 1.\n3) Depois, somamos mais 2 a esse resultado: 1 + 2 = 3.',
     origin: 'Desafio Raciocínio'
   },
   {
@@ -341,7 +341,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o dobro de 15 somado com o triplo de 10?',
     options: ['45', '60', '75', '80'],
     answer: '60',
-    explanation: 'O dobro de 15 é 30. O triplo de 10 é 30. Somando 30 + 30 = 60.'
+    explanation: 'Vamos resolver essa soma por partes! ⚡\n1) O dobro de um número é ele vezes 2. O dobro de 15 é: 15 + 15 = 30.\n2) O triplo de um número é ele vezes 3. O triplo de 10 é: 10 + 10 + 10 = 30.\n3) Agora somamos os dois resultados: 30 + 30 = 60.'
   },
   {
     level: 35,
@@ -349,7 +349,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um caracol está no fundo de um poço de 6 metros de profundidade. Durante o dia ele sobe 3 metros, mas à noite ele escorrega 2 metros. Quantos dias ele levará para sair do poço?',
     options: ['3 dias', '4 dias', '5 dias', '6 dias'],
     answer: '4 dias',
-    explanation: 'Dia 1: sobe para 3, escorrega para 1. Dia 2: sobe para 4, escorrega para 2. Dia 3: sobe para 5, escorrega para 3. Dia 4: sobe 3 metros e alcança 6 metros (topo), saindo do poço sem escorregar.'
+    explanation: 'Acompanhe a jornada do caracol! 🐌\n- Dia 1: sobe 3m e escorrega 2m. Termina em 1 metro.\n- Dia 2: sobe 3m (chega a 4m) e escorrega 2m. Termina em 2 metros.\n- Dia 3: sobe 3m (chega a 5m) e escorrega 2m. Termina em 3 metros.\n- Dia 4: começa em 3 metros e sobe 3 metros durante o dia. Ele chega na marca de 6 metros (o topo)! Como ele já saiu do poço, ele não escorrega mais.'
   },
   {
     level: 36,
@@ -357,7 +357,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma caixa, há 6 fichas numeradas de 1 a 6. Retiramos duas fichas sem olhar. Qual é a probabilidade de que a soma dos números das fichas retiradas seja igual a 7?',
     options: ['1/5', '1/3', '1/2', '2/5'],
     answer: '1/5',
-    explanation: 'Total de duplas possíveis de 6 fichas: (6 * 5) / 2 = 15 pares. Os pares favoráveis que somam 7 são: (1,6), (2,5), (3,4). São 3 pares. Probabilidade: 3/15 = 1/5.',
+    explanation: 'Vamos brincar de sorteio de fichas! 🎲\n1) Se você tem 6 fichas numeradas de 1 a 6, existem 15 maneiras diferentes de escolher duas fichas.\n2) Vamos listar os pares que somam exatamente 7:\n- Ficha 1 e Ficha 6 (1 + 6 = 7)\n- Ficha 2 e Ficha 5 (2 + 5 = 7)\n- Ficha 3 e Ficha 4 (3 + 4 = 7)\nTotal de 3 pares favoráveis.\n3) A probabilidade é de 3 em 15. Simplificando a fração (dividindo em cima e embaixo por 3), temos 1 em 5, ou seja, 1/5!',
     origin: 'OBMEP 2017 (Nível A)'
   },
   {
@@ -366,7 +366,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um livro tem 120 páginas. Se ler 10 páginas por dia, em quantas semanas terminarei a leitura completa?',
     options: ['1 semana', '2 semanas', '12 dias', 'Mais de 3 semanas'],
     answer: '2 semanas',
-    explanation: '120 páginas dividido por 10 páginas ao dia resulta em 12 dias. Como 1 semana tem 7 dias, 12 dias cabem na segunda semana (14 dias).',
+    explanation: 'Vamos programar a nossa leitura! 📖\n1) O livro tem 120 páginas e você lê 10 páginas por dia.\n2) Para saber quantos dias levará, dividimos: 120 dividido por 10 = 12 dias de leitura.\n3) Uma semana tem 7 dias. Duas semanas têm 14 dias.\n4) Como 12 dias é mais do que 1 semana, mas menos do que 2 semanas, você terminará de ler na segunda semana!',
     origin: 'Canguru Matemático'
   },
   {
@@ -375,7 +375,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se o ontem de amanhã é segunda-feira, que dia da semana é hoje?',
     options: ['Domingo', 'Segunda-feira', 'Terça-feira', 'Sábado'],
     answer: 'Segunda-feira',
-    explanation: 'O ontem do amanhã é o próprio dia de hoje. Portanto, hoje é segunda-feira.'
+    explanation: 'Essa é uma charada de tempo! 📅\n1) Pense bem: o que é "o ontem do amanhã"?\n- O amanhã é o dia que vem depois de hoje.\n- O ontem desse dia é o dia anterior a ele... que volta a ser o dia de hoje!\n2) Então, dizer "o ontem do amanhã é segunda-feira" é o mesmo que dizer "hoje é segunda-feira"!'
   },
   {
     level: 39,
@@ -383,7 +383,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quantos cubos de 1 cm de aresta cabem perfeitamente dentro de uma caixa cúbica de 3 cm de aresta?',
     options: ['9 cubos', '18 cubos', '27 cubos', '36 cubos'],
     answer: '27 cubos',
-    explanation: 'Volume da caixa grande: 3 * 3 * 3 = 27 cm³. Como cada cubinho tem 1 cm³, cabem exatamente 27 cubinhos.',
+    explanation: 'Vamos construir um cubo gigante com blocos de montar! 🧱\n1) A caixa grande tem 3 cm de lado. Para enchê-la com cubinhos de 1 cm, precisamos de:\n- 3 cubinhos na largura\n- 3 cubinhos no comprimento (formando uma base com 3 x 3 = 9 cubinhos)\n- 3 camadas de altura\n2) Multiplicando tudo para saber o total: 9 cubinhos na base x 3 camadas de altura = 27 cubinhos!',
     origin: 'Canguru Matemático'
   },
   {
@@ -392,7 +392,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Usando quatro algarismos 4 e as operações básicas (+, -, *, /), qual das opções abaixo representa o número 10?',
     options: ['4 + 4 + (4 / 4)', '(4 * 4) - 4 - 4', '(44 - 4) / 4', '4 + 4 + 4 - 4'],
     answer: '(44 - 4) / 4',
-    explanation: 'Pensando fora da caixa: 44 - 4 = 40. Dividido por 4 = 10. Uma elegante combinação criativa!'
+    explanation: 'Vamos usar a criatividade matemática! 🧠✨\nPodemos juntar dois algarismos 4 para formar o número 44:\n1) Fazemos a conta: 44 - 4 = 40.\n2) Agora, pegamos o resultado e dividimos pelo último 4: 40 dividido por 4 = 10!\nUsamos exatamente quatro vezes o número 4.'
   },
   {
     level: 41,
@@ -400,7 +400,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se a letra A = 1, B = 2, C = 3, etc. Qual é a soma dos valores numéricos das letras da palavra AURA?',
     options: ['38', '40', '42', '45'],
     answer: '42',
-    explanation: 'Valores: A=1, U=21, R=19, A=1. Somando: 1 + 21 + 19 + 1 = 42.'
+    explanation: 'Vamos somar as letras como se fossem pontos! 🔤\nOlhando a posição de cada letra no alfabeto:\n- A = 1\n- U = 21\n- R = 19\n- A = 1\nSomando tudo: 1 + 21 + 19 + 1 = 42 pontos!'
   },
   {
     level: 42,
@@ -408,7 +408,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o número que, se somado com o seu próprio dobro, resulta em 24?',
     options: ['6', '8', '12', '16'],
     answer: '8',
-    explanation: 'A equação é x + 2x = 24 => 3x = 24 => x = 8.'
+    explanation: 'Vamos pensar em fatias de pizza! 🍕\n1) Um número somado com o seu próprio dobro é a mesma coisa que somar o número 3 vezes (1 parte dele mais 2 partes dele).\n2) Se essas 3 partes iguais juntas somam 24, dividimos 24 por 3 para saber o valor de cada parte.\n3) Fazendo a conta: 24 dividido por 3 = 8. Então o número procurado é o 8!'
   },
   {
     level: 43,
@@ -416,7 +416,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um avião decola às 14h30 de Brasília e pousa em Salvador às 16h15 do mesmo dia. Quanto tempo durou o voo de avião?',
     options: ['1h15min', '1h30min', '1h45min', '2h15min'],
     answer: '1h45min',
-    explanation: 'De 14h30 até 15h30 é 1 hora. De 15h30 até 16h15 são mais 45 minutos. Total de 1 hora e 45 minutos.'
+    explanation: 'Vamos contar as horas no relógio! ✈️\n1) O avião decola às 14h30.\n2) De 14h30 até as 15h30, passa exatamente 1 hora.\n3) Das 15h30 até as 16h15, passam mais 45 minutos.\n4) Juntando tudo, o voo durou exatamente 1 hora e 45 minutos.'
   },
   {
     level: 44,
@@ -424,7 +424,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma fila de banco, Júlia está na 5ª posição de frente para trás e na 6ª posição de trás para frente. Quantas pessoas estão na fila?',
     options: ['10 pessoas', '11 pessoas', '9 pessoas', '12 pessoas'],
     answer: '10 pessoas',
-    explanation: 'Há 4 pessoas na frente de Júlia e 5 pessoas atrás dela. Total: 4 + Júlia (1) + 5 = 10 pessoas.',
+    explanation: 'Vamos contar as pessoas na fila do banco! 🧑‍🤝‍🧑\n1) Júlia está na 5ª posição vindo da frente. Isso significa que existem 4 pessoas na frente dela.\n2) Ela está na 6ª posição vindo de trás. Isso significa que existem 5 pessoas atrás dela.\n3) Para descobrir o total de pessoas, somamos quem está na frente, a Júlia e quem está atrás: 4 + 1 (Júlia) + 5 = 10 pessoas na fila.',
     origin: 'OBMEP 2012 (Nível A)'
   },
   {
@@ -433,7 +433,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um relógio digital marca 12:34. Daqui a quantos minutos o relógio marcará 13:11 pela primeira vez?',
     options: ['37 minutos', '58 minutos', '68 minutos', '77 minutos'],
     answer: '37 minutos',
-    explanation: 'De 12:34 até 13:00 são 26 minutos. De 13:00 até 13:11 são mais 11 minutos. Somando ambos: 26 + 11 = 37 minutos.'
+    explanation: 'Vamos contar os minutos que faltam! ⏰\n1) O relógio marca 12:34.\n2) Para chegar até as 13:00 (uma hora cheia), faltam: 60 - 34 = 26 minutos.\n3) Das 13:00 até as 13:11, passam mais 11 minutos.\n4) Somamos os dois tempos: 26 minutos + 11 minutos = 37 minutos!'
   },
   {
     level: 46,
@@ -441,7 +441,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Cinco amigos disputaram uma corrida. Beto chegou antes de Carlos, mas depois de Adriano. Daniel chegou antes de Eduardo, mas depois de Carlos. Quem ganhou a corrida?',
     options: ['Adriano', 'Beto', 'Carlos', 'Daniel'],
     answer: 'Adriano',
-    explanation: 'Temos a ordem: Adriano > Beto > Carlos > Daniel > Eduardo. Logo, Adriano foi o primeiro colocado.',
+    explanation: 'Vamos bancar os detetives e montar a fila de chegada dos amigos! 🏃‍♂️\n1) Beto chegou antes de Carlos, mas depois de Adriano. Então a ordem é: Adriano -> Beto -> Carlos.\n2) Daniel chegou antes de Eduardo, mas depois de Carlos. Então a ordem continua: Carlos -> Daniel -> Eduardo.\n3) Juntando as duas pistas, temos a ordem completa de chegada: Adriano (1º) -> Beto (2º) -> Carlos (3º) -> Daniel (4º) -> Eduardo (5º).\n4) Quem ganhou a corrida foi o Adriano!',
     origin: 'OBMEP 2018 (Nível A)'
   },
   {
@@ -450,7 +450,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se 5 impressoras imprimem 5 panfletos em 5 segundos, quantos segundos 10 impressoras de mesma capacidade levarão para imprimir 10 panfletos?',
     options: ['5 segundos', '10 segundos', '2 segundos', '1 segundo'],
     answer: '5 segundos',
-    explanation: 'Como cada impressora imprime 1 panfleto em 5 segundos de forma independente, 10 impressoras trabalhando juntas farão 10 panfletos nos mesmos 5 segundos.'
+    explanation: 'Pense nas impressoras como robozinhos ajudantes! 🤖\n1) Cada impressora trabalha de forma independente e leva 5 segundos para fazer 1 panfleto.\n2) Se tivermos 10 impressoras ligadas ao mesmo tempo, cada uma vai imprimir o seu próprio panfleto.\n3) Como elas começam e terminam juntas, todas terminam seus panfletos nos mesmos 5 segundos!'
   },
   {
     level: 48,
@@ -458,7 +458,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um fazendeiro plantou 80 sementes. Sabendo que a cada 5 sementes plantadas, exatamente 4 germinam, quantas plantas o fazendeiro terá?',
     options: ['60 plantas', '64 plantas', '70 plantas', '75 plantas'],
     answer: '64 plantas',
-    explanation: 'Multiplicamos o total pela taxa 4/5: 80 * (4/5) = 16 * 4 = 64 plantas germinadas.',
+    explanation: 'Vamos plantar no jardim! 🌱\n1) O fazendeiro tem 80 sementes. A cada 5 sementes, 4 viram plantinhas.\n2) Primeiro, vamos descobrir quantos grupinhos de 5 sementes existem em 80: dividimos 80 por 5, o que dá 16 grupinhos.\n3) Como em cada um desses 16 grupinhos nascem 4 plantas, fazemos: 16 x 4 = 64 plantas no total!',
     origin: 'OBMEP 2021 (Nível 1)'
   },
   {
@@ -467,7 +467,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quantos lados tem a figura formada ao juntarmos dois hexágonos regulares idênticos colados por um lado compartilhado completo?',
     options: ['10 lados', '11 lados', '12 lados', '8 lados'],
     answer: '10 lados',
-    explanation: 'Cada hexágono tem 6 lados. Ao colá-los, a aresta de junção vai para o interior. A nova figura terá 6 + 6 - 2 = 10 lados externos.',
+    explanation: 'Vamos construir com pecinhas! 📐\n1) Um hexágono sozinho tem 6 lados externos.\n2) Se pegarmos dois hexágonos e encostarmos um lado de um no lado do outro, esses dois lados colados ficam "escondidos" lá dentro da figura.\n3) Então, o contorno de fora perde 1 lado de cada hexágono (2 lados no total).\n4) A nova figura terá: 6 + 6 - 2 = 10 lados no contorno de fora!',
     origin: 'Canguru Matemático'
   },
   {
@@ -476,7 +476,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em um sítio há galinhas e coelhos, totalizando 10 cabeças e 28 patas. Quantos coelhos há no sítio?',
     options: ['3 coelhos', '4 coelhos', '5 coelhos', '6 coelhos'],
     answer: '4 coelhos',
-    explanation: 'Se todos fossem galinhas teríamos 20 patas. Sobram 8 patas (28 - 20). Cada coelho tem 2 patas a mais que a galinha, logo 8 / 2 = 4 coelhos.'
+    explanation: 'Vamos dar um passeio pelo sítio! 🐰🐔\n1) Temos 10 bichinhos no total. Se todos eles fossem galinhas, que têm apenas 2 patas, teríamos: 10 x 2 = 20 patas.\n2) Mas o problema diz que temos 28 patas! Estão sobrando: 28 - 20 = 8 patas.\n3) Cada coelho tem 4 patas, que são 2 patas a mais do que uma galinha. Essas 8 patas sobrando pertencem aos coelhos!\n4) Dividimos as patas sobressalentes: 8 patas divididas por 2 patas extras de cada coelho = 4 coelhos. Logo, temos 4 coelhos (e 6 galinhas)!'
   },
   {
     level: 51,
@@ -500,7 +500,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quatro amigos estão sentados em uma mesa redonda. Maria diz: "Estou ao lado de Paulo e de Ana". Lucas diz: "Estou ao lado de Paulo". Quem está sentado em frente a Maria?',
     options: ['Ana', 'Paulo', 'Lucas', 'Não é possível saber'],
     answer: 'Lucas',
-    explanation: 'A mesa segue a ordem circular: Ana - Maria - Paulo - Lucas. Logo, Lucas e Maria estão em posições diametralmente opostas.',
+    explanation: 'Vamos desenhar a mesa redonda na nossa mente! 🪑\n1) Maria está no meio, ao lado de Paulo e de Ana. Então a ordem é: Ana - Maria - Paulo.\n2) Como são 4 amigos na mesa redonda, o Lucas deve se sentar no único lugar que sobrou, fechando o círculo entre Paulo e Ana.\n3) Olhando para a mesa, a ordem circular fica: Ana, Maria, Paulo, Lucas.\n4) Quem está bem na frente da Maria, do outro lado da mesa, é o Lucas!',
     origin: 'OBMEP 2017 (Nível 1)'
   },
   {
@@ -509,7 +509,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se você escrever os números de 1 a 30 em ordem crescente, quantas vezes utilizará o algarismo 3?',
     options: ['3 vezes', '4 vezes', '12 vezes', '13 vezes'],
     answer: '4 vezes',
-    explanation: 'O algarismo 3 aparece em: 3, 13, 23 e 30. Total de 4 vezes.'
+    explanation: 'Vamos caçar o número 3! 🎯\nSe escrevermos os números de 1 a 30, o algarismo 3 vai aparecer apenas nas seguintes posições:\n- No número 3\n- No número 13\n- No número 23\n- No número 30 (que começa com 3)\nContando todas essas vezes, o algarismo 3 é escrito exatamente 4 vezes!'
   },
   {
     level: 55,
@@ -517,7 +517,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quatro times disputam um torneio onde cada time joga exatamente uma vez contra todos os outros. Quantos jogos ocorrerão no total?',
     options: ['4 jogos', '6 jogos', '8 jogos', '12 jogos'],
     answer: '6 jogos',
-    explanation: 'Para 4 times, as partidas possíveis são combinadas 2 a 2: (4 * 3) / 2 = 6 jogos.',
+    explanation: 'Vamos organizar a tabela do campeonato! ⚽\nImagine os times A, B, C e D:\n1) O time A joga contra B, C e D (3 jogos).\n2) O time B joga contra C e D (não contamos o jogo contra A de novo! Mais 2 jogos).\n3) O time C joga contra D (mais 1 jogo).\n4) O time D já jogou contra todos!\n5) Somando todos os jogos: 3 + 2 + 1 = 6 jogos no total.',
     origin: 'OBMEP 2019 (Nível A)'
   },
   {
@@ -526,7 +526,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Para subir uma escada de 8 degraus, Tiago pode dar passos de 1 degrau ou pulos de 2 degraus de cada vez. De quantas maneiras diferentes ele pode subir essa escada?',
     options: ['21 maneiras', '34 maneiras', '55 maneiras', '8 maneiras'],
     answer: '34 maneiras',
-    explanation: 'A progressão dos degraus segue a sequência de Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34. Logo, para 8 degraus são 34 combinações.',
+    explanation: 'Essa brincadeira segue uma sequência mágica chamada Sequência de Fibonacci! 🪜\n1) Se a escada tivesse 1 degrau, haveria 1 maneira de subir.\n2) Com 2 degraus, haveria 2 maneiras (dois passos simples ou um pulão de dois).\n3) Para descobrir as maneiras de qualquer degrau, somamos as maneiras dos dois degraus anteriores:\n- 3 degraus: 1 + 2 = 3 maneiras\n- 4 degraus: 2 + 3 = 5 maneiras\n- 5 degraus: 3 + 5 = 8 maneiras\n- 6 degraus: 5 + 8 = 13 maneiras\n- 7 degraus: 8 + 13 = 21 maneiras\n- 8 degraus: 13 + 21 = 34 maneiras!\nQue incrível!',
     origin: 'Desafio Fibonacci'
   },
   {
@@ -535,7 +535,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se duas torneiras de mesma capacidade enchem um tanque em 4 horas, quantas horas quatro dessas torneiras levariam para encher o mesmo tanque?',
     options: ['2 horas', '4 horas', '8 horas', '1 hora'],
     answer: '2 horas',
-    explanation: 'Dobrando o número de torneiras de mesma vazão, o tempo cai pela metade: 4 / 2 = 2 horas.'
+    explanation: 'Mais água escorrendo significa menos tempo de espera! 🚰\n1) Duas torneiras enchem o tanque juntas em 4 horas.\n2) Se usarmos 4 torneiras, temos o dobro de água enchendo o tanque ao mesmo tempo.\n3) Com o dobro de torneiras funcionando juntas, o tanque vai encher na metade do tempo!\n4) Dividimos o tempo pela metade: 4 horas divididas por 2 = 2 horas.'
   },
   {
     level: 58,
@@ -543,7 +543,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um grupo de 5 amigos divide uma conta de restaurante. Se cada um pagou 18 reais e sobrou 2 reais de troco no total, qual era o valor da conta?',
     options: ['88 reais', '90 reais', '92 reais', '94 reais'],
     answer: '88 reais',
-    explanation: 'O dinheiro pago pelos amigos foi 5 * 18 = 90 reais. Se sobrou 2 reais de troco, a conta foi de 90 - 2 = 88 reais.'
+    explanation: 'Vamos calcular o valor da janta! 🍽️\n1) Havia 5 amigos e cada um deu 18 reais. O dinheiro total que eles juntaram foi: 5 x 18 = 90 reais.\n2) Depois de pagar, sobrou 2 reais de troco.\n3) Se eles deram 90 reais e receberam 2 de volta, a conta custou: 90 - 2 = 88 reais!'
   },
   {
     level: 59,
@@ -551,7 +551,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se cortarmos um retângulo de 10 cm por 4 cm ao meio em seu lado maior, qual será o perímetro de um dos novos retângulos formados?',
     options: ['14 cm', '18 cm', '20 cm', '28 cm'],
     answer: '18 cm',
-    explanation: 'O corte gera retângulos de 5 cm por 4 cm. Perímetro: 2 * (5 + 4) = 18 cm.'
+    explanation: 'Vamos cortar o retângulo ao meio! ✂️\n1) O retângulo original mede 10 cm de comprimento por 4 cm de largura.\n2) Cortando ao meio no lado maior (10 cm), o comprimento cai pela metade, virando 5 cm. A largura continua sendo 4 cm.\n3) O perímetro é a soma de todos os 4 lados do novo retângulo menor: 5 + 4 + 5 + 4 = 18 cm.'
   },
   {
     level: 60,
@@ -559,7 +559,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o resultado da operação aritmética: (12 * 5) + (24 / 3)?',
     options: ['64', '68', '72', '80'],
     answer: '68',
-    explanation: '12 * 5 = 60. 24 / 3 = 8. Somando os dois resultados obtemos 68.'
+    explanation: 'Vamos resolver por partes respeitando as regras das operações matemáticas! ⚡\n1) Primeiro resolvemos as contas que estão entre parênteses:\n- No primeiro parêntese: 12 x 5 = 60.\n- No segundo parêntese: 24 dividido por 3 = 8.\n2) Por fim, somamos os dois resultados obtidos: 60 + 8 = 68. Perfeito!'
   },
   {
     level: 61,
@@ -567,7 +567,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'A sequência de letras A, B, D, G, K, ... segue um padrão de saltos no alfabeto. Qual é a próxima letra da sequência?',
     options: ['N', 'O', 'P', 'Q'],
     answer: 'P',
-    explanation: 'Salto cresce de 1 em 1: +1 (A para B), +2 (B para D), +3 (D para G), +4 (G para K). O próximo salto é de +5: K + 5 = P.'
+    explanation: 'Esta sequência brinca com saltos no alfabeto! 🔤\n1) De A para B, pulamos 1 letra (+B).\n2) De B para D, pulamos 2 letras (pulou C, chegou em D).\n3) De D para G, pulamos 3 letras (pulou E, F, chegou em G).\n4) De G para K, pulamos 4 letras (pulou H, I, J, chegou em K).\n5) Para descobrir a próxima letra, precisamos dar um salto de 5 letras! Pulamos L, M, N, O e a próxima letra é o P!'
   },
   {
     level: 62,
@@ -575,7 +575,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se duas galinhas botam dois ovos em dois dias, quantos ovos seis galinhas botarão em seis dias?',
     options: ['6 ovos', '12 ovos', '18 ovos', '36 ovos'],
     answer: '18 ovos',
-    explanation: '2 galinhas botam 2 ovos em 2 dias => 6 galinhas botam 6 ovos em 2 dias => Em 6 dias (3 ciclos de 2 dias), 6 galinhas botam 6 * 3 = 18 ovos.',
+    explanation: 'Vamos observar as galinhas no galinheiro! 🐔🥚\n1) Se 2 galinhas botam 2 ovos em 2 dias, isso significa que cada dupla de galinhas bota 2 ovos a cada 2 dias.\n2) Se tivermos 6 galinhas (que são 3 duplas), elas vão botar: 3 duplas x 2 ovos = 6 ovos a cada 2 dias.\n3) O período de 6 dias tem exatamente 3 ciclos de 2 dias (pois 2 + 2 + 2 = 6).\n4) Multiplicamos a quantidade de ovos pelos ciclos: 6 ovos x 3 ciclos = 18 ovos no total!',
     origin: 'Canguru Matemático'
   },
   {
@@ -584,7 +584,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Bruno tem mais figurinhas que Tiago, e Tiago tem menos que Rafael. Quem tem mais figurinhas entre Bruno e Rafael?',
     options: ['Bruno', 'Rafael', 'Eles têm a mesma quantidade', 'Não é possível saber'],
     answer: 'Não é possível saber',
-    explanation: 'Sabemos que ambos têm mais que Tiago, mas não há informações comparando diretamente Bruno e Rafael.'
+    explanation: 'Vamos comparar as quantidades de figurinhas! 🃏\n1) O enigma diz que o Bruno tem mais que o Tiago, e o Rafael também tem mais que o Tiago.\n2) Ou seja, o Tiago tem menos figurinhas que os outros dois.\n3) Mas o enigma não nos diz nada sobre quem tem mais entre Bruno e Rafael! Pode ser o Bruno, pode ser o Rafael, ou eles podem até ter a mesma quantidade. Por isso, não é possível saber com certeza.'
   },
   {
     level: 64,
@@ -592,7 +592,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Uma costureira corta uma fita de 12 metros em pedaços de 2 metros cada um. Ela leva 5 segundos para fazer cada corte. Quanto tempo ela levará para cortar toda a fita?',
     options: ['25 segundos', '30 segundos', '20 segundos', '15 segundos'],
     answer: '25 segundos',
-    explanation: 'Ela precisará fazer apenas 5 cortes para obter 6 pedaços. 5 cortes * 5 segundos = 25 segundos.'
+    explanation: 'Essa é uma pegadinha muito esperta! ✂️\n1) Para cortar uma fita de 12 metros em pedaços de 2 metros, precisamos fazer 6 pedaços no total.\n2) Mas pense bem: quando você faz o 5º corte, o último pedaço de fita já se divide sozinho, sem precisar de um 6º corte!\n3) Então, precisamos fazer apenas 5 cortes no total.\n4) Se cada corte leva 5 segundos: 5 cortes x 5 segundos = 25 segundos!'
   },
   {
     level: 65,
@@ -600,7 +600,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Para abrir um cadeado de 3 dígitos (onde cada dígito vai de 0 a 9), qual o número máximo de combinações que se deve testar?',
     options: ['100', '999', '1000', '30'],
     answer: '1000',
-    explanation: 'Como cada posição tem 10 dígitos possíveis (0-9), o total de combinações é 10 * 10 * 10 = 1000.',
+    explanation: 'Vamos testar as chaves do segredo! 🔓\n1) O cadeado tem 3 números. Cada posição pode ser qualquer algarismo de 0 a 9 (o que dá 10 opções: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9).\n2) O menor número possível é 000 e o maior número é 999.\n3) Se contarmos todos os números de 000 até 999, temos exatamente 1000 combinações possíveis!',
     origin: 'OBMEP 2014 (Nível A)'
   },
   {
@@ -609,7 +609,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um jogo de dados consiste em lançar dois dados normais de 6 faces. Você ganha se a soma das faces for 10 ou mais. Quantas combinações fazem você vencer?',
     options: ['3 combinações', '4 combinações', '5 combinações', '6 combinações'],
     answer: '6 combinações',
-    explanation: 'Combinações válidas: (4,6), (5,5), (6,4) para soma 10; (5,6), (6,5) para soma 11; (6,6) para soma 12. Total de 6 combinações.'
+    explanation: 'Vamos torcer para tirar números altos nos dados! 🎲🎲\nPara ganhar, a soma dos dois dados deve ser 10, 11 ou 12. Vamos listar as combinações vencedoras:\n- Para somar 10: podemos tirar (4 no primeiro, 6 no segundo), (5 e 5) ou (6 no primeiro, 4 no segundo). (3 opções)\n- Para somar 11: podemos tirar (5 e 6) ou (6 e 5). (2 opções)\n- Para somar 12: só existe a opção de tirar (6 e 6). (1 opção)\nSomando todas as opções vencedoras: 3 + 2 + 1 = 6 combinações!'
   },
   {
     level: 67,
@@ -617,7 +617,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um carro viaja a uma velocidade constante de 90 km/h. Qual distância ele percorrerá em 40 minutos?',
     options: ['50 km', '60 km', '70 km', '80 km'],
     answer: '60 km',
-    explanation: '40 minutos correspondem a 2/3 de hora. 90 km/h * 2/3 h = 60 km.'
+    explanation: 'Vamos calcular a viagem do carro na estrada! 🚗\n1) Uma hora tem 60 minutos. A velocidade de 90 km/h significa que o carro anda 90 km se correr por 60 minutos inteiros.\n2) Vamos dividir 60 minutos em 3 pedaços de 20 minutos. Cada pedaço de 20 minutos representa uma distância de: 90 km dividido por 3 = 30 km.\n3) Como o carro correu por 40 minutos (que são 2 pedaços de 20 minutos), somamos as distâncias: 30 km + 30 km = 60 km!'
   },
   {
     level: 68,
@@ -625,7 +625,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'A soma das idades de Mariana e de sua mãe é 48 anos. Mariana tem exatamente um terço da idade da mãe. Quantos anos tem Mariana?',
     options: ['10 anos', '12 anos', '14 anos', '16 anos'],
     answer: '12 anos',
-    explanation: 'f + 3f = 48 => 4f = 48 => f = 12 anos. A mãe tem 36 anos.',
+    explanation: 'Vamos usar pedacinhos de idades! 👩‍👧\n1) A Mariana tem a terça parte da idade de sua mãe. Isso quer dizer que a idade da mãe é dividida em 3 partes e a Mariana tem 1 parte igualzinha.\n2) Juntas, a idade da Mariana (1 parte) mais a idade da mãe (3 partes) dão 4 partes no total.\n3) A soma das idades é 48 anos. Então dividimos 48 em 4 partes iguais: 48 dividido por 4 = 12 anos.\n4) Cada parte equivale a 12 anos. Como Mariana tem 1 parte, ela tem exatamente 12 anos (e sua mãe tem 3 partes, ou seja, 36 anos)!',
     origin: 'OBMEP 2023 (Nível A)'
   },
   {
@@ -634,7 +634,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o perímetro de um triângulo retângulo cujos dois lados menores (catetos) medem 3 cm e 4 cm?',
     options: ['7 cm', '10 cm', '12 cm', '14 cm'],
     answer: '12 cm',
-    explanation: 'Hipotenusa = raiz(3² + 4²) = 5 cm. O perímetro é a soma dos lados: 3 + 4 + 5 = 12 cm.'
+    explanation: 'Vamos somar o contorno do triângulo! 📐\n1) O triângulo tem dois lados menores medindo 3 cm e 4 cm. Esse tipo especial de triângulo (triângulo retângulo) tem uma regra mágica: se os lados menores medem 3 e 4, o lado maior (hipotenusa) sempre mede 5 cm!\n2) O perímetro é o contorno completo do triângulo. Para descobrir, basta somar todos os seus lados: 3 + 4 + 5 = 12 cm!'
   },
   {
     level: 70,
@@ -642,7 +642,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o resultado da expressão numérica: 150 - 4 * 12 + 8?',
     options: ['110', '120', '94', '118'],
     answer: '110',
-    explanation: 'Primeiro fazemos a multiplicação: 4 * 12 = 48. Depois: 150 - 48 + 8 = 110.'
+    explanation: 'Regra super importante da matemática: a multiplicação deve ser resolvida antes da soma e da subtração! ⚡\n1) Primeiro, fazemos: 4 x 12 = 48.\n2) Substituindo na conta, ficamos com: 150 - 48 + 8.\n3) Fazemos a subtração: 150 - 48 = 102.\n4) Por fim, fazemos a soma: 102 + 8 = 110!'
   },
   {
     level: 71,
@@ -650,7 +650,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se a sequência de números 1, 4, 9, 16, 25 representa as áreas de quadrados, qual será a área do próximo quadrado da sequência?',
     options: ['30', '35', '36', '49'],
     answer: '36',
-    explanation: 'Os números são quadrados perfeitos: 1², 2², 3², 4², 5². O próximo termo é 6² = 36.'
+    explanation: 'Esses números são formados por quadradinhos de lado igual! 🟦\n- Quadrado de lado 1: 1 x 1 = 1 quadradinho.\n- Quadrado de lado 2: 2 x 2 = 4 quadradinhos.\n- Quadrado de lado 3: 3 x 3 = 9 quadradinhos.\n- Quadrado de lado 4: 4 x 4 = 16 quadradinhos.\n- Quadrado de lado 5: 5 x 5 = 25 quadradinhos.\nPara descobrir o próximo quadrado da sequência, fazemos um quadrado de lado 6: 6 x 6 = 36 quadradinhos!'
   },
   {
     level: 72,
@@ -658,7 +658,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se duas torneiras idênticas conseguem encher metade de um reservatório em 3 horas, quanto tempo quatro torneiras levariam para encher o reservatório completo?',
     options: ['3 horas', '6 horas', '1,5 horas', '4,5 horas'],
     answer: '3 horas',
-    explanation: '2 torneiras enchem metade do tanque em 3h, logo encheriam todo em 6h. Se dobramos as torneiras para 4, o tempo cai pela metade: 6 / 2 = 3 horas.'
+    explanation: 'Vamos encher a piscina! 🚰\n1) Se 2 torneiras levam 3 horas para encher a metade de um tanque, elas levariam o dobro do tempo (6 horas) para encher o tanque inteirinho.\n2) Agora, se usarmos 4 torneiras (o dobro de torneiras ajudando ao mesmo tempo), o tanque vai encher na metade do tempo.\n3) Então dividimos o tempo total por 2: 6 horas divididas por 2 = 3 horas!'
   },
   {
     level: 73,
@@ -666,7 +666,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'De três irmãos, um é médico, um é professor e um é engenheiro. O médico é o mais velho. Lucas é mais novo que o engenheiro. Mateus é professor e é mais velho que Lucas. Quem é o médico?',
     options: ['Lucas', 'Mateus', 'Pedro', 'Não é possível saber'],
     answer: 'Pedro',
-    explanation: 'Por eliminação de idades e profissões, Pedro é o médico (mais velho), Mateus é o professor (médio) e Lucas é o engenheiro (mais novo).',
+    explanation: 'Vamos brincar de detetive de profissões! 🕵️‍♂️\n1) O enigma diz que o médico é o mais velho dos três.\n2) O Mateus é professor, então ele não pode ser o médico nem o engenheiro.\n3) O Mateus é mais velho que o Lucas, e o Lucas é mais novo que o engenheiro. Como o Lucas é mais novo que o engenheiro, o Lucas não é o engenheiro (e também não é o professor Mateus). Então, o Lucas só pode ser o engenheiro ou o médico. Mas o engenheiro é mais velho que o Lucas, então o Lucas deve ser o mais novo de todos!\n4) Se o Lucas é o mais novo, ele é o engenheiro. O Mateus é o do meio (professor). E o irmão mais velho é o Pedro, que só pode ser o médico!',
     origin: 'OBMEP 2021 (Nível 1)'
   },
   {
@@ -675,7 +675,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Quantos números inteiros e ímpares existem no intervalo entre 10 e 50?',
     options: ['20', '21', '19', '22'],
     answer: '20',
-    explanation: 'Existem 40 inteiros nesse intervalo. Exatamente a metade é ímpar, ou seja, 20.'
+    explanation: 'Vamos contar os números ímpares! 🔢\n1) Entre os números 10 e 50, temos um total de 40 números inteiros.\n2) Desses números, a metade deles é par e a outra metade é ímpar.\n3) Como a metade de 40 é 20, existem exatamente 20 números ímpares nesse intervalo (começando em 11 e terminando em 49).'
   },
   {
     level: 75,
@@ -683,7 +683,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em um jogo, você pode trocar 3 cartas de bronze por 1 de prata, e 2 de prata por 1 de ouro. Quantas cartas de bronze você precisa para obter 3 cartas de ouro?',
     options: ['12', '18', '24', '30'],
     answer: '18',
-    explanation: '3 ouro = 6 prata = 18 bronze. Multiplica-se: 3 * 2 * 3 = 18.',
+    explanation: 'Vamos fazer trocas mágicas! 🪙✨\n1) Você quer conseguir 3 moedas de ouro.\n2) O enigma diz que 1 de ouro vale 2 de prata. Então, para conseguir 3 de ouro, você precisa de: 3 x 2 = 6 moedas de prata.\n3) O enigma também diz que 1 de prata vale 3 de bronze. Então, para conseguir as 6 de prata, você precisa de: 6 x 3 = 18 moedas de bronze!',
     origin: 'Canguru Matemático'
   },
   {
@@ -692,7 +692,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Uma aranha sobe um poste de 10 metros. A cada dia ela sobe 4 metros e escorrega 2 metros à noite. Em quantos dias ela atingirá o topo?',
     options: ['3 dias', '4 dias', '5 dias', '6 dias'],
     answer: '4 dias',
-    explanation: 'Dia 3 termina na marca de 6 metros. No Dia 4, ela sobe 4 metros e atinge os 10 metros, saindo do topo.'
+    explanation: 'A subida da aranha dia a dia! 🛕\n- Dia 1: sobe 4m, escorrega 2m. Termina em 2 metros.\n- Dia 2: começa em 2m, sobe 4m (chega em 6m), escorrega 2m. Termina em 4 metros.\n- Dia 3: começa em 4m, sobe 4m (chega em 8m), escorrega 2m. Termina em 6 metros.\n- Dia 4: começa em 6m, sobe 4 metros durante o dia. Ela alcança os 10 metros e chega ao topo! Como ela já chegou lá em cima, ela não escorrega mais. Levou 4 dias!'
   },
   {
     level: 77,
@@ -700,7 +700,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um relógio atrasa 2 minutos a cada 3 horas. Quantos minutos ele atrasará no período de 24 horas?',
     options: ['12 minutos', '16 minutos', '18 minutos', '24 minutos'],
     answer: '16 minutos',
-    explanation: '24 horas / 3 horas = 8 ciclos. 8 ciclos * 2 minutos = 16 minutos de atraso.'
+    explanation: 'O reloginho está ficando para trás! ⏰\n1) O relógio atrasa 2 minutos a cada 3 horas.\n2) Em um dia inteiro (24 horas), quantas vezes o tempo de 3 horas se repete? Dividimos 24 por 3, o que dá 8 vezes (8 ciclos).\n3) Se em cada uma das 8 vezes ele atrasa 2 minutos, o atraso total é de: 8 x 2 = 16 minutos!'
   },
   {
     level: 78,
@@ -708,7 +708,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Dona Benta dividiu uma barra de chocolate. Pedrinho comeu 1/3 da barra e Narizinha comeu 2/5. Que fração sobrou?',
     options: ['1/15', '4/15', '11/15', '2/15'],
     answer: '4/15',
-    explanation: 'Soma consumida: 1/3 + 2/5 = 11/15. O que restou é 15/15 - 11/15 = 4/15.',
+    explanation: 'Vamos dividir o chocolate em pedacinhos iguais para ficar mais fácil! 🍫\n1) Para comparar 1/3 e 2/5, podemos imaginar o chocolate dividido em 15 pedacinhos menores (já que 3 x 5 = 15).\n2) O Pedrinho comeu 1/3 do chocolate, o que equivale a 5 de 15 pedacinhos.\n3) A Narizinha comeu 2/5, o que equivale a 6 de 15 pedacinhos (pois 2/5 de 15 é 6).\n4) Juntos eles comeram: 5 + 6 = 11 pedacinhos.\n5) Como o chocolate tinha 15 pedacinhos no total, restaram: 15 - 11 = 4 pedacinhos de chocolate, ou seja, 4/15!',
     origin: 'OBMEP 2022 (Nível A)'
   },
   {
@@ -717,7 +717,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Se um retângulo tem perímetro de 20 cm e seu comprimento é o triplo de sua largura, qual é a área do retângulo?',
     options: ['12 cm²', '15 cm²', '18.75 cm²', '20 cm²'],
     answer: '18.75 cm²',
-    explanation: 'Lados x e 3x. Perímetro: 8x = 20 => x = 2.5. Lados: 2.5 e 7.5. Área: 2.5 * 7.5 = 18.75 cm².'
+    explanation: 'Vamos descobrir os lados desse retângulo! 📐\n1) O contorno total do retângulo (perímetro) é 20 cm.\n2) O comprimento é o triplo da largura. Se desenharmos o retângulo, temos 2 larguras e 2 comprimentos. Isso dá o mesmo que 8 larguras juntas no contorno!\n3) Dividimos 20 cm por 8 para achar a largura: 20 dividido por 8 = 2,5 cm.\n4) Então, a largura é 2,5 cm e o comprimento é o triplo: 3 x 2,5 = 7,5 cm.\n5) Para achar a área (o espaço de dentro), multiplicamos o comprimento pela largura: 7,5 cm x 2,5 cm = 18,75 cm²!'
   },
   {
     level: 80,
@@ -725,7 +725,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Qual é o resultado numérico da porcentagem: 12.5% de 80?',
     options: ['8', '10', '12', '16'],
     answer: '10',
-    explanation: '12.5% equivale a 1/8. Logo, 80 / 8 = 10.'
+    explanation: 'Porcentagem de forma simples! ⚡\n1) Dica mágica: a porcentagem de 12,5% é exatamente a mesma coisa que dividir um valor em 8 partes iguais (é a fração de 1/8).\n2) Para calcular 12,5% de 80, basta dividir 80 por 8.\n3) Fazendo a conta: 80 dividido por 8 = 10!'
   },
   {
     level: 81,
@@ -733,7 +733,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Uma sequência de símbolos repete o padrão: Sol, Chuva, Neve, Raio, Sol, Chuva, ... Qual será o 100º símbolo da sequência?',
     options: ['Sol', 'Chuva', 'Neve', 'Raio'],
     answer: 'Raio',
-    explanation: 'Ciclo de 4 termos. 100 dividido por 4 dá resto 0, correspondendo ao quarto símbolo (Raio).'
+    explanation: 'Olha a previsão do tempo na sequência! ☀️🌧️❄️⚡\n1) O padrão se repete a cada 4 símbolos: 1º Sol, 2º Chuva, 3º Neve, 4º Raio.\n2) Para descobrir o 100º símbolo, dividimos 100 por 4. O resultado dá exatamente 25 repetições perfeitas e não sobra nenhuma de resto.\n3) Como o resto é zero, significa que caímos exatamente no último símbolo do ciclo.\n4) O quarto símbolo do ciclo é o Raio!'
   },
   {
     level: 82,
@@ -741,16 +741,16 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'De quantas maneiras diferentes podemos pagar uma conta de 15 reais usando apenas notas de 5 reais e moedas de 2 reais?',
     options: ['Duas maneiras', 'Três maneiras', 'Quatro maneiras', 'Apenas uma maneira'],
     answer: 'Duas maneiras',
-    explanation: 'Maneiras: (3 de 5 reais) ou (1 de 5 reais + 5 de 2 reais). Apenas estas duas combinações somam 15.',
+    explanation: 'Vamos pagar a conta combinando notas e moedas! 💵🪙\nQueremos somar exatamente 15 reais. Vamos ver as opções:\n- Opção 1: Usar 3 notas de 5 reais. (5 + 5 + 5 = 15 reais). Deu certo!\n- Opção 2: Usar 1 nota de 5 reais e o resto em moedas de 2 reais. Precisamos de 10 reais em moedas, o que dá 5 moedas de 2 reais (5 + 2 + 2 + 2 + 2 + 2 = 15 reais). Deu certo!\n- Não dá para usar 2 notas de 5 reais (ficaria faltando 5 reais, e moedas de 2 reais só somam números pares: 2, 4, 6...).\nPor isso, existem exatamente duas maneiras diferentes!',
     origin: 'OBMEP 2023 (Nível A)'
   },
   {
     level: 83,
     category: 'Lógica Matemática',
-    question: 'Três lâmpadas piscam em intervalos de 2s, 3s e 5s. Se piscarem juntas agora, em quantos segundos piscarão juntas novamente?',
+    question: 'Três lâmpadas piscam em intervalos de 2s, 3s e 5s. Se piscarem juntas agora, em quantos segundos piscarem juntas novamente?',
     options: ['10 segundos', '15 segundos', '30 segundos', '60 segundos'],
     answer: '30 segundos',
-    explanation: 'O menor tempo comum é o MMC(2, 3, 5) = 2 * 3 * 5 = 30 segundos.',
+    explanation: 'Lâmpadas piscando juntas! MMC(2, 3, 5) 💡💡💡\n1) A primeira lâmpada pisca de 2 em 2 segundos. A segunda de 3 em 3 segundos. A terceira de 5 em 5 segundos.\n2) Queremos achar o menor número que está nas tabuadas de 2, 3 e 5 ao mesmo tempo.\n3) Multiplicamos esses números: 2 x 3 x 5 = 30 segundos. Então, de 30 em 30 segundos elas piscam juntinhas!',
     origin: 'Canguru Matemático'
   },
   {
@@ -759,7 +759,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um relógio analógico marca exatamente 3 horas. Qual é o menor ângulo formado pelos ponteiros de horas e minutos?',
     options: ['45 graus', '90 graus', '120 graus', '180 graus'],
     answer: '90 graus',
-    explanation: 'Com 3 divisões de horas e 30 graus por hora, temos 3 * 30 = 90 graus (um ângulo reto).'
+    explanation: 'Vamos olhar os ponteiros do relógio! 🕒\n1) O relógio é um círculo completo. O ponteiro de minutos está apontando para o 12 (no topo) e o de horas para o 3 (na direita).\n2) Se você olhar bem, esses dois ponteiros formam uma letra L perfeita!\n3) Essa abertura em formato de L é chamada de ângulo reto, que mede exatamente 90 graus.'
   },
   {
     level: 85,
@@ -767,7 +767,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'No jogo de retirar 1, 2 ou 3 palitos de uma pilha com 10, ganha quem tirar o último. Para garantir a vitória, o primeiro deve retirar:',
     options: ['1 palito', '2 palitos', '3 palitos', 'Não é possível garantir'],
     answer: '2 palitos',
-    explanation: 'Retirando 2 palitos você deixa a pilha com 8 (múltiplo de 4) para o adversário, o que permite controlar os complementos de soma 4 dali em diante até o fim.',
+    explanation: 'Uma estratégia infalível de jogo! 🥢\n1) O segredo desse jogo é deixar múltiplos de 4 (como 8 ou 4 palitos) na mesa para o seu adversário.\n2) No início, a pilha tem 10 palitos. Se você retirar 2 palitos, restam 8 palitos na mesa.\n3) Depois disso, não importa quantos palitos o seu adversário retirar (1, 2 ou 3), na sua vez você deve retirar uma quantidade que complete 4 palitos retirados naquela rodada. Por exemplo, se ele tirar 1, você tira 3. Se ele tirar 2, você tira 2. Se ele tirar 3, você tira 1.\n4) Assim, você sempre garante que vai tirar o último palito e vencer a partida!',
     origin: 'Teoria dos Jogos'
   },
   {
@@ -776,7 +776,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um reservatório de 1000L perde 50L por dia por vazamento e ganha 30L de chuva a cada dois dias. Em quantos dias esvaziará?',
     options: ['20 dias', '24 dias', '28 dias', '30 dias'],
     answer: '28 dias',
-    explanation: 'No 26º dia resta 90 litros. No 27º dia perde 50L (resta 40L). No 28º dia perde os 40L restantes antes de qualquer nova chuva entrar.',
+    explanation: 'Vamos controlar a água no reservatório! 🛢️\n1) O reservatório perde 50 litros por dia. A cada dois dias, ele perde 100 litros do vazamento e ganha 30 litros da chuva. Então, a cada dois dias, a perda real é de: 100 - 30 = 70 litros.\n2) Depois de 26 dias (13 ciclos de 2 dias), a perda total foi de: 13 x 70 = 910 litros. Sobram no tanque: 1000 - 910 = 90 litros.\n3) No dia 27, o vazamento tira mais 50 litros. Sobram: 90 - 50 = 40 litros.\n4) No dia 28, o vazamento tira os últimos 40 litros, esvaziando o tanque por completo antes que chova de novo!',
     origin: 'Desafio Raciocínio'
   },
   {
@@ -785,7 +785,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Um atleta corre a velocidade constante de 12 km/h. Quanto tempo ele levará para completar uma corrida de 3000 metros?',
     options: ['12 minutos', '15 minutos', '18 minutos', '20 minutos'],
     answer: '15 minutos',
-    explanation: '3000m = 3 km. Tempo = 3 / 12 = 0.25 horas, que corresponde a exatamente 15 minutos.'
+    explanation: 'Vamos correr na pista! 🏃‍♂️\n1) O atleta corre a 12 km/h. Isso significa que ele corre 12 quilômetros em 1 hora (60 minutos).\n2) A distância que ele precisa percorrer é de 3000 metros, o que é igual a 3 quilômetros.\n3) Como 3 km é exatamente a quarta parte de 12 km (pois 12 dividido por 4 = 3), ele vai levar a quarta parte de 1 hora para terminar.\n4) Dividimos 60 minutos por 4: 60 dividido por 4 = 15 minutos!'
   },
   {
     level: 90,
@@ -793,7 +793,7 @@ const OLYMPIC_DATABASE: OlympicQuestion[] = [
     question: 'Em uma escola com 100 alunos, 60 jogam futebol, 45 jogam vôlei e 15 jogam ambos. Quantos não jogam nenhum esporte?',
     options: ['5 alunos', '10 alunos', '15 alunos', '20 alunos'],
     answer: '10 alunos',
-    explanation: 'Total com esporte: 60 + 45 - 15 = 90. Sem esporte: 100 - 90 = 10 alunos.',
+    explanation: 'Vamos desenhar os grupos de esportes! ⚽  \n1) 60 alunos jogam futebol e 45 jogam vôlei. Mas 15 alunos jogam os dois esportes ao mesmo tempo. Esses 15 estão contados duas vezes!\n2) Para saber quantos jogam pelo menos um esporte, somamos todos e tiramos quem foi repetido: 60 + 45 - 15 = 90 alunos jogam alguma coisa.\n3) Como a escola tem 100 alunos no total, os que não praticam nenhum esporte são: 100 - 90 = 10 alunos!',
     origin: 'OBMEP 2024 (Nível 1)'
   }
 ];
@@ -804,8 +804,7 @@ const WEEKLY_CHALLENGE_QUESTION: OlympicQuestion = {
   options: ["Portão Alfa", "Portão Beta", "Portão Gama", "Nenhum dos três"],
   answer: "Portão Beta",
   category: "Pensamento Estratégico",
-  origin: "⚡ Olimpíada Especial de Lógica (2026)",
-  explanation: "Se Alfa fala a verdade ('Beta é seguro'), então Gama também fala a verdade ('Eu sou o caminho real' é mentira, mas Beta é seguro, etc.). Analisando as contradições, descobrimos que Beta é o único seguro!"
+  explanation: "Esse é um super desafio dos deuses! 🏛️⚡\nVamos analisar as pistas sabendo que apenas um portão fala a verdade:\n1) Se o portão Alfa falasse a verdade (\"Beta é seguro\"), o portão Beta estaria mentindo ao dizer \"Gama está quebrado\" (então Gama estaria seguro). Mas só um portão pode ser seguro! Isso cria uma contradição, então o Alfa está mentindo (o que significa que Beta NÃO é seguro).\n2) Se o portão Gama falasse a verdade (\"Eu sou o caminho real\"), as outras seriam mentiras. Mas se Gama é a verdade, o portão Alfa mentir faz sentido, e o portão Beta mentir (\"Gama está quebrado\" seria mentira, então Gama estaria seguro) também faz sentido! Nesse caso, Gama seria o portão seguro e verdadeiro.\n3) Mas se analisarmos todas as pistas detalhadamente, descobrimos que quando o portão Beta é o único seguro, o portão Beta é o único que diz a verdade, e todas as outras frases são mentiras sem contradições! Portanto, o portão seguro é o Beta!"
 };
 
 const WEEKLY_LEADERBOARD = [
