@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 
 export interface CombatVfxCanvasRef {
   fireProjectile: (
@@ -52,7 +52,7 @@ interface Shockwave {
   alpha: number;
 }
 
-export const CombatVfxCanvas = forwardRef<CombatVfxCanvasRef, {}>((_, ref) => {
+export const CombatVfxCanvas = React.memo(forwardRef<CombatVfxCanvasRef, {}>((_, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Arrays to hold physics entities
@@ -392,6 +392,6 @@ export const CombatVfxCanvas = forwardRef<CombatVfxCanvasRef, {}>((_, ref) => {
       }}
     />
   );
-});
+}));
 
 CombatVfxCanvas.displayName = 'CombatVfxCanvas';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { mockDb, PET_TYPES, COSMETIC_ITEMS, SKILL_TREE, getPetEvolutionEmoji } from '../services/mockDb';
 import type { User, GameState, Clan } from '../services/mockDb';
 import { backendService } from '../services/backendService';
@@ -579,26 +579,39 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return '⭐'.repeat(count);
   };
 
-  const getUnlocks = () => {
-    const list = [
+  const statsSummary = useMemo(() => {
+    try {
+      const stats = mockDb.getMathStats(playerUser.id);
+      const a = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
+      const s = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
+      const m = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
+      const d = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+      const petCount = mockDb.getPets(playerUser.id).length;
+      return {
+        addCount: a,
+        subCount: s,
+        multCount: m,
+        divCount: d,
+        petCount,
+        showNudgeBanner: a > 30 && (s < 15 || m < 15 || d < 15)
+      };
+    } catch (e) {
+      return { addCount: 0, subCount: 0, multCount: 0, divCount: 0, petCount: 0, showNudgeBanner: false };
+    }
+  }, [playerUser.id, gameState]);
+
+  const { addCount, subCount, multCount, divCount, showNudgeBanner } = statsSummary;
+
+  const getUnlocks = useCallback(() => {
+    return [
       { id: 'aura_beginner', label: '🔰 Iniciante', desc: 'Alcançou Nível 5 de Aura', active: gameState.auraLevel >= 5, color: '#4ade80' },
       { id: 'aura_master', label: '🔮 Mestre', desc: 'Alcançou Nível 30 de Aura', active: gameState.auraLevel >= 30, color: 'var(--neon-purple)' },
       { id: 'aura_legend', label: '🏆 Lendário', desc: 'Alcançou Nível 60 de Aura', active: gameState.auraLevel >= 60, color: 'var(--neon-yellow)' },
       { id: 'rebirth_celestial', label: '⭐ Celestial', desc: 'Efetuou pelo menos 1 Rebirth', active: gameState.rebirths >= 1, color: 'var(--neon-pink)' },
       { id: 'gem_tycoon', label: '💰 Magnata', desc: 'Acumulou 50 ou mais Gemas', active: gameState.gems >= 50, color: 'var(--neon-cyan)' },
-      { id: 'pet_tamer', label: '🐾 Domador', desc: 'Adquiriu 3 ou mais Pets no total', active: mockDb.getPets(playerUser.id).length >= 3, color: '#f59e0b' },
+      { id: 'pet_tamer', label: '🐾 Domador', desc: 'Adquiriu 3 ou mais Pets no total', active: statsSummary.petCount >= 3, color: '#f59e0b' },
     ];
-    return list;
-  };
-
-  // Nudge check for grinding addition
-  const mathStats = mockDb.getMathStats(playerUser.id);
-  const addCount = mathStats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
-  const subCount = mathStats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
-  const multCount = mathStats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
-  const divCount = mathStats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
-
-  const showNudgeBanner = addCount > 30 && (subCount < 15 || multCount < 15 || divCount < 15);
+  }, [gameState.auraLevel, gameState.rebirths, gameState.gems, statsSummary.petCount]);
 
   return (
     <div style={{ padding: '20px', minHeight: '90vh' }}>

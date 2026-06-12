@@ -1,16 +1,55 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { Login } from './components/Login';
-import { AdminDashboard } from './components/AdminDashboard';
 import { HubWorld } from './components/HubWorld';
-import { PetShop } from './components/PetShop';
-import { CombatArena } from './components/CombatArena';
-import { CyberRunner } from './components/CyberRunner';
-import { Olympics } from './components/Olympics';
-import { MySanctum } from './components/MySanctum';
 import { seedDatabase, mockDb } from './services/mockDb';
 import { backendService } from './services/backendService';
 import type { User, GameState } from './services/mockDb';
 import { audioEngine } from './components/AudioEngine';
+
+// Lazy load non-critical heavy modules for bundle splitting
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const PetShop = lazy(() => import('./components/PetShop').then(m => ({ default: m.PetShop })));
+const CombatArena = lazy(() => import('./components/CombatArena').then(m => ({ default: m.CombatArena })));
+const CyberRunner = lazy(() => import('./components/CyberRunner').then(m => ({ default: m.CyberRunner })));
+const Olympics = lazy(() => import('./components/Olympics').then(m => ({ default: m.Olympics })));
+const MySanctum = lazy(() => import('./components/MySanctum').then(m => ({ default: m.MySanctum })));
+
+// Loading spinner with neon glowing animation for dynamic imports
+const LoadingSpinner = () => (
+  <div style={{
+    minHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '16px'
+  }}>
+    <div style={{
+      width: '50px',
+      height: '50px',
+      borderRadius: '50%',
+      border: '3px solid rgba(0, 255, 204, 0.1)',
+      borderTopColor: 'var(--neon-cyan)',
+      animation: 'spin 1s linear infinite',
+      boxShadow: '0 0 15px rgba(0, 255, 204, 0.3)'
+    }} />
+    <span style={{
+      color: 'var(--neon-cyan)',
+      fontSize: '1rem',
+      fontWeight: 800,
+      letterSpacing: '2px',
+      textShadow: '0 0 8px rgba(0, 255, 204, 0.4)',
+      animation: 'pulse-ring 1s infinite alternate'
+    }}>
+      CARREGANDO NEXO...
+    </span>
+    <style>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -128,19 +167,19 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setUser(null);
     setGameState(null);
     setScreen('login');
     audioEngine.playHatchRoll();
-  };
+  }, []);
 
-  const handleSelectZone = (zone: 'forest' | 'volcano' | 'unified') => {
+  const handleSelectZone = useCallback((zone: 'forest' | 'volcano' | 'unified') => {
     setSelectedZone(zone);
     setScreen('combat');
-  };
+  }, []);
 
-  const handleBattleFinished = async (xpGained: number, gemsGained: number, isVictory?: boolean) => {
+  const handleBattleFinished = useCallback(async (xpGained: number, gemsGained: number, isVictory?: boolean) => {
     if (user) {
       if (selectedCampaignStageId !== null) {
         if (isVictory) {
@@ -155,17 +194,17 @@ function App() {
       }
     }
     setBattleReward({ xp: xpGained, gems: gemsGained });
-  };
+  }, [user, selectedCampaignStageId]);
 
-  const handleRewardClose = () => {
+  const handleRewardClose = useCallback(() => {
     setBattleReward(null);
     setScreen('hub');
-  };
+  }, []);
 
-  const handleAudioToggle = () => {
+  const handleAudioToggle = useCallback(() => {
     const muted = audioEngine.toggleMute();
     setIsAudioMuted(muted);
-  };
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -195,82 +234,84 @@ function App() {
         </button>
       </div>
 
-      {/* Screen Router */}
+      {/* Screen Router wrapped in Suspense for lazy loading */}
       <main style={{ flex: 1 }}>
-        {screen === 'login' && (
-          <Login onLoginSuccess={handleLoginSuccess} />
-        )}
+        <Suspense fallback={<LoadingSpinner />}>
+          {screen === 'login' && (
+            <Login onLoginSuccess={handleLoginSuccess} />
+          )}
 
-        {screen === 'admin' && user && (
-          <AdminDashboard adminUser={user} onLogout={handleLogout} />
-        )}
+          {screen === 'admin' && user && (
+            <AdminDashboard adminUser={user} onLogout={handleLogout} />
+          )}
 
-        {screen === 'hub' && user && gameState && (
-          <HubWorld
-            playerUser={user}
-            gameState={gameState}
-            onStateUpdate={setGameState}
-            onSelectZone={handleSelectZone}
-            onSelectCampaignStage={(stageId) => {
-              setSelectedCampaignStageId(stageId);
-              setScreen('combat');
-            }}
-            onNavigateToPetShop={() => setScreen('pet_shop')}
-            onNavigateToRunner={() => setScreen('runner')}
-            onNavigateToOlympics={() => setScreen('olympics')}
-            onNavigateToSanctum={() => setScreen('sanctum')}
-            onLogout={handleLogout}
-          />
-        )}
+          {screen === 'hub' && user && gameState && (
+            <HubWorld
+              playerUser={user}
+              gameState={gameState}
+              onStateUpdate={setGameState}
+              onSelectZone={handleSelectZone}
+              onSelectCampaignStage={(stageId) => {
+                setSelectedCampaignStageId(stageId);
+                setScreen('combat');
+              }}
+              onNavigateToPetShop={() => setScreen('pet_shop')}
+              onNavigateToRunner={() => setScreen('runner')}
+              onNavigateToOlympics={() => setScreen('olympics')}
+              onNavigateToSanctum={() => setScreen('sanctum')}
+              onLogout={handleLogout}
+            />
+          )}
 
-        {screen === 'pet_shop' && user && gameState && (
-          <PetShop
-            userId={user.id}
-            gameState={gameState}
-            onStateUpdate={setGameState}
-            onBack={() => setScreen('hub')}
-          />
-        )}
+          {screen === 'pet_shop' && user && gameState && (
+            <PetShop
+              userId={user.id}
+              gameState={gameState}
+              onStateUpdate={setGameState}
+              onBack={() => setScreen('hub')}
+            />
+          )}
 
-        {screen === 'combat' && user && gameState && (
-          <CombatArena
-            playerUser={user}
-            zone={selectedZone}
-            campaignStageId={selectedCampaignStageId}
-            gameState={gameState}
-            onBattleFinished={handleBattleFinished}
-            onBack={() => {
-              setSelectedCampaignStageId(null);
-              setScreen('hub');
-            }}
-          />
-        )}
+          {screen === 'combat' && user && gameState && (
+            <CombatArena
+              playerUser={user}
+              zone={selectedZone}
+              campaignStageId={selectedCampaignStageId}
+              gameState={gameState}
+              onBattleFinished={handleBattleFinished}
+              onBack={() => {
+                setSelectedCampaignStageId(null);
+                setScreen('hub');
+              }}
+            />
+          )}
 
-        {screen === 'runner' && user && gameState && (
-          <CyberRunner
-            playerUser={user}
-            gameState={gameState}
-            onBack={() => setScreen('hub')}
-            onStateUpdate={setGameState}
-          />
-        )}
+          {screen === 'runner' && user && gameState && (
+            <CyberRunner
+              playerUser={user}
+              gameState={gameState}
+              onBack={() => setScreen('hub')}
+              onStateUpdate={setGameState}
+            />
+          )}
 
-        {screen === 'olympics' && user && gameState && (
-          <Olympics
-            gameState={gameState}
-            onBack={() => setScreen('hub')}
-            onStateUpdate={setGameState}
-          />
-        )}
+          {screen === 'olympics' && user && gameState && (
+            <Olympics
+              gameState={gameState}
+              onBack={() => setScreen('hub')}
+              onStateUpdate={setGameState}
+            />
+          )}
 
-        {screen === 'sanctum' && user && gameState && (
-          <MySanctum
-            playerUser={user}
-            gameState={gameState}
-            onStateUpdate={setGameState}
-            onBack={() => setScreen('hub')}
-          />
-        )}
+          {screen === 'sanctum' && user && gameState && (
+            <MySanctum
+              playerUser={user}
+              gameState={gameState}
+              onStateUpdate={setGameState}
+              onBack={() => setScreen('hub')}
+            />
+          )}
+        </Suspense>
       </main>
 
       {/* Consolation / Loot Popup on game finish */}

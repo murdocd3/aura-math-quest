@@ -14,7 +14,7 @@ interface CyberSpriteProps {
   level?: number;
 }
 
-export const CyberSprite: React.FC<CyberSpriteProps> = ({
+const CyberSpriteBase: React.FC<CyberSpriteProps> = ({
   type,
   name = '',
   equippedCosmeticId = null,
@@ -864,3 +864,21 @@ export const CyberSprite: React.FC<CyberSpriteProps> = ({
     </svg>
   );
 };
+
+const areEqual = (prevProps: CyberSpriteProps, nextProps: CyberSpriteProps) => {
+  return (
+    prevProps.type === nextProps.type &&
+    prevProps.name === nextProps.name &&
+    prevProps.equippedCosmeticId === nextProps.equippedCosmeticId &&
+    prevProps.auraColor === nextProps.auraColor &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height &&
+    prevProps.classId === nextProps.classId &&
+    prevProps.rebirths === nextProps.rebirths &&
+    prevProps.level === nextProps.level &&
+    JSON.stringify(prevProps.equippedCosmetics) === JSON.stringify(nextProps.equippedCosmetics) &&
+    JSON.stringify(prevProps.style) === JSON.stringify(nextProps.style)
+  );
+};
+
+export const CyberSprite = React.memo(CyberSpriteBase, areEqual);
