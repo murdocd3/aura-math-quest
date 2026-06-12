@@ -807,12 +807,7 @@ const WEEKLY_CHALLENGE_QUESTION: OlympicQuestion = {
   explanation: "Esse é um super desafio dos deuses! 🏛️⚡\nVamos analisar as pistas sabendo que apenas um portão fala a verdade:\n1) Se o portão Alfa falasse a verdade (\"Beta é seguro\"), o portão Beta estaria mentindo ao dizer \"Gama está quebrado\" (então Gama estaria seguro). Mas só um portão pode ser seguro! Isso cria uma contradição, então o Alfa está mentindo (o que significa que Beta NÃO é seguro).\n2) Se o portão Gama falasse a verdade (\"Eu sou o caminho real\"), as outras seriam mentiras. Mas se Gama é a verdade, o portão Alfa mentir faz sentido, e o portão Beta mentir (\"Gama está quebrado\" seria mentira, então Gama estaria seguro) também faz sentido! Nesse caso, Gama seria o portão seguro e verdadeiro.\n3) Mas se analisarmos todas as pistas detalhadamente, descobrimos que quando o portão Beta é o único seguro, o portão Beta é o único que diz a verdade, e todas as outras frases são mentiras sem contradições! Portanto, o portão seguro é o Beta!"
 };
 
-const WEEKLY_LEADERBOARD = [
-  { username: "sofia", time: "14.2s" },
-  { username: "lucas", time: "18.5s" },
-  { username: "gabriel", time: "24.1s" },
-  { username: "beatriz", time: "29.8s" },
-];
+const WEEKLY_LEADERBOARD: { username: string; time: string }[] = [];
 
 const getMiniTutorialText = (category: string) => {
   switch (category) {
