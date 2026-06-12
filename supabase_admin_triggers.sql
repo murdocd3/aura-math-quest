@@ -7,10 +7,10 @@
 -- =========================================================================
 -- STEP 1: CLEAN UP ORPHANED AUTH USERS
 -- Delete auth records of users who were deleted from the public users table.
--- This immediately fixes the "username already exists" error for deleted users.
+-- Explicitly cast auth.users.id (UUID) to text to compare with public.users.id.
 -- =========================================================================
 DELETE FROM auth.users 
-WHERE id NOT IN (SELECT id FROM public.users)
+WHERE id::text NOT IN (SELECT id FROM public.users)
   AND email LIKE '%@auramathquest.local';
 
 
@@ -22,7 +22,7 @@ WHERE id NOT IN (SELECT id FROM public.users)
 CREATE OR REPLACE FUNCTION public.handle_delete_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  DELETE FROM auth.users WHERE id = OLD.id;
+  DELETE FROM auth.users WHERE id = OLD.id::uuid;
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -32,14 +32,14 @@ CREATE TRIGGER on_public_user_deleted
   AFTER DELETE ON public.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_delete_user();
 
--- Trigger to sync password update to auth.users using bcrypt
+-- Trigger to handle password updates (Sync password changes from public.users to auth.users using bcrypt)
 CREATE OR REPLACE FUNCTION public.handle_update_user_password()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.password IS DISTINCT FROM OLD.password AND NEW.password IS NOT NULL AND NEW.password <> '' THEN
     UPDATE auth.users 
     SET encrypted_password = crypt(NEW.password, gen_salt('bf'))
-    WHERE id = NEW.id;
+    WHERE id = NEW.id::uuid;
   END IF;
   RETURN NEW;
 END;
@@ -54,6 +54,7 @@ CREATE TRIGGER on_public_user_password_updated
 -- =========================================================================
 -- STEP 3: CONFIGURE SECURE RLS POLICIES FOR ADMIN CHECKS
 -- Bypasses auth.jwt() metadata constraints by checking database roles directly.
+-- Casts auth.uid() (UUID) to text to query public.users.
 -- =========================================================================
 
 -- Safe checker function to avoid infinite RLS recursion
@@ -62,7 +63,7 @@ RETURNS boolean AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.users 
-    WHERE id = auth.uid() AND role = 'admin'
+    WHERE id = auth.uid()::text AND role = 'admin'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -77,8 +78,8 @@ CREATE POLICY "Allow authenticated to view profiles" ON public.users
 DROP POLICY IF EXISTS "Allow users to manage their own profile" ON public.users;
 CREATE POLICY "Allow users to manage their own profile" ON public.users
   FOR ALL TO authenticated 
-  USING (auth.uid() = id OR public.is_admin())
-  WITH CHECK (auth.uid() = id OR public.is_admin());
+  USING (auth.uid()::text = id OR public.is_admin())
+  WITH CHECK (auth.uid()::text = id OR public.is_admin());
 
 -- Re-apply policies on game_states table
 ALTER TABLE public.game_states ENABLE ROW LEVEL SECURITY;
@@ -90,8 +91,8 @@ CREATE POLICY "Allow authenticated to view game states" ON public.game_states
 DROP POLICY IF EXISTS "Allow users to manage their own game state" ON public.game_states;
 CREATE POLICY "Allow users to manage their own game state" ON public.game_states
   FOR ALL TO authenticated 
-  USING (auth.uid() = user_id OR public.is_admin())
-  WITH CHECK (auth.uid() = user_id OR public.is_admin());
+  USING (auth.uid()::text = user_id OR public.is_admin())
+  WITH CHECK (auth.uid()::text = user_id OR public.is_admin());
 
 -- Re-apply policies on pets table
 ALTER TABLE public.pets ENABLE ROW LEVEL SECURITY;
@@ -103,8 +104,8 @@ CREATE POLICY "Allow authenticated to view pets" ON public.pets
 DROP POLICY IF EXISTS "Allow users to manage their own pets" ON public.pets;
 CREATE POLICY "Allow users to manage their own pets" ON public.pets
   FOR ALL TO authenticated 
-  USING (auth.uid() = user_id OR public.is_admin())
-  WITH CHECK (auth.uid() = user_id OR public.is_admin());
+  USING (auth.uid()::text = user_id OR public.is_admin())
+  WITH CHECK (auth.uid()::text = user_id OR public.is_admin());
 
 -- Re-apply policies on math_statistics table
 ALTER TABLE public.math_statistics ENABLE ROW LEVEL SECURITY;
@@ -112,5 +113,5 @@ ALTER TABLE public.math_statistics ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow users to manage their own statistics" ON public.math_statistics;
 CREATE POLICY "Allow users to manage their own statistics" ON public.math_statistics
   FOR ALL TO authenticated 
-  USING (auth.uid() = user_id OR public.is_admin())
-  WITH CHECK (auth.uid() = user_id OR public.is_admin());
+  USING (auth.uid()::text = user_id OR public.is_admin())
+  WITH CHECK (auth.uid()::text = user_id OR public.is_admin());
