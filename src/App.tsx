@@ -114,25 +114,29 @@ function App() {
         setScreen('admin');
       } else {
         const state = await backendService.getGameState(loggedInUser.id);
-        if (state) {
-          setGameState(state);
+        if (!state) {
+          throw new Error('Estado de jogo não encontrado.');
         }
+        setGameState(state);
         setScreen('hub');
       }
     } catch (e: any) {
       console.error('❌ Erro crítico no login do usuário:', e);
-      alert('Houve uma falha ao iniciar sua sessão. Tentando conectar no modo offline local...');
-      // Fallback: tentar carregar estado local do mockDb
-      try {
-        const state = mockDb.getGameState(loggedInUser.id);
-        if (state) {
-          setGameState(state);
-          setScreen('hub');
-        } else {
-          alert('Nenhum dado local encontrado para este usuário. Por favor, tente novamente ou contate o administrador.');
+      if (backendService.isCloudConnected()) {
+        alert('Houve uma falha ao sincronizar dados com o Supabase. Verifique sua conexão.');
+      } else {
+        // Fallback local: tentar carregar estado local do mockDb
+        try {
+          const state = mockDb.getGameState(loggedInUser.id);
+          if (state) {
+            setGameState(state);
+            setScreen('hub');
+          } else {
+            alert('Nenhum dado local encontrado para este usuário. Por favor, conecte-se à internet.');
+          }
+        } catch (err) {
+          console.error('❌ Erro no fallback offline:', err);
         }
-      } catch (err) {
-        console.error('❌ Erro no fallback offline:', err);
       }
     }
   };

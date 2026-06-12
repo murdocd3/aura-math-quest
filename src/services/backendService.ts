@@ -436,8 +436,8 @@ export const backendService = {
         }
         return null;
       } catch (err) {
-        console.error('[BackendService] Supabase error in createUser, falling back to mockDb:', err);
-        return mockDb.createUser(username, passwordPlain, role, isActive);
+        console.error('[BackendService] Supabase error in createUser:', err);
+        return null;
       }
     }
     return mockDb.createUser(username, passwordPlain, role, isActive);
@@ -459,8 +459,8 @@ export const backendService = {
         mockDb.updateUser(userId, updates);
         return true;
       } catch (err) {
-        console.error('[BackendService] Supabase error in updateUser, falling back to mockDb:', err);
-        return mockDb.updateUser(userId, updates);
+        console.error('[BackendService] Supabase error in updateUser:', err);
+        return false;
       }
     }
     return mockDb.updateUser(userId, updates);
@@ -476,8 +476,8 @@ export const backendService = {
         mockDb.deleteUser(userId);
         return true;
       } catch (err) {
-        console.error('[BackendService] Supabase error in deleteUser, falling back to mockDb:', err);
-        return mockDb.deleteUser(userId);
+        console.error('[BackendService] Supabase error in deleteUser:', err);
+        return false;
       }
     }
     return mockDb.deleteUser(userId);
@@ -488,122 +488,49 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Logging in user: ${username} via Supabase Auth native...`);
+        console.log(`[BackendService] Logging in user: ${username} via Supabase Auth...`);
         const email = `${username.toLowerCase().trim()}@auramathquest.local`;
         
-        // 1. Attempt native Auth login
-        try {
-          const { data: authData, error: authError } = await client.auth.signInWithPassword({
-            email,
-            password: passwordPlain
-          });
-          
-          if (!authError && authData && authData.user) {
-            // Success: Retrieve user row
-            const { data, error } = await client
-              .from('users')
-              .select('*')
-              .eq('id', authData.user.id)
-              .returns<SupabaseUserRow[]>();
-            if (error) throw error;
-            if (data && data.length > 0) {
-              const u = data[0];
-              if (u.is_active === false) return null;
-              
-              const loggedInUser = {
-                id: u.id,
-                username: u.username,
-                role: u.role,
-                passwordHash: 'secured',
-                createdAt: new Date().toISOString(),
-                isActive: u.is_active ?? true
-              };
-              
-              // Sync locally
-              mockDb.createUser(u.username, passwordPlain, u.role, u.is_active ?? true);
-              return loggedInUser;
-            }
-          }
-        } catch (signInErr) {
-          console.warn('[BackendService] Auth sign-in failed, checking public database for sync heal...', signInErr);
-        }
+        const { data: authData, error: authError } = await client.auth.signInWithPassword({
+          email,
+          password: passwordPlain
+        });
+        if (authError) throw authError;
 
-        // 2. SELF-HEALING LOGIN SYNC FLOW:
-        // Check if user exists in public users table (allows reading via public anon SELECT policy)
-        const { data: publicUsers, error: selectError } = await client
-          .from('users')
-          .select('*')
-          .eq('username', username.trim())
-          .returns<SupabaseUserRow[]>();
+        if (authData && authData.user) {
+          const { data, error } = await client
+            .from('users')
+            .select('*')
+            .eq('id', authData.user.id)
+            .returns<SupabaseUserRow[]>();
+          if (error) throw error;
           
-        if (!selectError && publicUsers && publicUsers.length > 0) {
-          const u = publicUsers[0];
-          // Check if password matches public table (handles plain text or mockHash)
-          if (u.password === passwordPlain || u.password === mockDb.mockHash(passwordPlain)) {
+          if (data && data.length > 0) {
+            const u = data[0];
             if (u.is_active === false) return null;
             
-            console.log(`[BackendService] Healing user: ${username} by registering them in Supabase Auth...`);
+            const loggedInUser: User = {
+              id: u.id,
+              username: u.username,
+              role: u.role,
+              passwordHash: 'secured',
+              createdAt: new Date().toISOString(),
+              isActive: u.is_active ?? true
+            };
             
-            // Sign up in auth using a temp client to prevent session hijack, then login natively
-            const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-              auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false
-              }
-            });
-
-            const { data: signUpData, error: signUpError } = await tempClient.auth.signUp({
-              email,
-              password: passwordPlain,
-              options: {
-                data: {
-                  username: username.trim(),
-                  role: u.role
-                }
-              }
-            });
-
-            if (!signUpError && signUpData && signUpData.user) {
-              const newAuthId = signUpData.user.id;
-              
-              // Update ID in users table and cascaded tables so they match the new UUID
-              if (u.id !== newAuthId) {
-                console.log(`[BackendService] Sincronizando ID público de ${u.id} para ${newAuthId}`);
-                await client.from('users').update({ id: newAuthId, password: passwordPlain }).eq('id', u.id);
-                await client.from('game_states').update({ user_id: newAuthId }).eq('user_id', u.id);
-                await client.from('pets').update({ user_id: newAuthId }).eq('user_id', u.id);
-                await client.from('math_statistics').update({ user_id: newAuthId }).eq('user_id', u.id);
-              }
-
-              // Log in natively with the main client now that credentials exist in auth.users
-              const { data: finalAuthData, error: finalAuthError } = await client.auth.signInWithPassword({
-                email,
-                password: passwordPlain
-              });
-
-              if (!finalAuthError && finalAuthData && finalAuthData.user) {
-                const healedUser = {
-                  id: newAuthId,
-                  username: u.username,
-                  role: u.role,
-                  passwordHash: 'secured',
-                  createdAt: new Date().toISOString(),
-                  isActive: u.is_active ?? true
-                };
-
-                mockDb.createUser(u.username, passwordPlain, u.role, u.is_active ?? true);
-                return healedUser;
-              }
-            }
+            // Sync locally to mockDb cache for offline/visual operations
+            mockDb.createUser(u.username, passwordPlain, u.role, u.is_active ?? true);
+            return loggedInUser;
           }
         }
+        return null;
       } catch (err) {
-        console.error('[BackendService] Supabase error in login heal sync:', err);
+        console.error('[BackendService] Supabase error in login:', err);
+        return null;
       }
     }
     
-    // Fallback authentication check
+    // Fallback authentication check ONLY when Supabase is completely disabled
     const user = mockDb.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
     if (user && user.passwordHash === mockDb.mockHash(passwordPlain)) {
       if (user.isActive === false) return null;
