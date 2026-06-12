@@ -1664,14 +1664,14 @@ export const Olympics: React.FC<OlympicsProps> = ({
           <div className="cyber-card">
             <h4 style={{ fontSize: '1rem', color: '#fff', marginBottom: '10px' }}>📈 Progressão Recente (Últimas Batalhas)</h4>
             {history.length === 0 ? (
-              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontStyle: 'italic' }}>
+              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', margin: 0, fontStyle: 'italic' }}>
                 Nenhuma resposta registrada nesta sessão ainda.
               </p>
             ) : (
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
                 {history.map((h, i) => (
                   <div key={i} style={{ padding: '8px 12px', borderRadius: '6px', background: h.correct ? 'rgba(34,197,94,0.1)' : 'rgba(244,63,94,0.1)', border: `1.5px solid ${h.correct ? '#22c55e' : '#f43f5e'}`, textAlign: 'center', minWidth: '80px' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>#{h.level}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)' }}>#{h.level}</div>
                     <div style={{ fontSize: '1.1rem' }}>{h.correct ? '✔️' : '❌'}</div>
                     <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>{h.timestamp}</div>
                   </div>
@@ -1798,7 +1798,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
 
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--neon-yellow)' }}>{rankLabel}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Pontos: {score}/100</div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)' }}>Pontos: {score}/100</div>
                     </div>
                   </div>
                 );

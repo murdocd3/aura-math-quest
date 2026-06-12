@@ -104,37 +104,7 @@ function App() {
       // Sync data from Supabase to LocalStorage if connected
       if (backendService.isCloudConnected()) {
         try {
-          console.log('🔄 Sincronizando dados do Supabase para o armazenamento local...');
-          const state = await backendService.getGameState(loggedInUser.id);
-          const pets = await backendService.getPets(loggedInUser.id);
-          const stats = await backendService.getMathStats(loggedInUser.id);
-
-          if (state) {
-            const localStates = localStorage.getItem('amq_game_states') 
-              ? JSON.parse(localStorage.getItem('amq_game_states')!) 
-              : [];
-            const filteredStates = localStates.filter((s: any) => s.userId !== loggedInUser.id);
-            filteredStates.push(state);
-            localStorage.setItem('amq_game_states', JSON.stringify(filteredStates));
-          }
-
-          if (pets) {
-            const localPets = localStorage.getItem('amq_pets')
-              ? JSON.parse(localStorage.getItem('amq_pets')!)
-              : [];
-            const filteredPets = localPets.filter((p: any) => p.userId !== loggedInUser.id);
-            filteredPets.push(...pets);
-            localStorage.setItem('amq_pets', JSON.stringify(filteredPets));
-          }
-
-          if (stats) {
-            const localStats = localStorage.getItem('amq_stats')
-              ? JSON.parse(localStorage.getItem('amq_stats')!)
-              : [];
-            const filteredStats = localStats.filter((s: any) => s.userId !== loggedInUser.id);
-            filteredStats.push(...stats);
-            localStorage.setItem('amq_stats', JSON.stringify(filteredStats));
-          }
+          await backendService.syncCloudAndLocalState(loggedInUser.id);
         } catch (err) {
           console.error('❌ Falha ao sincronizar dados com o Supabase no login:', err);
         }
@@ -229,6 +199,8 @@ function App() {
             fontSize: '1.2rem',
           }}
           title={isAudioMuted ? 'Desmutar Som' : 'Mutar Som'}
+          aria-label={isAudioMuted ? 'Desmutar Som' : 'Mutar Som'}
+          aria-pressed={!isAudioMuted}
         >
           {isAudioMuted ? '🔇' : '🔊'}
         </button>
@@ -332,15 +304,7 @@ function App() {
           }}
         >
           <div
-            className="cyber-card"
-            style={{
-              width: '90%',
-              maxWidth: '400px',
-              textAlign: 'center',
-              padding: '30px',
-              borderColor: 'var(--neon-purple)',
-              boxShadow: '0 0 25px rgba(168,85,247,0.3)',
-            }}
+            className="cyber-card cyber-modal-card"
           >
             <h2 className="text-glow-purple" style={{ color: 'var(--neon-purple)', marginBottom: '16px' }}>
               Relatório de Combate
@@ -406,12 +370,8 @@ function App() {
           </div>
 
           <div
-            className="cyber-card animate-float"
+            className="cyber-card cyber-modal-card animate-float"
             style={{
-              width: '90%',
-              maxWidth: '440px',
-              textAlign: 'center',
-              padding: '40px 30px',
               borderColor: 'var(--neon-yellow)',
               boxShadow: '0 0 45px rgba(234, 179, 8, 0.45)',
               display: 'flex',
@@ -484,7 +444,7 @@ function App() {
           textAlign: 'center',
           padding: '20px',
           fontSize: '0.8rem',
-          color: 'rgba(255,255,255,0.4)',
+          color: 'rgba(255,255,255,0.65)',
           borderTop: '1px solid rgba(255,255,255,0.05)',
           marginTop: 'auto',
         }}

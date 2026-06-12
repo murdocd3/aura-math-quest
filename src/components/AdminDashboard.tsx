@@ -1357,7 +1357,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
               <div className="cyber-card" style={{ padding: '16px', borderColor: 'var(--neon-pink)', background: 'rgba(244, 63, 94, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', textAlign: 'center', marginBottom: '4px' }}>Dificuldades Críticas (Turma)</div>
                 {topWeakFacts.length === 0 ? (
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: '6px' }}>Nenhuma falha crítica registrada.</div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', textAlign: 'center', marginTop: '6px' }}>Nenhuma falha crítica registrada.</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center' }}>
                     {topWeakFacts.map((f: any) => (
@@ -1705,7 +1705,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '25vh', overflowY: 'auto' }}>
                           {(() => {
                             const weakList = activeStats.stats.filter((s: any) => s.errorCount >= 2 || (s.correctCount + s.errorCount > 0 && (s.correctCount / (s.correctCount + s.errorCount)) < 0.7));
-                            if (weakList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', padding: '10px 0', textAlign: 'center' }}>Nenhuma dificuldade crítica registrada.</div>;
+                            if (weakList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', padding: '10px 0', textAlign: 'center' }}>Nenhuma dificuldade crítica registrada.</div>;
                             return weakList.map((s: any) => (
                               <div key={s.questionKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(244, 63, 94, 0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(244, 63, 94, 0.1)' }}>
                                 <span style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '1rem', color: 'var(--neon-pink)' }}>{s.questionKey.replace('x', '×')}</span>
@@ -1728,7 +1728,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                           {(() => {
                             const threshold = activeStats.state?.masteryThreshold !== undefined ? activeStats.state.masteryThreshold : 5;
                             const masteredList = activeStats.stats.filter((s: any) => s.correctCount >= threshold && s.errorCount === 0);
-                            if (masteredList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', padding: '10px 0', textAlign: 'center' }}>Nenhuma conta dominada ainda.</div>;
+                            if (masteredList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', padding: '10px 0', textAlign: 'center' }}>Nenhuma conta dominada ainda.</div>;
                             return masteredList.map((s: any) => (
                               <div key={s.questionKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 255, 204, 0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(0, 255, 204, 0.1)' }}>
                                 <span style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '1rem', color: 'var(--neon-cyan)' }}>{s.questionKey.replace('x', '×')}</span>
@@ -1770,12 +1770,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                             {op.name}
                           </div>
                           <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>
-                            {total} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>itens</span>
+                            {total} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'rgba(255,255,255,0.65)' }}>itens</span>
                           </div>
                           <div style={{ fontSize: '0.8rem', fontWeight: 700, color: accuracy > 80 ? 'var(--neon-cyan)' : accuracy > 50 ? 'var(--neon-yellow)' : 'var(--neon-pink)', marginTop: '4px' }}>
                             {accuracy}% precisão
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', marginTop: '4px' }}>
                             Tempo: {averageTime}s
                           </div>
                         </div>

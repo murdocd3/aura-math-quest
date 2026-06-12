@@ -443,7 +443,7 @@ export const AuraPass: React.FC<AuraPassProps> = ({
           <div style={{ width: '100%', height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
             <div style={{ width: `${Math.min(100, currentXp % 100)}%`, height: '100%', background: 'linear-gradient(90deg, var(--neon-purple), var(--neon-pink))', transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '6px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginTop: '6px' }}>
             Falta {100 - (currentXp % 100)} XP para alcançar o próximo nível
           </div>
         </div>
@@ -667,7 +667,7 @@ export const AuraPass: React.FC<AuraPassProps> = ({
                       fontSize: '0.65rem',
                       borderColor: claimed ? '#22c55e' : reached && isPremiumUnlocked ? 'var(--neon-yellow)' : 'rgba(255,255,255,0.2)',
                       background: claimed ? 'rgba(34,197,94,0.15)' : 'transparent',
-                      color: claimed ? '#22c55e' : !isPremiumUnlocked ? 'rgba(255,255,255,0.4)' : '#fff'
+                      color: claimed ? '#22c55e' : !isPremiumUnlocked ? 'rgba(255,255,255,0.65)' : '#fff'
                     }}
                   >
                     {claimed ? 'Resgatado ✓' : !isPremiumUnlocked ? '🔒 Ativar' : reached ? 'Resgatar' : 'Bloqueado'}

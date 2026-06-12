@@ -809,7 +809,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           star.x = CANVAS_WIDTH;
           star.y = Math.random() * CANVAS_HEIGHT;
         }
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
         ctx.fillRect(star.x, star.y, star.size, star.size);
       });
 

@@ -398,4 +398,179 @@ body {
   }
 }
 
+/* Responsive Grids & Layouts */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 768px) {
+  .responsive-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  .responsive-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.responsive-fusion-grid {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+@media (max-width: 480px) {
+  .responsive-fusion-grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 8px;
+  }
+}
+
+.sanctum-layout-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr;
+  gap: 20px;
+}
+@media (max-width: 768px) {
+  .sanctum-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Responsive Navbar & Containers */
+.hub-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
+}
+@media (max-width: 768px) {
+  .hub-navbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    text-align: center;
+  }
+}
+
+.hub-navbar-buttons {
+  display: flex;
+  gap: 10px;
+}
+@media (max-width: 768px) {
+  .hub-navbar-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+  .hub-navbar-buttons .cyber-btn {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 130px;
+  }
+}
+@media (max-width: 480px) {
+  .hub-navbar-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hub-navbar-buttons .cyber-btn {
+    width: 100%;
+  }
+}
+
+.hub-navbar-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+@media (max-width: 768px) {
+  .hub-navbar-right {
+    align-items: center;
+  }
+}
+
+.cyber-modal-card {
+  width: 90%;
+  max-width: 440px;
+  text-align: center;
+  padding: 30px;
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.3);
+}
+@media (max-width: 480px) {
+  .cyber-modal-card {
+    padding: 16px 12px;
+    max-width: 340px;
+  }
+}
+
+.sanctum-header {
+  width: 100%;
+  max-width: 950px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+@media (max-width: 600px) {
+  .sanctum-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    text-align: center;
+  }
+  .sanctum-header button {
+    width: 100%;
+  }
+}
+
+.text-secondary-accessible {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Reusable Cyber Panel & Design Tokens */
+.cyber-panel-sub {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.cyber-panel-heading {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+}
+
+.cyber-visual-grid {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.cyber-visual-row {
+  display: flex;
+  gap: 6px;
+}
+
+
+
 

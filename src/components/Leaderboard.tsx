@@ -335,7 +335,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
                       Lvl {entry.level}
                     </div>
                   </div>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.85rem' }}>
                     {isExpanded ? '▲' : '▼'}
                   </span>
                 </div>

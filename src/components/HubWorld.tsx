@@ -617,16 +617,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     <div style={{ padding: '20px', minHeight: '90vh' }}>
       
       {/* Top Navbar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          paddingBottom: '16px',
-        }}
-      >
+      <div className="hub-navbar">
         <div>
           <h1
             className="text-glow-cyan"
@@ -636,8 +627,8 @@ export const HubWorld: React.FC<HubWorldProps> = ({
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.6)' }}>Prepare-se para o combate, selecione seu mapa e gerencie seus companheiros pets!</p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="hub-navbar-right">
+          <div className="hub-navbar-buttons">
             <button className="cyber-btn" onClick={onNavigateToPetShop} style={{ padding: '10px 18px', borderColor: 'var(--neon-yellow)' }}>
               🏪 Ir para Loja de Pets
             </button>
@@ -872,7 +863,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     ⭐ EFETUAR REBIRTH!
                   </button>
                 ) : (
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', textAlign: 'right' }}>
                     Alce o Nível 100 para dar Rebirth!
                   </div>
                 )}
@@ -903,7 +894,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: badge.active ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: badge.active ? '#fff' : 'rgba(255,255,255,0.65)' }}>
                         {badge.label}
                       </div>
                       <div style={{ fontSize: '0.55rem', color: badge.active ? badge.color : 'rgba(255,255,255,0.3)', marginTop: '2px', fontWeight: 'bold' }}>
@@ -1026,7 +1017,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     </div>
                     <div>
                       {claimed ? (
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800 }}>RESGATADO</span>
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', fontWeight: 800 }}>RESGATADO</span>
                       ) : isComplete ? (
                         <button
                           className="cyber-btn"
@@ -1044,7 +1035,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                           Resgatar 💎 {quest.reward}
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>Em progresso</span>
+                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)' }}>Em progresso</span>
                       )}
                     </div>
                   </div>
@@ -1106,7 +1097,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 800 }}>
                   Nível do Passe: <span style={{ color: 'var(--neon-purple)', textShadow: '0 0 6px rgba(168,85,247,0.3)' }}>{Math.floor((gameState.auraPassXp || 0) / 100) + 1}</span>
                 </span>
-                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)' }}>
                   {(gameState.auraPassXp || 0)} XP Total
                 </span>
               </div>
@@ -1114,7 +1105,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                 <div style={{ width: `${Math.min(100, (gameState.auraPassXp || 0) % 100)}%`, height: '100%', background: 'linear-gradient(90deg, var(--neon-purple), var(--neon-pink))', transition: 'width 0.4s ease' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)' }}>
                   {100 - ((gameState.auraPassXp || 0) % 100)} XP para Nvl {Math.floor((gameState.auraPassXp || 0) / 100) + 2}
                 </span>
                 <button
@@ -1181,7 +1172,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     >
                       {isLocked && <span style={{ fontSize: '0.8rem' }}>🔒</span>}
                     </button>
-                    <span style={{ fontSize: '0.65rem', color: isLocked ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.7)', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                    <span style={{ fontSize: '0.65rem', color: isLocked ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.7)', fontWeight: isSelected ? 'bold' : 'normal' }}>
                       {requirementLabel}
                     </span>
                   </div>
@@ -1191,9 +1182,12 @@ export const HubWorld: React.FC<HubWorldProps> = ({
           </div>
 
           {/* Tabs Selector for Maps vs Cosmetics Shop */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <div role="tablist" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'maps'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('maps'); }}
               style={{
                 flex: '1 1 auto',
@@ -1207,6 +1201,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'campaign'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('campaign'); }}
               style={{
                 flex: '1 1 auto',
@@ -1220,6 +1217,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'rpg'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('rpg'); }}
               style={{
                 flex: '1 1 auto',
@@ -1233,6 +1233,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'clans'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('clans'); }}
               style={{
                 flex: '1 1 auto',
@@ -1246,6 +1249,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'gincana'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('gincana'); }}
               style={{
                 flex: '1 1 auto',
@@ -1259,6 +1265,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'shop'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('shop'); }}
               style={{
                 flex: '1 1 auto',
@@ -1272,6 +1281,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
             <button
               className="cyber-btn"
+              role="tab"
+              aria-selected={activeHubTab === 'aurapass'}
+              aria-controls="hub-tab-panel"
               onClick={() => { audioEngine.playHatchRoll(); setActiveHubTab('aurapass'); }}
               style={{
                 flex: '1 1 auto',
@@ -1285,8 +1297,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </button>
           </div>
 
-          {/* Tab: Cosmic Campaign */}
-          {activeHubTab === 'campaign' && (
+          <div id="hub-tab-panel" role="tabpanel" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Tab: Cosmic Campaign */}
+            {activeHubTab === 'campaign' && (
             <div className="cyber-card" style={{ borderColor: '#ec4899', boxShadow: '0 0 15px rgba(236,72,153,0.1)' }}>
               <h3 style={{ fontSize: '1.4rem', marginBottom: '8px', color: '#fff', textAlign: 'center' }}>📖 Campanha Cósmica (Modo História)</h3>
               <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: '24px' }}>
@@ -1381,7 +1394,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                       >
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                            <h4 style={{ fontSize: '1.1rem', color: isLocked ? 'rgba(255,255,255,0.4)' : stage.color, margin: 0 }}>
+                            <h4 style={{ fontSize: '1.1rem', color: isLocked ? 'rgba(255,255,255,0.65)' : stage.color, margin: 0 }}>
                               {stage.name}
                             </h4>
                             <span style={{
@@ -1389,7 +1402,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                               padding: '2px 8px',
                               borderRadius: '8px',
                               background: isLocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
-                              color: isLocked ? 'rgba(255,255,255,0.4)' : '#fff',
+                              color: isLocked ? 'rgba(255,255,255,0.65)' : '#fff',
                               fontWeight: 800
                             }}>
                               {stage.op}
@@ -1398,7 +1411,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                           <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: '6px 0 0 0' }}>
                             {stage.desc}
                           </p>
-                          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', marginTop: '8px' }}>
                             Guia: <strong>{stage.npc}</strong>
                           </div>
                         </div>
@@ -1738,7 +1751,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                         {gameState.classId === 'warrior' ? '⚔️' : gameState.classId === 'chronomancer' ? '🔮' : '🧪'}
                       </span>
                       <div>
-                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Sua Classe</div>
+                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase' }}>Sua Classe</div>
                         <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: gameState.classId === 'warrior' ? 'var(--neon-pink)' : gameState.classId === 'chronomancer' ? 'var(--neon-purple)' : 'var(--neon-yellow)' }}>
                           {gameState.classId === 'warrior' ? 'Guerreiro Crítico' : gameState.classId === 'chronomancer' ? 'Mago do Tempo' : 'Alquimista de Aura'}
                         </h4>
@@ -1746,7 +1759,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>Pontos de Rebirth (Disponíveis / Total)</div>
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)' }}>Pontos de Rebirth (Disponíveis / Total)</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
                         🌟 {(() => {
                           const spent = (gameState.unlockedSkills || []).reduce((acc, sid) => {
@@ -1977,7 +1990,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                              <div style={{ marginBottom: '16px', background: 'rgba(234, 179, 8, 0.05)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '12px', borderRadius: '8px' }}>
                                <h5 style={{ fontSize: '0.85rem', color: 'var(--neon-yellow)', marginBottom: '8px' }}>👑 Painel do Líder / Candidaturas:</h5>
                                {(myClan.joinRequests?.length || 0) === 0 ? (
-                                 <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', margin: 0 }}>
+                                 <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', fontStyle: 'italic', margin: 0 }}>
                                    Nenhum pedido de entrada pendente.
                                  </p>
                                ) : (
@@ -2055,7 +2068,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                                ⚔️ Iniciar Combate na Arena
                              </button>
 
-                             <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontStyle: 'italic' }}>
+                             <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', margin: 0, fontStyle: 'italic' }}>
                                *Resolva contas na Arena de Combate para causar dano ao chefe cooperativo!
                              </p>
                            </div>
@@ -2148,7 +2161,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                           {/* Main Row / Header */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '1rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', minWidth: '20px' }}>
+                              <span style={{ fontSize: '1rem', fontWeight: 900, color: 'rgba(255,255,255,0.65)', minWidth: '20px' }}>
                                 #{index + 1}
                               </span>
                               <span style={{ fontSize: '1.6rem' }}>{clan.badgeEmoji}</span>
@@ -2172,7 +2185,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                                   ⭐ {clan.totalRebirths}
                                 </strong>
                               </div>
-                              <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', userSelect: 'none' }}>
+                              <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', userSelect: 'none' }}>
                                 {isExpanded ? '▲' : '▼'}
                               </span>
                             </div>
@@ -2263,7 +2276,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                                             {member.username} {member.id === playerUser.id ? '(Você)' : ''}
                                           </span>
                                         </div>
-                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem' }}>
+                                        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.65rem' }}>
                                           Nvl {mState?.auraLevel || 1} • ⭐ {mState?.rebirths || 0}
                                         </span>
                                       </div>
@@ -2494,6 +2507,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
               onSelectZone={onSelectZone}
             />
           )}
+          </div>
         </div>
 
         {/* Right Section: Leaderboard ranking side bar */}

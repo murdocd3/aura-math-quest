@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { mockDb, PET_TYPES, getPetEvolutionEmoji } from '../services/mockDb';
 import { backendService } from '../services/backendService';
 import type { User, GameState } from '../services/mockDb';
+import { getOperationSymbol, getCampaignOp, getPedagogicalExplanation, getPedagogicalHint } from '../services/mathEngine';
+import { useQuestionEngine } from '../hooks/useQuestionEngine';
 import { audioEngine } from './AudioEngine';
 import { getCampaignStages } from './HubWorld';
 import { CyberSprite } from './CyberSprite';
@@ -27,64 +29,12 @@ interface Question {
   op?: 'addition' | 'subtraction' | 'multiplication' | 'division';
 }
 
-const getPedagogicalExplanation = (q: Question) => {
-  const op = q.op || 'multiplication';
-  if (op === 'addition') {
-    return `💡 Explicando: Para somar ${q.num1} e ${q.num2}, junte as duas partes. Pense em começar no ${q.num1} e contar mais ${q.num2} números adiante: ${q.num1} + ${q.num2} = ${q.answer}.`;
-  }
-  if (op === 'subtraction') {
-    return `💡 Explicando: Subtrair significa diminuir ou tirar. Se você tem ${q.num1} e retira ${q.num2}, restam ${q.answer}. Você pode testar somando: ${q.answer} + ${q.num2} = ${q.num1}.`;
-  }
-  if (op === 'multiplication') {
-    const sumRepresentation = Array(Math.min(q.num1, 10)).fill(q.num2).join(' + ') + (q.num1 > 10 ? ' + ...' : '');
-    return `💡 Explicando: Multiplicação é somar parcelas iguais! ${q.num1} × ${q.num2} quer dizer somar o número ${q.num2} por ${q.num1} vezes consecutivas: ${sumRepresentation} = ${q.answer}.`;
-  }
-  if (op === 'division') {
-    return `💡 Explicando: Dividir é repartir de forma justa! Se você dividir ${q.num1} em ${q.num2} partes iguais, cada uma terá exatamente ${q.answer}. Lembre-se: ${q.answer} × ${q.num2} = ${q.num1}!`;
-  }
-  return '';
-};
 
-const getPedagogicalHint = (q: Question) => {
-  const op = q.op || 'multiplication';
-  if (op === 'addition') {
-    if (q.num1 % 10 === 9 || q.num2 % 10 === 9 || q.num1 % 10 === 8 || q.num2 % 10 === 8) {
-      return `💡 Dica de Raciocínio: Um dos números está quase terminando em 10! Tente arredondar ele para a dezena mais próxima somando 1 ou 2, some os números, e depois subtraia essa mesma quantidade no final.`;
-    }
-    return `💡 Dica de Raciocínio: Use a decomposição! Some primeiro as dezenas de cada número (ex: ${Math.floor(q.num1/10)*10} + ${Math.floor(q.num2/10)*10}) e depois as unidades (${q.num1 % 10} + ${q.num2 % 10}). Depois, junte as duas somas!`;
-  }
-  if (op === 'subtraction') {
-    return `💡 Dica de Raciocínio: Pense de trás para frente! Comece no número menor (${q.num2}) e conte quanto falta para chegar no número maior (${q.num1}). Primeiro vá até a dezena mais próxima, depois até o valor final.`;
-  }
-  if (op === 'multiplication') {
-    if (q.num1 === 9 || q.num2 === 9) {
-      return `💡 Dica de Raciocínio: Multiplicar por 9 é o mesmo que multiplicar por 10 e depois tirar o outro número uma vez! Exemplo: para 9 x X, pense em (10 x X) - X.`;
-    }
-    if (q.num1 % 2 === 0) {
-      return `💡 Dica de Raciocínio: Truque da metade! Se você achar difícil multiplicar ${q.num1} por ${q.num2}, pense em multiplicar a metade de ${q.num1} (que é ${q.num1 / 2}) por ${q.num2}, e depois dobre o resultado!`;
-    }
-    if (q.num2 % 2 === 0) {
-      return `💡 Dica de Raciocínio: Truque da metade! Se você achar difícil multiplicar ${q.num1} por ${q.num2}, pense em multiplicar ${q.num1} pela metade de ${q.num2} (que é ${q.num2 / 2}), e depois dobre o resultado!`;
-    }
-    return `💡 Dica de Raciocínio: Use um ponto de partida conhecido. Por exemplo, use a tabuada do 5 (que é mais fácil) e depois adicione as partes que faltam!`;
-  }
-  if (op === 'division') {
-    return `💡 Dica de Raciocínio: Use a operação inversa! Pergunte a si mesmo: qual número que, se multiplicado por ${q.num2}, resulta exatamente em ${q.num1}? (Pense na tabuada de multiplicação de ${q.num2}!)`;
-  }
-  return '';
-};
 
 const renderVisualHelper = (q: Question, defaultOp: string) => {
   const op = q.op || defaultOp || 'multiplication';
   const num1 = q.num1;
   const num2 = q.num2;
-  const dotsStyle = {
-    display: 'flex',
-    gap: '6px',
-    justifyContent: 'center',
-    margin: '10px 0',
-    flexWrap: 'wrap' as const,
-  };
   const dotSpanStyle = (color: string, crossed = false) => ({
     width: '12px',
     height: '12px',
@@ -98,9 +48,9 @@ const renderVisualHelper = (q: Question, defaultOp: string) => {
 
   if (op === 'addition') {
     return (
-      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
-        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Dica Holográfica Visual:</div>
-        <div style={dotsStyle}>
+      <div className="cyber-panel-sub">
+        <div className="cyber-panel-heading">Dica Holográfica Visual:</div>
+        <div className="cyber-visual-grid">
           {Array.from({ length: num1 }).map((_, i) => (
             <span key={`n1-${i}`} style={dotSpanStyle('var(--neon-cyan)')} />
           ))}
@@ -115,9 +65,9 @@ const renderVisualHelper = (q: Question, defaultOp: string) => {
 
   if (op === 'subtraction') {
     return (
-      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
-        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Dica Holográfica Visual:</div>
-        <div style={dotsStyle}>
+      <div className="cyber-panel-sub">
+        <div className="cyber-panel-heading">Dica Holográfica Visual:</div>
+        <div className="cyber-visual-grid">
           {Array.from({ length: num1 }).map((_, i) => {
             const isCrossed = i >= num1 - num2;
             return (
@@ -146,11 +96,11 @@ const renderVisualHelper = (q: Question, defaultOp: string) => {
     const cols = num2;
     if (rows * cols > 100) return null;
     return (
-      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
-        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Grade Holográfica ({rows} × {cols}):</div>
+      <div className="cyber-panel-sub">
+        <div className="cyber-panel-heading">Grade Holográfica ({rows} × {cols}):</div>
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px', alignItems: 'center' }}>
           {Array.from({ length: rows }).map((_, r) => (
-            <div key={`row-${r}`} style={{ display: 'flex', gap: '6px' }}>
+            <div key={`row-${r}`} className="cyber-visual-row">
               {Array.from({ length: cols }).map((_, c) => (
                 <span key={`col-${c}`} style={dotSpanStyle('var(--neon-yellow)')} />
               ))}
@@ -167,11 +117,11 @@ const renderVisualHelper = (q: Question, defaultOp: string) => {
     const perGroup = Math.floor(total / groups);
     if (total > 100) return null;
     return (
-      <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)' }}>
-        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>Repartição Holográfica ({total} ÷ {groups} grupos):</div>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div className="cyber-panel-sub">
+        <div className="cyber-panel-heading">Repartição Holográfica ({total} ÷ {groups} grupos):</div>
+        <div className="cyber-visual-grid">
           {Array.from({ length: groups }).map((_, g) => (
-            <div key={`group-${g}`} style={{ border: '1px solid rgba(255,255,255,0.2)', padding: '6px', borderRadius: '4px', display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)' }}>
+            <div key={`group-${g}`} style={{ border: '1px solid rgba(255,255,255,0.2)', padding: '6px', borderRadius: '4px', display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)' }} className="cyber-visual-row">
               {Array.from({ length: perGroup }).map((_, i) => (
                 <span key={`item-${i}`} style={dotSpanStyle('var(--neon-cyan)')} />
               ))}
@@ -204,31 +154,6 @@ const MONSTERS = {
     { name: 'Glitch Dragon', emoji: '🐉', maxHp: 4 },
     { name: 'Mega Crash Worm', emoji: '🐛', maxHp: 5 },
   ],
-};
-
-const getOperationSymbol = (op: 'addition' | 'subtraction' | 'multiplication' | 'division') => {
-  switch (op) {
-    case 'addition': return '+';
-    case 'subtraction': return '-';
-    case 'multiplication': return '×';
-    case 'division': return '÷';
-    default: return '×';
-  }
-};
-
-const getCampaignOp = (stageId: number): 'addition' | 'subtraction' | 'multiplication' | 'division' => {
-  const stageIndex = (stageId - 1) % 5;
-  switch (stageIndex) {
-    case 0: return 'addition';
-    case 1: return 'subtraction';
-    case 2: return 'division';
-    case 3: return 'multiplication';
-    case 4: {
-      const ops: Array<'addition' | 'subtraction' | 'multiplication' | 'division'> = ['addition', 'subtraction', 'multiplication', 'division'];
-      return ops[Math.floor(Math.random() * ops.length)];
-    }
-    default: return 'multiplication';
-  }
 };
 
 const getCampaignRewards = (stageId: number, currentCampaignStage: number) => {
@@ -425,7 +350,6 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const [playerHp, setPlayerHp] = useState(3); // 3 shields
   const [maxPlayerHp] = useState(3);
   const [battleState, setBattleState] = useState<'intro' | 'fighting' | 'won' | 'lost'>('intro');
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
 
   // Campaign Victory Dialogue index
   const [victoryDialogueIndex, setVictoryDialogueIndex] = useState<number | null>(null);
@@ -548,8 +472,24 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     }, 2000);
   };
 
-  // Stats trackers
-  const [questionsAnswered, setQuestionsAnswered] = useState(0);
+  // Stats trackers via Question Engine Hook
+  const {
+    currentQuestion,
+    setCurrentQuestion,
+    currentStreak,
+    setCurrentStreak,
+    maxStreak,
+    setMaxStreak,
+    questionsAnswered,
+    setQuestionsAnswered,
+    getNewQuestion,
+  } = useQuestionEngine(
+    userId,
+    (gameState.selectedOperation || 'multiplication') as any,
+    campaignStageId,
+    bossOp
+  );
+
   const [perfectBattle, setPerfectBattle] = useState(true);
 
   // Spells / Hitsplats
@@ -557,8 +497,6 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
   // Quest Counters in this battle
   const [battleCriticals, setBattleCriticals] = useState(0);
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [maxStreak, setMaxStreak] = useState(0);
 
   const spawnHitSplat = (text: string, isPlayer: boolean, type: 'critical' | 'normal' | 'error') => {
     if (!isMountedRef.current) return;
@@ -572,257 +510,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     hitSplatsTimeoutsRef.current.push(tId);
   };
 
-  // Generate question
+  // Generate question using mathEngine service via custom hook
   const generateQuestion = (): Question => {
-    let num1 = 2;
-    let num2 = 2;
-    let isWeakPoint = false;
-    let op: 'addition' | 'subtraction' | 'multiplication' | 'division' = (bossOp || gameState.selectedOperation || 'multiplication') as any;
-    if (campaignStageId && !bossOp) {
-      op = getCampaignOp(campaignStageId) as any;
-    }
-    const opSym = getOperationSymbol(op);
-
-    // If campaignStageId is active, fall back to cycle-based stage question generation
-    if (campaignStageId) {
-      const cycle = Math.floor((campaignStageId - 1) / 5) + 1;
-      const streakBonus = 1 + Math.floor(currentStreak / 3) * 0.15;
-      let opLevelBonus = 1.0;
-      try {
-        const stats = mockDb.getMathStats(userId);
-        const opStats = stats.filter(s => {
-          const hasLegacyX = s.questionKey.includes('x') && op === 'multiplication';
-          const hasOpSym = s.questionKey.includes(opSym);
-          return hasLegacyX || hasOpSym;
-        });
-        const totalCorrect = opStats.reduce((sum: number, s: any) => sum + s.correctCount, 0);
-        const opLevel = Math.min(10, 1 + Math.floor(totalCorrect / 15));
-        opLevelBonus = 1 + (opLevel - 1) * 0.15;
-      } catch (e) {
-        console.warn('Error calculating opLevel:', e);
-      }
-
-      const difficultyMultiplier = (1 + (cycle - 1) * 0.5) * streakBonus * opLevelBonus;
-      let answer = 0;
-
-      if (op === 'addition') {
-        const maxVal = Math.round(15 * difficultyMultiplier);
-        num1 = Math.floor(Math.random() * (maxVal - 1)) + 2;
-        num2 = Math.floor(Math.random() * (maxVal - 1)) + 2;
-        answer = num1 + num2;
-      } else if (op === 'subtraction') {
-        const maxVal = Math.round(30 * difficultyMultiplier);
-        num1 = Math.floor(Math.random() * (maxVal - 4)) + 5;
-        num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
-        answer = num1 - num2;
-      } else if (op === 'division') {
-        const divisors = [2, 3, 4, 5].map(d => Math.round(d * (1 + (cycle - 1) * 0.2)));
-        let divisor = divisors[Math.floor(Math.random() * divisors.length)];
-        const maxQuotient = Math.round(10 * difficultyMultiplier);
-        let quotient = Math.floor(Math.random() * (maxQuotient - 1)) + 2;
-        num1 = divisor * quotient;
-        num2 = divisor;
-        answer = quotient;
-      } else {
-        const tables = [2, 3, 4, 5].map(t => Math.round(t * (1 + (cycle - 1) * 0.2)));
-        num1 = tables[Math.floor(Math.random() * tables.length)];
-        const maxFactor = Math.round(9 * difficultyMultiplier);
-        num2 = Math.floor(Math.random() * (maxFactor - 1)) + 2;
-        answer = num1 * num2;
-      }
-
-      const key = op === 'multiplication' ? `${num1}x${num2}` : `${num1}${opSym}${num2}`;
-      const choices = new Set<number>([answer]);
-      while (choices.size < 4) {
-        let fakeAnswer = 0;
-        if (op === 'multiplication') {
-          const offset = (Math.floor(Math.random() * 5) - 2) * num1;
-          fakeAnswer = answer + (offset === 0 ? num1 : offset);
-        } else if (op === 'division') {
-          const offset = Math.floor(Math.random() * 5) - 2;
-          fakeAnswer = answer + (offset === 0 ? 3 : offset);
-        } else if (op === 'addition' || op === 'subtraction') {
-          const offset = Math.floor(Math.random() * 7) - 3;
-          fakeAnswer = answer + (offset === 0 ? 4 : offset);
-        } else {
-          fakeAnswer = answer + Math.floor(Math.random() * 15) + 1;
-        }
-
-        if (fakeAnswer > 0 && fakeAnswer !== answer) {
-          choices.add(fakeAnswer);
-        } else {
-          choices.add(answer + Math.floor(Math.random() * 15) + 1);
-        }
-      }
-
-      return {
-        num1,
-        num2,
-        answer,
-        choices: Array.from(choices).sort(() => Math.random() - 0.5),
-        key,
-        isWeakPoint: false,
-        op,
-      };
-    }
-
-    // Unified Adaptive World logic!
-    try {
-      const stats = mockDb.getMathStats(userId);
-      const progress = mockDb.getMathProgress(userId, op);
-      const rand = Math.random();
-
-      // 40% Chance: Active Difficulties (SRS Review Queue)
-      if (rand < 0.40) {
-        const weakSpots = stats.filter(s => {
-          const isMatchOp = op === 'addition' ? s.questionKey.includes('+') :
-                            op === 'subtraction' ? s.questionKey.includes('-') :
-                            op === 'multiplication' ? (s.questionKey.includes('x') || s.questionKey.includes('*')) :
-                            (s.questionKey.includes('/') || s.questionKey.includes('÷'));
-          if (!isMatchOp) return false;
-          
-          const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
-          const n1 = parseInt(parts[0]);
-          const n2 = parseInt(parts[1] || '0');
-          if (isNaN(n1)) return false;
-
-          let isUnlocked = false;
-          if (op === 'multiplication' || op === 'division') {
-            const h = op === 'multiplication' ? n1 : n2;
-            isUnlocked = progress.unlockedList.includes(h);
-          } else {
-            if (op === 'addition') {
-              const sum = n1 + n2;
-              const tier = sum <= 20 ? 1 : sum <= 50 ? 2 : sum <= 100 ? 3 : sum <= 200 ? 4 : 5;
-              isUnlocked = progress.unlockedList.includes(tier);
-            } else {
-              const tier = n1 <= 10 ? 1 : n1 <= 30 ? 2 : n1 <= 60 ? 3 : n1 <= 120 ? 4 : 5;
-              isUnlocked = progress.unlockedList.includes(tier);
-            }
-          }
-
-          const total = s.correctCount + s.errorCount;
-          const isWeak = s.errorCount >= 2 || (total > 0 && (s.correctCount / total) < 0.70);
-          return isWeak && isUnlocked;
-        });
-
-        if (weakSpots.length > 0) {
-          const chosen = weakSpots[Math.floor(Math.random() * weakSpots.length)];
-          const parts = chosen.questionKey.split(/[\+\-\*x\/÷]/);
-          num1 = parseInt(parts[0]);
-          num2 = parseInt(parts[1]);
-          isWeakPoint = true;
-        }
-      }
-
-      // 20% Chance: Retention Checks (from masteredList)
-      let isRetention = false;
-      if (!isWeakPoint && rand >= 0.40 && rand < 0.60 && progress.masteredList.length > 0) {
-        const masteredVal = progress.masteredList[Math.floor(Math.random() * progress.masteredList.length)];
-        if (op === 'multiplication') {
-          num1 = masteredVal;
-          num2 = Math.floor(Math.random() * 8) + 2; // 2..9
-          isRetention = true;
-        } else if (op === 'division') {
-          num2 = masteredVal; // divisor
-          num1 = num2 * (Math.floor(Math.random() * 8) + 2); // dividend
-          isRetention = true;
-        } else if (op === 'addition') {
-          const rangeMax = masteredVal === 1 ? 20 : masteredVal === 2 ? 50 : masteredVal === 3 ? 100 : masteredVal === 4 ? 200 : 1000;
-          const rangeMin = masteredVal === 1 ? 4 : masteredVal === 2 ? 21 : masteredVal === 3 ? 51 : masteredVal === 4 ? 101 : 201;
-          const sumTarget = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
-          num1 = Math.floor(Math.random() * (sumTarget - 2)) + 2;
-          num2 = sumTarget - num1;
-          isRetention = true;
-        } else if (op === 'subtraction') {
-          const rangeMax = masteredVal === 1 ? 10 : masteredVal === 2 ? 30 : masteredVal === 3 ? 60 : masteredVal === 4 ? 120 : 1000;
-          const rangeMin = masteredVal === 1 ? 4 : masteredVal === 2 ? 11 : masteredVal === 3 ? 31 : masteredVal === 4 ? 61 : 121;
-          num1 = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
-          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
-          isRetention = true;
-        }
-      }
-
-      // 40% Chance (Learning Frontier) or Fallback
-      if (!isWeakPoint && !isRetention) {
-        const active = progress.currentTier;
-        const masteredAll = progress.masteredList.length >= (op === 'multiplication' || op === 'division' ? 9 : 5); // 2..10 are 9 houses, 1..5 are 5 tiers
-
-        if (op === 'multiplication') {
-          if (masteredAll) {
-            num1 = Math.floor(Math.random() * 10) + 11; // 11..20
-            num2 = Math.floor(Math.random() * 11) + 2;  // 2..12
-          } else {
-            num1 = active;
-            num2 = Math.floor(Math.random() * 8) + 2;  // 2..9
-          }
-        } else if (op === 'division') {
-          if (masteredAll) {
-            num2 = Math.floor(Math.random() * 10) + 11;
-            num1 = num2 * (Math.floor(Math.random() * 11) + 2);
-          } else {
-            num2 = active;
-            num1 = num2 * (Math.floor(Math.random() * 8) + 2);
-          }
-        } else if (op === 'addition') {
-          const rangeMax = active === 1 ? 20 : active === 2 ? 50 : active === 3 ? 100 : active === 4 ? 200 : masteredAll ? 5000 : 1000;
-          const rangeMin = active === 1 ? 4 : active === 2 ? 21 : active === 3 ? 51 : active === 4 ? 101 : 201;
-          const sumTarget = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
-          num1 = Math.floor(Math.random() * (sumTarget - 2)) + 2;
-          num2 = sumTarget - num1;
-        } else if (op === 'subtraction') {
-          const rangeMax = active === 1 ? 10 : active === 2 ? 30 : active === 3 ? 60 : active === 4 ? 120 : masteredAll ? 5000 : 1000;
-          const rangeMin = active === 1 ? 4 : active === 2 ? 11 : active === 3 ? 31 : active === 4 ? 61 : 121;
-          num1 = Math.floor(Math.random() * (rangeMax - rangeMin + 1)) + rangeMin;
-          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
-        }
-      }
-    } catch (e) {
-      console.warn('Error generating adaptive question, using basic fallback:', e);
-      num1 = Math.floor(Math.random() * 8) + 2;
-      num2 = Math.floor(Math.random() * 8) + 2;
-    }
-
-    let answer = 0;
-    if (op === 'addition') answer = num1 + num2;
-    else if (op === 'subtraction') answer = num1 - num2;
-    else if (op === 'division') answer = Math.round(num1 / num2);
-    else answer = num1 * num2;
-
-    const key = op === 'multiplication' ? `${num1}x${num2}` : `${num1}${opSym}${num2}`;
-
-    const choices = new Set<number>([answer]);
-    while (choices.size < 4) {
-      let fakeAnswer = 0;
-      if (op === 'multiplication') {
-        const offset = (Math.floor(Math.random() * 5) - 2) * num1;
-        fakeAnswer = answer + (offset === 0 ? num1 : offset);
-      } else if (op === 'division') {
-        const offset = Math.floor(Math.random() * 5) - 2;
-        fakeAnswer = answer + (offset === 0 ? 3 : offset);
-      } else if (op === 'addition' || op === 'subtraction') {
-        const offset = Math.floor(Math.random() * 7) - 3;
-        fakeAnswer = answer + (offset === 0 ? 4 : offset);
-      } else {
-        fakeAnswer = answer + Math.floor(Math.random() * 15) + 1;
-      }
-
-      if (fakeAnswer > 0 && fakeAnswer !== answer) {
-        choices.add(fakeAnswer);
-      } else {
-        choices.add(answer + Math.floor(Math.random() * 15) + 1);
-      }
-    }
-
-    return {
-      num1,
-      num2,
-      answer,
-      choices: Array.from(choices).sort(() => Math.random() - 0.5),
-      key,
-      isWeakPoint,
-      op,
-    };
+    return getNewQuestion(currentStreak);
   };
 
   // Start battle
@@ -1646,7 +1336,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
             <div style={{ padding: '40px 0' }}>
               <div className="animate-float" style={{ fontSize: '4rem', marginBottom: '20px' }}>🌐</div>
               <h3 className="text-glow-purple" style={{ color: 'var(--neon-purple)', fontSize: '1.4rem', fontWeight: 800 }}>Procurando Oponente...</h3>
-              <p style={{ color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>Conectando com o servidor de treino...</p>
+              <p style={{ color: 'rgba(255,255,255,0.65)', marginTop: '8px' }}>Conectando com o servidor de treino...</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -2538,7 +2228,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
           {/* Live Battle Log */}
           <div className="cyber-card" style={{ padding: '16px', background: 'rgba(0,0,0,0.5)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', marginBottom: '8px' }}>
               Histórico de Combate
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9rem' }}>

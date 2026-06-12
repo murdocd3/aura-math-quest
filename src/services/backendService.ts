@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { mockDb, COSMETIC_ITEMS } from './mockDb';
 import type { User, GameState, Pet, MathStatistic, TimelineEntry } from './mockDb';
+import { logger } from './logger';
 
 /**
  * DATABASE SETUP SCHEMA FOR SUPABASE:
@@ -207,6 +208,48 @@ export const backendService = {
     return isSupabaseEnabled && typeof window !== 'undefined' && window.navigator.onLine;
   },
 
+  async syncCloudAndLocalState(userId: string): Promise<void> {
+    if (!this.isCloudConnected()) {
+      return;
+    }
+    try {
+      logger.log('🔄 Sincronizando dados do Supabase para o armazenamento local...');
+      const state = await this.getGameState(userId);
+      const pets = await this.getPets(userId);
+      const stats = await this.getMathStats(userId);
+
+      if (state) {
+        const localStates = localStorage.getItem('amq_game_states')
+          ? JSON.parse(localStorage.getItem('amq_game_states')!)
+          : [];
+        const filteredStates = localStates.filter((s: any) => s.userId !== userId);
+        filteredStates.push(state);
+        localStorage.setItem('amq_game_states', JSON.stringify(filteredStates));
+      }
+
+      if (pets) {
+        const localPets = localStorage.getItem('amq_pets')
+          ? JSON.parse(localStorage.getItem('amq_pets')!)
+          : [];
+        const filteredPets = localPets.filter((p: any) => p.userId !== userId);
+        filteredPets.push(...pets);
+        localStorage.setItem('amq_pets', JSON.stringify(filteredPets));
+      }
+
+      if (stats) {
+        const localStats = localStorage.getItem('amq_stats')
+          ? JSON.parse(localStorage.getItem('amq_stats')!)
+          : [];
+        const filteredStats = localStats.filter((s: any) => s.userId !== userId);
+        filteredStats.push(...stats);
+        localStorage.setItem('amq_stats', JSON.stringify(filteredStats));
+      }
+    } catch (err) {
+      logger.error('❌ Falha ao sincronizar dados com o Supabase:', err);
+      throw err;
+    }
+  },
+
   async buyCosmetic(userId: string, cosmeticId: string): Promise<GameState | null> {
     const cosmetic = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
     if (!cosmetic) throw new Error('Item cosmético não encontrado.');
@@ -275,61 +318,77 @@ export const backendService = {
   async createUser(username: string, passwordPlain: string, role: 'admin' | 'player', isActive: boolean = true): Promise<User | null> {
     if (isSupabaseEnabled && supabase) {
       try {
-        console.log(`[BackendService] Creating user: ${username} in Supabase...`);
-        const userId = 'usr_' + Math.random().toString(36).substring(2, 11);
-        const { error: userError } = await supabase.from('users').insert({
-          id: userId,
-          username: username.trim(),
+        console.log(`[BackendService] Creating user: ${username} via Supabase Auth native...`);
+        const email = `${username.toLowerCase().trim()}@auramathquest.local`;
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
           password: passwordPlain,
-          role,
-          is_active: isActive
+          options: {
+            data: {
+              username: username.trim(),
+              role: role
+            }
+          }
         });
-        if (userError) throw userError;
+        if (authError) throw authError;
 
-        if (role === 'player') {
-          const defaultDbRow = mapGameStateToDb({
-            userId,
-            auraLevel: 1,
-            auraXp: 0,
-            auraColor: '#00ffcc',
-            rebirths: 0,
-            gems: 0,
-            currentZone: 'forest',
-            equippedPetId: null,
-            activeAuras: [],
-            totalPlayTimeSeconds: 0,
-            purchasedCosmetics: [],
-            equippedCosmeticId: null,
-            selectedOperation: 'multiplication',
-            questWins: 0,
-            questCriticals: 0,
-            questStreak: 0,
-            claimedQuests: [],
-            classId: null,
-            skillPoints: 0,
-            unlockedSkills: [],
-            clanId: null,
-            clanContributions: 0,
-            campaignStage: 1,
+        if (authData && authData.user) {
+          const userId = authData.user.id;
+          console.log(`[BackendService] Inserting public profile for user: ${username} with ID: ${userId}...`);
+          const { error: userError } = await supabase.from('users').insert({
+            id: userId,
+            username: username.trim(),
+            role,
+            is_active: isActive
           });
-          defaultDbRow.user_id = userId;
+          if (userError) throw userError;
 
-          const { error: stateError } = await supabase.from('game_states').insert(defaultDbRow);
-          if (stateError) throw stateError;
+          if (role === 'player') {
+            const defaultDbRow = mapGameStateToDb({
+              userId,
+              auraLevel: 1,
+              auraXp: 0,
+              auraColor: '#00ffcc',
+              rebirths: 0,
+              gems: 0,
+              currentZone: 'forest',
+              equippedPetId: null,
+              activeAuras: [],
+              totalPlayTimeSeconds: 0,
+              purchasedCosmetics: [],
+              equippedCosmeticId: null,
+              selectedOperation: 'multiplication',
+              questWins: 0,
+              questCriticals: 0,
+              questStreak: 0,
+              claimedQuests: [],
+              classId: null,
+              skillPoints: 0,
+              unlockedSkills: [],
+              clanId: null,
+              clanContributions: 0,
+              campaignStage: 1,
+            });
+            defaultDbRow.user_id = userId;
+
+            const { error: stateError } = await supabase.from('game_states').insert(defaultDbRow);
+            if (stateError) throw stateError;
+          }
+
+          const newUser: User = {
+            id: userId,
+            username: username.trim(),
+            role,
+            passwordHash: 'secured',
+            createdAt: new Date().toISOString(),
+            isActive
+          };
+
+          // Mirror locally just in case
+          mockDb.createUser(username, passwordPlain, role, isActive);
+          return newUser;
         }
-
-        const newUser: User = {
-          id: userId,
-          username: username.trim(),
-          role,
-          passwordHash: passwordPlain,
-          createdAt: new Date().toISOString(),
-          isActive
-        };
-
-        // Mirror locally just in case
-        mockDb.createUser(username, passwordPlain, role, isActive);
-        return newUser;
+        return null;
       } catch (err) {
         console.error('[BackendService] Supabase error in createUser:', err);
         return null;
@@ -380,21 +439,28 @@ export const backendService = {
   async login(username: string, passwordPlain: string): Promise<User | null> {
     if (isSupabaseEnabled && supabase) {
       try {
-        console.log(`[BackendService] Logging in user: ${username} from Supabase...`);
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .ilike('username', username.trim());
-        if (error) throw error;
-        if (data && data.length > 0) {
-          const u = data[0];
-          if (u.password === passwordPlain) {
+        console.log(`[BackendService] Logging in user: ${username} via Supabase Auth native...`);
+        const email = `${username.toLowerCase().trim()}@auramathquest.local`;
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password: passwordPlain
+        });
+        if (authError) throw authError;
+
+        if (authData && authData.user) {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authData.user.id);
+          if (error) throw error;
+          if (data && data.length > 0) {
+            const u = data[0];
             if (u.is_active === false) return null;
             return {
               id: u.id,
               username: u.username,
               role: u.role as 'admin' | 'player',
-              passwordHash: u.password,
+              passwordHash: 'secured',
               createdAt: u.created_at || new Date().toISOString(),
               isActive: u.is_active !== false
             };
@@ -408,7 +474,7 @@ export const backendService = {
     
     // Fallback authentication check
     const user = mockDb.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
-    if (user && user.passwordHash === passwordPlain) {
+    if (user && user.passwordHash === mockDb.mockHash(passwordPlain)) {
       if (user.isActive === false) return null;
       return user;
     }

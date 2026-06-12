@@ -75,6 +75,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
   // General Notification States
   const [petSuccessMsg, setPetSuccessMsg] = useState<string | null>(null);
   const [petErrorMsg, setPetErrorMsg] = useState<string | null>(null);
+  const [screenReaderAnnouncement, setScreenReaderAnnouncement] = useState('');
   const [tick, setTick] = useState(0);
   const [filterRarity, setFilterRarity] = useState<string>('all');
   const [filterElement, setFilterElement] = useState<string>('all');
@@ -275,6 +276,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (updatedState) {
       onStateUpdate(updatedState);
       setPetSuccessMsg('Seu pet foi alimentado! +50% de bônus ativo por 2 horas!');
+      setScreenReaderAnnouncement('Seu pet foi alimentado! Ganhou bônus de XP!');
       setTimeout(() => setPetSuccessMsg(null), 4000);
     }
   };
@@ -320,6 +322,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (updatedState) {
       onStateUpdate(updatedState);
       setPetSuccessMsg('Expedição iniciada com sucesso! O pet partiu em sua jornada.');
+      setScreenReaderAnnouncement('Expedição iniciada com sucesso! Seu pet partiu em jornada.');
       setExpeditionPetId(null);
       setTimeout(() => setPetSuccessMsg(null), 4000);
     }
@@ -347,6 +350,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (updatedState) {
       onStateUpdate(updatedState);
       setPetSuccessMsg(`Expedição concluída! Você coletou 💎 ${expedition.rewardGems} gemas!`);
+      setScreenReaderAnnouncement(`Expedição concluída! Você resgatou ${expedition.rewardGems} gemas.`);
       setTimeout(() => setPetSuccessMsg(null), 4000);
     }
   };
@@ -484,6 +488,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
         const nextLvl = pet1.level + 1;
         const stars = '★'.repeat(nextLvl - 1);
         setFusionSuccessMsg(`Fusão Completa! Seu pet "${pet1.nickname}" evoluiu para o Nível ${nextLvl} ${stars}!`);
+        setScreenReaderAnnouncement(`Fusão Completa! Seu pet ${pet1.nickname} subiu para o nível ${nextLvl}.`);
         setSelectedPet1Id(null);
         setSelectedPet2Id(null);
         onStateUpdate(updatedState);
@@ -569,6 +574,8 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     
     if (createdPet) {
       setHatchedPet(createdPet);
+      const pt = PET_TYPES.find(p => p.id === petTypeId);
+      setScreenReaderAnnouncement(`Hatch completo! Você obteve um ${pt?.name || 'Pet'}!`);
       setPetNicknameInput(createdPet.nickname);
       setHatchStage('revealed');
       loadPets();
@@ -577,10 +584,12 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
   const saveNickname = () => {
     if (!hatchedPet) return;
+    const nameToSet = petNicknameInput.trim() || hatchedPet.nickname;
+    setScreenReaderAnnouncement(`Nome do pet salvo com sucesso como ${nameToSet}!`);
     const allPets = mockDb.getPets(userId);
     const index = allPets.findIndex(p => p.id === hatchedPet.id);
     if (index !== -1) {
-      allPets[index].nickname = petNicknameInput.trim() || hatchedPet.nickname;
+      allPets[index].nickname = nameToSet;
       localStorage.setItem('amq_pets', JSON.stringify(allPets));
       loadPets();
     }
@@ -884,7 +893,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="responsive-grid-2">
             {/* Left Card: Pet Selection and XP Info */}
             <div className="cyber-card" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(15, 23, 42, 0.65)', padding: '20px' }}>
               <h3 style={{ fontSize: '1.2rem', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
@@ -893,7 +902,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', marginBottom: '20px' }}>
                 {pets.length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Você não tem pets ainda. Hatch no gacha para conseguir!</p>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', fontStyle: 'italic' }}>Você não tem pets ainda. Hatch no gacha para conseguir!</p>
                 ) : (
                   pets.map(pet => {
                     const pt = PET_TYPES.find(p => p.id === pet.petTypeId);
@@ -992,7 +1001,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
               {petErrorMsg && <div style={{ padding: '8px', borderRadius: '4px', backgroundColor: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.8rem', marginBottom: '12px' }}>{petErrorMsg}</div>}
 
               {!selectedTrainingPetId ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', padding: '40px' }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', padding: '40px' }}>
                   Selecione um pet da lista ao lado para iniciar as atividades de treinamento matemático!
                 </div>
               ) : trainingGameMode === 'select' ? (
@@ -1129,7 +1138,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         </div>
                         {memoryMatrixQuestion.steps.map((step, idx) => (
                           <React.Fragment key={idx}>
-                            <span style={{ color: 'rgba(255,255,255,0.4)' }}>➔</span>
+                            <span style={{ color: 'rgba(255,255,255,0.65)' }}>➔</span>
                             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '4px', color: '#fff', fontSize: '0.9rem' }}>
                               {step.op === 'x' ? '×' : step.op} {step.val}
                             </div>
@@ -1219,7 +1228,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Duração da Expedição:</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <div className="responsive-grid-3">
                     <button
                       className="cyber-btn"
                       onClick={() => setExpeditionDuration('short')}
@@ -1281,7 +1290,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
                 {(gameState.activeExpeditions || []).length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', textAlign: 'center', marginTop: '20px' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', fontStyle: 'italic', textAlign: 'center', marginTop: '20px' }}>
                     Nenhuma expedição ativa. Escolha um pet e lance-o em órbita!
                   </p>
                 ) : (
@@ -1313,7 +1322,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                             Resgatar +{exp.rewardGems} 💎
                           </button>
                         ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '4px' }}>
                             Em Órbita ⏳
                           </span>
                         )}
@@ -1450,7 +1459,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
             )}
 
             {/* Selection Slots Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 1fr', alignItems: 'center', gap: '12px', margin: '10px 0' }}>
+            <div className="responsive-fusion-grid">
               
               {/* Slot 1 */}
               <div
@@ -1477,7 +1486,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                       <>
                         <span style={{ fontSize: '2.5rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', pet?.level || 1)}</span>
                         <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff', marginTop: '6px' }}>{pet?.nickname}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Clique para remover</div>
+                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', marginTop: '2px' }}>Clique para remover</div>
                       </>
                     );
                   })()
@@ -1519,7 +1528,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                       <>
                         <span style={{ fontSize: '2.5rem' }}>{getPetEvolutionEmoji(pt?.emoji || '🐾', pet?.level || 1)}</span>
                         <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#fff', marginTop: '6px' }}>{pet?.nickname}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Clique para remover</div>
+                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', marginTop: '2px' }}>Clique para remover</div>
                       </>
                     );
                   })()
@@ -1736,7 +1745,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
               </h3>
               
               {tradeListings.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', fontSize: '0.85rem' }}>
+                <div style={{ padding: '20px', textAlign: 'center', color: 'rgba(255,255,255,0.65)', fontStyle: 'italic', fontSize: '0.85rem' }}>
                   Nenhuma oferta ativa no momento. Crie o seu anúncio!
                 </div>
               ) : (
@@ -1789,14 +1798,14 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                           <span style={{ fontSize: '1.8rem' }}>{listing.offeredPetEmoji}</span>
                           <div>
                             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff' }}>{listing.offeredPetName}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Nível 1</div>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)' }}>Nível 1</div>
                           </div>
                         </div>
 
-                        <div style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.4)' }}>➔</div>
+                        <div style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.65)' }}>➔</div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Quer em troca:</div>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)' }}>Quer em troca:</div>
                           <div style={{ fontSize: '0.95rem', fontWeight: 800, color: listing.requestedType === 'gems' ? 'var(--neon-yellow)' : 'var(--neon-cyan)' }}>
                             {listing.requestedType === 'gems' ? '💎 ' : ''}{requirementsText}
                           </div>
@@ -1899,7 +1908,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
           )}
 
           {pets.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', padding: '40px' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.65)', padding: '40px' }}>
               <span style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🎒</span>
               <p style={{ fontStyle: 'italic' }}>Sua mochila de pets está vazia.</p>
               <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>Gaste suas Gemas Matemáticas para abrir um ovo!</p>
@@ -1971,7 +1980,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
                     {activeTab === 'trade' ? (
                       pet.level > 1 ? (
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', alignSelf: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', alignSelf: 'center' }}>
                           Evoluído Não Negociável
                         </span>
                       ) : (
@@ -2397,6 +2406,10 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
           </div>
         </div>
       )}
+      {/* Accessibility screen reader announcements */}
+      <div aria-live="polite" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', border: 0 }}>
+        {screenReaderAnnouncement}
+      </div>
     </div>
   );
 };

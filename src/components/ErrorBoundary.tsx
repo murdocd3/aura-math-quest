@@ -120,7 +120,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'rgba(255, 255, 255, 0.4)',
+                  color: 'rgba(255,255,255,0.65)',
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   textDecoration: 'underline',

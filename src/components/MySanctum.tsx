@@ -52,6 +52,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
 }) => {
   const [items, setItems] = useState<SanctumItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SanctumItem | null>(null);
+  const [screenReaderAnnouncement, setScreenReaderAnnouncement] = useState('');
   
   // Interactive Customization states
   const [lightModeIdx, setLightModeIdx] = useState(0);
@@ -178,6 +179,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
     });
 
     saveItems(updated);
+    setScreenReaderAnnouncement(`Móvel ${item.name} comprado e posicionado no santuário!`);
     audioEngine.playCorrect();
   };
 
@@ -189,6 +191,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
       return i;
     });
     saveItems(updated);
+    setScreenReaderAnnouncement(`Móvel ${item.name} foi ${!item.placed ? 'posicionado no' : 'guardado do'} santuário.`);
     audioEngine.playCorrect();
   };
 
@@ -265,6 +268,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
       return i;
     });
     saveItems(updated);
+    setScreenReaderAnnouncement(`Móvel ${selectedItem.name} movido para ${dir === 'left' ? 'esquerda' : dir === 'right' ? 'direita' : dir === 'up' ? 'cima' : 'baixo'}.`);
   };
 
   const getActivePetInfo = () => {
@@ -327,7 +331,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
     <div style={{ padding: '20px', minHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       
       {/* Top Header */}
-      <div style={{ width: '100%', maxWidth: '950px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="sanctum-header">
         <div>
           <h1 className="text-glow-purple" style={{ fontSize: '2rem', color: 'var(--neon-purple)' }}>
             🏠 MEU CIBER-SANTUÁRIO
@@ -341,7 +345,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
         </button>
       </div>
 
-      <div style={{ width: '100%', maxWidth: '950px', display: 'grid', gridTemplateColumns: '1.4fr 0.6fr', gap: '20px' }}>
+      <div className="sanctum-layout-grid" style={{ width: '100%', maxWidth: '950px' }}>
         
         {/* Left: Interactive Room Frame */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -647,6 +651,10 @@ export const MySanctum: React.FC<MySanctumProps> = ({
           </div>
         </div>
       )}
+      {/* Accessibility screen reader announcements */}
+      <div aria-live="polite" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', border: 0 }}>
+        {screenReaderAnnouncement}
+      </div>
     </div>
   );
 };
