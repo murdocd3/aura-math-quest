@@ -1315,158 +1315,172 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   };
 
   // Victory / Defeat Transitions
-  const handleVictory = () => {
-    stopTimer();
-    audioEngine.playLevelUp();
-
-    // Check if underplayed study bonus is active or if battle is dominated
-    let isUnderplayedBonusActive = false;
-    let isDominated = false;
+  const handleVictory = async () => {
     try {
-      const stats = mockDb.getMathStats(userId);
-      const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
-      const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
-      const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
-      const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+      stopTimer();
+      audioEngine.playLevelUp();
 
-      const activeOp = campaignStageId ? getCampaignOp(campaignStageId) : (gameState.selectedOperation || 'multiplication');
-      if (addCount > 30) {
-        if (activeOp === 'subtraction' && subCount < 15) isUnderplayedBonusActive = true;
-        if (activeOp === 'multiplication' && multCount < 15) isUnderplayedBonusActive = true;
-        if (activeOp === 'division' && divCount < 15) isUnderplayedBonusActive = true;
-      }
-
-      const masteredRatio = totalQuestionsRef.current > 0 ? masteredQuestionsRef.current / totalQuestionsRef.current : 0;
-      isDominated = masteredRatio > 0.5;
-      isBattleDominatedRef.current = isDominated;
-    } catch (e) {
-      console.warn('Error checking stats in handleVictory:', e);
-    }
-
-    if (campaignStageId) {
-      setVictoryDialogueIndex(0);
-      setBattleState('won');
-      return;
-    }
-
-    setBattleState('won');
-
-    // Reward math calculations
-    let baseXP = isVolcano ? 75 : 30;
-    let baseGems = isVolcano ? 4 : 1;
-
-    if (zone === 'unified') {
+      // Check if underplayed study bonus is active or if battle is dominated
+      let isUnderplayedBonusActive = false;
+      let isDominated = false;
       try {
-        const op = gameState.selectedOperation || 'multiplication';
-        const progress = mockDb.getMathProgress(userId, op);
-        const tier = progress.currentTier;
-        let tierMultiplier = 1.0;
-        if (op === 'multiplication' || op === 'division') {
-          if (tier <= 3) tierMultiplier = 1.0;
-          else if (tier <= 5) tierMultiplier = 1.3;
-          else if (tier <= 7) tierMultiplier = 1.7;
-          else if (tier <= 9) tierMultiplier = 2.2;
-          else tierMultiplier = 3.0;
-        } else {
-          if (tier === 1) tierMultiplier = 1.0;
-          else if (tier === 2) tierMultiplier = 1.3;
-          else if (tier === 3) tierMultiplier = 1.7;
-          else if (tier === 4) tierMultiplier = 2.2;
-          else tierMultiplier = 3.0;
+        const stats = mockDb.getMathStats(userId);
+        const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
+        const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
+        const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
+        const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+
+        const activeOp = campaignStageId ? getCampaignOp(campaignStageId) : (gameState.selectedOperation || 'multiplication');
+        if (addCount > 30) {
+          if (activeOp === 'subtraction' && subCount < 15) isUnderplayedBonusActive = true;
+          if (activeOp === 'multiplication' && multCount < 15) isUnderplayedBonusActive = true;
+          if (activeOp === 'division' && divCount < 15) isUnderplayedBonusActive = true;
         }
-        baseXP = Math.round(40 * tierMultiplier);
-        baseGems = Math.round(2 * tierMultiplier);
+
+        const masteredRatio = totalQuestionsRef.current > 0 ? masteredQuestionsRef.current / totalQuestionsRef.current : 0;
+        isDominated = masteredRatio > 0.5;
+        isBattleDominatedRef.current = isDominated;
       } catch (e) {
-        baseXP = 40;
-        baseGems = 2;
+        console.warn('Error checking stats in handleVictory:', e);
       }
+
+      if (campaignStageId) {
+        setVictoryDialogueIndex(0);
+        setBattleState('won');
+        return;
+      }
+
+      setBattleState('won');
+
+      // Reward math calculations
+      let baseXP = isVolcano ? 75 : 30;
+      let baseGems = isVolcano ? 4 : 1;
+
+      if (zone === 'unified') {
+        try {
+          const op = gameState.selectedOperation || 'multiplication';
+          const progress = mockDb.getMathProgress(userId, op);
+          const tier = progress.currentTier;
+          let tierMultiplier = 1.0;
+          if (op === 'multiplication' || op === 'division') {
+            if (tier <= 3) tierMultiplier = 1.0;
+            else if (tier <= 5) tierMultiplier = 1.3;
+            else if (tier <= 7) tierMultiplier = 1.7;
+            else if (tier <= 9) tierMultiplier = 2.2;
+            else tierMultiplier = 3.0;
+          } else {
+            if (tier === 1) tierMultiplier = 1.0;
+            else if (tier === 2) tierMultiplier = 1.3;
+            else if (tier === 3) tierMultiplier = 1.7;
+            else if (tier === 4) tierMultiplier = 2.2;
+            else tierMultiplier = 3.0;
+          }
+          baseXP = Math.round(40 * tierMultiplier);
+          baseGems = Math.round(2 * tierMultiplier);
+        } catch (e) {
+          baseXP = 40;
+          baseGems = 2;
+        }
+      }
+      const perfectBonusGems = perfectBattle ? 3 : 0;
+
+      let finalXP = baseXP;
+      let finalGems = baseGems + perfectBonusGems;
+
+      if (isDominated) {
+        finalXP = Math.round(finalXP * 0.5);
+        finalGems = 0;
+      } else if (isUnderplayedBonusActive) {
+        finalXP = finalXP * 2;
+      }
+
+      // Apply multiplier buffs
+      const rebirthXpMult = 1 + (gameState.rebirths * 0.2);
+
+      let xpGained = Math.round(finalXP * xpMultiplier * rebirthXpMult);
+      let gemsGained = Math.round(finalGems * gemMultiplier);
+
+      if (rogueDoubleRewardsActive) {
+        xpGained = xpGained * 2;
+        gemsGained = gemsGained * 2;
+      }
+
+      // Apply PvP or Co-op mode multipliers
+      if (battleMode === 'pvp') {
+        xpGained = Math.round(xpGained * 1.5);
+        gemsGained = Math.round(gemsGained * 1.5);
+      } else if (battleMode === 'coop') {
+        xpGained = Math.round(xpGained * 2.0);
+        gemsGained = Math.round(gemsGained * 2.0);
+      }
+
+      if (gameState.classId === 'alchemist') {
+        gemsGained = Math.round(gemsGained * 1.5);
+        nextTurnLog("🧪 BÔNUS DE ALQUIMISTA: Transmutação de Riqueza concedeu +50% Gemas!");
+      }
+
+      setVictoryRewards({ xp: xpGained, gems: gemsGained });
+
+      // Update database GameState
+      const currentXp = gameState.auraXp + xpGained;
+      let newLevel = gameState.auraLevel;
+      let newXp = currentXp;
+
+      const getXpNeeded = (lvl: number) => Math.round(100 * Math.pow(1.15, lvl - 1));
+      
+      let boundary = getXpNeeded(newLevel);
+      let leveledUp = false;
+
+      while (newXp >= boundary && newLevel < 100) {
+        newXp -= boundary;
+        newLevel++;
+        boundary = getXpNeeded(newLevel);
+        leveledUp = true;
+      }
+
+      if (leveledUp) {
+        nextTurnLog(`🎉 SUBIU DE NÍVEL! Agora você está no Nível de Aura ${newLevel}!`);
+      }
+
+      // Sync quest stats upon victory
+      const newQuestWins = (gameState.questWins || 0) + 1;
+      const newQuestCriticals = (gameState.questCriticals || 0) + battleCriticals;
+      const newQuestStreak = Math.max(gameState.questStreak || 0, maxStreak);
+
+      await backendService.updateGameState(userId, {
+        auraLevel: newLevel,
+        auraXp: newXp,
+        gems: gameState.gems + gemsGained,
+        questWins: newQuestWins,
+        questCriticals: newQuestCriticals,
+        questStreak: newQuestStreak,
+      });
+
+      onBattleFinished(xpGained, gemsGained, true);
+    } catch (e) {
+      console.error('❌ Erro ao salvar vitória no combate:', e);
+      // Fallback local update
+      mockDb.updateGameState(userId, {
+        gems: gameState.gems + (perfectBattle ? 3 : 0) + 1
+      });
+      onBattleFinished(10, 0, true);
     }
-    const perfectBonusGems = perfectBattle ? 3 : 0;
-
-    let finalXP = baseXP;
-    let finalGems = baseGems + perfectBonusGems;
-
-    if (isDominated) {
-      finalXP = Math.round(finalXP * 0.5);
-      finalGems = 0;
-    } else if (isUnderplayedBonusActive) {
-      finalXP = finalXP * 2;
-    }
-
-    // Apply multiplier buffs
-    const rebirthXpMult = 1 + (gameState.rebirths * 0.2);
-
-    let xpGained = Math.round(finalXP * xpMultiplier * rebirthXpMult);
-    let gemsGained = Math.round(finalGems * gemMultiplier);
-
-    if (rogueDoubleRewardsActive) {
-      xpGained = xpGained * 2;
-      gemsGained = gemsGained * 2;
-    }
-
-    // Apply PvP or Co-op mode multipliers
-    if (battleMode === 'pvp') {
-      xpGained = Math.round(xpGained * 1.5);
-      gemsGained = Math.round(gemsGained * 1.5);
-    } else if (battleMode === 'coop') {
-      xpGained = Math.round(xpGained * 2.0);
-      gemsGained = Math.round(gemsGained * 2.0);
-    }
-
-    if (gameState.classId === 'alchemist') {
-      gemsGained = Math.round(gemsGained * 1.5);
-      nextTurnLog("🧪 BÔNUS DE ALQUIMISTA: Transmutação de Riqueza concedeu +50% Gemas!");
-    }
-
-    setVictoryRewards({ xp: xpGained, gems: gemsGained });
-
-    // Update database GameState
-    const currentXp = gameState.auraXp + xpGained;
-    let newLevel = gameState.auraLevel;
-    let newXp = currentXp;
-
-    const getXpNeeded = (lvl: number) => Math.round(100 * Math.pow(1.15, lvl - 1));
-    
-    let boundary = getXpNeeded(newLevel);
-    let leveledUp = false;
-
-    while (newXp >= boundary && newLevel < 100) {
-      newXp -= boundary;
-      newLevel++;
-      boundary = getXpNeeded(newLevel);
-      leveledUp = true;
-    }
-
-    if (leveledUp) {
-      nextTurnLog(`🎉 SUBIU DE NÍVEL! Agora você está no Nível de Aura ${newLevel}!`);
-    }
-
-    // Sync quest stats upon victory
-    const newQuestWins = (gameState.questWins || 0) + 1;
-    const newQuestCriticals = (gameState.questCriticals || 0) + battleCriticals;
-    const newQuestStreak = Math.max(gameState.questStreak || 0, maxStreak);
-
-    mockDb.updateGameState(userId, {
-      auraLevel: newLevel,
-      auraXp: newXp,
-      gems: gameState.gems + gemsGained,
-      questWins: newQuestWins,
-      questCriticals: newQuestCriticals,
-      questStreak: newQuestStreak,
-    });
-
-    onBattleFinished(xpGained, gemsGained, true);
   };
 
-  const handleDefeat = () => {
-    stopTimer();
-    setBattleState('lost');
-    audioEngine.playError();
-    // 10 consolation XP
-    mockDb.updateGameState(userId, {
-      auraXp: gameState.auraXp + 10,
-    });
-    onBattleFinished(10, 0, false);
+  const handleDefeat = async () => {
+    try {
+      stopTimer();
+      setBattleState('lost');
+      audioEngine.playError();
+      // 10 consolation XP
+      await backendService.updateGameState(userId, {
+        auraXp: gameState.auraXp + 10,
+      });
+      onBattleFinished(10, 0, false);
+    } catch (e) {
+      console.error('❌ Erro ao processar derrota no combate:', e);
+      onBattleFinished(10, 0, false);
+    }
   };
 
   // Keyboard listener for typing

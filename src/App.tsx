@@ -7,7 +7,7 @@ import { CombatArena } from './components/CombatArena';
 import { CyberRunner } from './components/CyberRunner';
 import { Olympics } from './components/Olympics';
 import { MySanctum } from './components/MySanctum';
-import { seedDatabase } from './services/mockDb';
+import { seedDatabase, mockDb } from './services/mockDb';
 import { backendService } from './services/backendService';
 import type { User, GameState } from './services/mockDb';
 import { audioEngine } from './components/AudioEngine';
@@ -59,55 +59,72 @@ function App() {
   }, [screen, user]);
 
   const handleLoginSuccess = async (loggedInUser: User) => {
-    setUser(loggedInUser);
-    
-    // Sync data from Supabase to LocalStorage if connected
-    if (backendService.isCloudConnected()) {
-      try {
-        console.log('🔄 Sincronizando dados do Supabase para o armazenamento local...');
+    try {
+      setUser(loggedInUser);
+      
+      // Sync data from Supabase to LocalStorage if connected
+      if (backendService.isCloudConnected()) {
+        try {
+          console.log('🔄 Sincronizando dados do Supabase para o armazenamento local...');
+          const state = await backendService.getGameState(loggedInUser.id);
+          const pets = await backendService.getPets(loggedInUser.id);
+          const stats = await backendService.getMathStats(loggedInUser.id);
+
+          if (state) {
+            const localStates = localStorage.getItem('amq_game_states') 
+              ? JSON.parse(localStorage.getItem('amq_game_states')!) 
+              : [];
+            const filteredStates = localStates.filter((s: any) => s.userId !== loggedInUser.id);
+            filteredStates.push(state);
+            localStorage.setItem('amq_game_states', JSON.stringify(filteredStates));
+          }
+
+          if (pets) {
+            const localPets = localStorage.getItem('amq_pets')
+              ? JSON.parse(localStorage.getItem('amq_pets')!)
+              : [];
+            const filteredPets = localPets.filter((p: any) => p.userId !== loggedInUser.id);
+            filteredPets.push(...pets);
+            localStorage.setItem('amq_pets', JSON.stringify(filteredPets));
+          }
+
+          if (stats) {
+            const localStats = localStorage.getItem('amq_stats')
+              ? JSON.parse(localStorage.getItem('amq_stats')!)
+              : [];
+            const filteredStats = localStats.filter((s: any) => s.userId !== loggedInUser.id);
+            filteredStats.push(...stats);
+            localStorage.setItem('amq_stats', JSON.stringify(filteredStats));
+          }
+        } catch (err) {
+          console.error('❌ Falha ao sincronizar dados com o Supabase no login:', err);
+        }
+      }
+
+      if (loggedInUser.role === 'admin') {
+        setScreen('admin');
+      } else {
         const state = await backendService.getGameState(loggedInUser.id);
-        const pets = await backendService.getPets(loggedInUser.id);
-        const stats = await backendService.getMathStats(loggedInUser.id);
-
         if (state) {
-          const localStates = localStorage.getItem('amq_game_states') 
-            ? JSON.parse(localStorage.getItem('amq_game_states')!) 
-            : [];
-          const filteredStates = localStates.filter((s: any) => s.userId !== loggedInUser.id);
-          filteredStates.push(state);
-          localStorage.setItem('amq_game_states', JSON.stringify(filteredStates));
+          setGameState(state);
         }
-
-        if (pets) {
-          const localPets = localStorage.getItem('amq_pets')
-            ? JSON.parse(localStorage.getItem('amq_pets')!)
-            : [];
-          const filteredPets = localPets.filter((p: any) => p.userId !== loggedInUser.id);
-          filteredPets.push(...pets);
-          localStorage.setItem('amq_pets', JSON.stringify(filteredPets));
-        }
-
-        if (stats) {
-          const localStats = localStorage.getItem('amq_stats')
-            ? JSON.parse(localStorage.getItem('amq_stats')!)
-            : [];
-          const filteredStats = localStats.filter((s: any) => s.userId !== loggedInUser.id);
-          filteredStats.push(...stats);
-          localStorage.setItem('amq_stats', JSON.stringify(filteredStats));
+        setScreen('hub');
+      }
+    } catch (e: any) {
+      console.error('❌ Erro crítico no login do usuário:', e);
+      alert('Houve uma falha ao iniciar sua sessão. Tentando conectar no modo offline local...');
+      // Fallback: tentar carregar estado local do mockDb
+      try {
+        const state = mockDb.getGameState(loggedInUser.id);
+        if (state) {
+          setGameState(state);
+          setScreen('hub');
+        } else {
+          alert('Nenhum dado local encontrado para este usuário. Por favor, tente novamente ou contate o administrador.');
         }
       } catch (err) {
-        console.error('❌ Falha ao sincronizar dados com o Supabase no login:', err);
+        console.error('❌ Erro no fallback offline:', err);
       }
-    }
-
-    if (loggedInUser.role === 'admin') {
-      setScreen('admin');
-    } else {
-      const state = await backendService.getGameState(loggedInUser.id);
-      if (state) {
-        setGameState(state);
-      }
-      setScreen('hub');
     }
   };
 

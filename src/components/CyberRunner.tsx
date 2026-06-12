@@ -1860,33 +1860,45 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
     }
   };
 
-  const handleFinishRun = () => {
-    // Stop game loop
-    shieldsRef.current = 0;
+  const handleFinishRun = async () => {
+    try {
+      // Stop game loop
+      shieldsRef.current = 0;
 
-    // Update database GameState with rewards
-    const currentXp = gameState.auraXp + xpGained;
-    let newLevel = gameState.auraLevel;
-    let newXp = currentXp;
+      // Update database GameState with rewards
+      const currentXp = gameState.auraXp + xpGained;
+      let newLevel = gameState.auraLevel;
+      let newXp = currentXp;
 
-    const getXpNeeded = (lvl: number) => Math.round(100 * Math.pow(1.15, lvl - 1));
-    let boundary = getXpNeeded(newLevel);
+      const getXpNeeded = (lvl: number) => Math.round(100 * Math.pow(1.15, lvl - 1));
+      let boundary = getXpNeeded(newLevel);
 
-    while (newXp >= boundary && newLevel < 100) {
-      newXp -= boundary;
-      newLevel++;
-      boundary = getXpNeeded(newLevel);
-    }
+      while (newXp >= boundary && newLevel < 100) {
+        newXp -= boundary;
+        newLevel++;
+        boundary = getXpNeeded(newLevel);
+      }
 
-    mockDb.updateGameState(playerUser.id, {
-      auraLevel: newLevel,
-      auraXp: newXp,
-      gems: gameState.gems + gemsGained,
-    });
+      const updated = await backendService.updateGameState(playerUser.id, {
+        auraLevel: newLevel,
+        auraXp: newXp,
+        gems: gameState.gems + gemsGained,
+      });
 
-    const updated = mockDb.getGameState(playerUser.id);
-    if (updated) {
-      onStateUpdate(updated);
+      if (updated) {
+        onStateUpdate(updated);
+      }
+    } catch (e) {
+      console.error('❌ Erro ao salvar progresso do Cyber Runner:', e);
+      // Fallback local update
+      try {
+        const local = mockDb.updateGameState(playerUser.id, {
+          gems: gameState.gems + gemsGained
+        });
+        if (local) onStateUpdate(local);
+      } catch (err) {
+        console.error('❌ Erro no fallback do Cyber Runner:', err);
+      }
     }
 
     onBack();
