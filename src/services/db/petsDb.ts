@@ -1,7 +1,9 @@
 import type { 
   Pet, 
   GameState, 
-  TradeListing
+  TradeListing,
+  PetType,
+  SupabasePetRow
 } from './dbConfig';
 import { 
   STORAGE_KEYS, 
@@ -41,18 +43,22 @@ export const petsDb = {
     setStorageItem(STORAGE_KEYS.PETS, pets);
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
-      supabase!.from('pets')
-        .insert({
-          id: newPet.id,
-          user_id: newPet.userId,
-          pet_type_id: newPet.petTypeId,
-          nickname: newPet.nickname,
-          rarity: newPet.rarity,
-          buff_type: newPet.buffType,
-          buff_value: newPet.buffValue,
-          level: newPet.level,
-        })
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      const dbRow: SupabasePetRow = {
+        id: newPet.id,
+        user_id: newPet.userId,
+        pet_type_id: newPet.petTypeId,
+        nickname: newPet.nickname,
+        rarity: newPet.rarity,
+        buff_type: newPet.buffType,
+        buff_value: newPet.buffValue,
+        level: newPet.level,
+      };
+
+      client.from('pets')
+        .insert(dbRow)
+        .returns<SupabasePetRow[]>()
         .then(({ error }) => {
           if (error) {
             console.error('[mockDb] Error syncing new pet to Supabase:', error);
@@ -71,10 +77,12 @@ export const petsDb = {
     setStorageItem(STORAGE_KEYS.PETS, filteredPets);
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
-      supabase!.from('pets')
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      client.from('pets')
         .delete()
         .eq('id', petId)
+        .returns<SupabasePetRow[]>()
         .then(({ error }) => {
           if (error) {
             console.error('[mockDb] Error deleting pet from Supabase:', error);
@@ -97,15 +105,17 @@ export const petsDb = {
 
     setStorageItem(STORAGE_KEYS.PETS, pets);
 
-    if (isSupabaseEnabled && supabase) {
-      const sbUpdates: any = {};
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      const sbUpdates: Partial<SupabasePetRow> = {};
       if (updates.nickname !== undefined) sbUpdates.nickname = updates.nickname;
       if (updates.level !== undefined) sbUpdates.level = updates.level;
       if (updates.buffValue !== undefined) sbUpdates.buff_value = updates.buffValue;
 
-      supabase!.from('pets')
+      client.from('pets')
         .update(sbUpdates)
         .eq('id', petId)
+        .returns<SupabasePetRow[]>()
         .then(({ error }) => {
           if (error) {
             console.error('[mockDb] Error updating pet in Supabase:', error);
@@ -194,16 +204,23 @@ export const petsDb = {
     setStorageItem(STORAGE_KEYS.PETS, updatedPets);
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
-      supabase!.from('pets')
-        .update({
-          level: nextLevel,
-          nickname: updatedPets[p1NewIndex].nickname,
-          buff_value: updatedPets[p1NewIndex].buffValue
-        })
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      const p1Updates: Partial<SupabasePetRow> = {
+        level: nextLevel,
+        nickname: updatedPets[p1NewIndex].nickname,
+        buff_value: updatedPets[p1NewIndex].buffValue
+      };
+      client.from('pets')
+        .update(p1Updates)
         .eq('id', petId1)
+        .returns<SupabasePetRow[]>()
         .then(() => {
-          supabase!.from('pets').delete().eq('id', petId2).then(() => {});
+          client.from('pets')
+            .delete()
+            .eq('id', petId2)
+            .returns<SupabasePetRow[]>()
+            .then(() => {});
         });
     }
 
@@ -266,15 +283,18 @@ export const petsDb = {
 
     setStorageItem(STORAGE_KEYS.PETS, pets);
 
-    if (isSupabaseEnabled && supabase) {
-      supabase!.from('pets')
-        .update({
-          level,
-          nickname,
-          buff_value: pets[index].buffValue,
-          xp
-        })
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      const petUpdates: Partial<SupabasePetRow> = {
+        level,
+        nickname,
+        buff_value: pets[index].buffValue,
+        xp
+      };
+      client.from('pets')
+        .update(petUpdates)
         .eq('id', petId)
+        .returns<SupabasePetRow[]>()
         .then(({ error }) => {
           if (error) {
             console.error('[mockDb] Error updating pet XP/Level in Supabase:', error);
@@ -367,10 +387,15 @@ export const petsDb = {
       const cleanPets = allPets.filter(p => p.id !== playerPet.id);
       setStorageItem(STORAGE_KEYS.PETS, cleanPets);
 
-      if (isSupabaseEnabled && supabase) {
-        supabase!.from('pets').delete().eq('id', playerPet.id).then(({ error }) => {
-          if (error) console.error('[mockDb acceptTrade] Error deleting trade-offered pet from Supabase:', error);
-        });
+      const client = supabase;
+      if (isSupabaseEnabled && client) {
+        client.from('pets')
+          .delete()
+          .eq('id', playerPet.id)
+          .returns<SupabasePetRow[]>()
+          .then(({ error }) => {
+            if (error) console.error('[mockDb acceptTrade] Error deleting trade-offered pet from Supabase:', error);
+          });
       }
       
       if (listing.posterId.startsWith('usr_') || listing.posterId.startsWith('player-')) {
@@ -383,10 +408,15 @@ export const petsDb = {
       const cleanPets = allPets.filter(p => p.id !== listing.offeredPetId);
       setStorageItem(STORAGE_KEYS.PETS, cleanPets);
 
-      if (isSupabaseEnabled && supabase) {
-        supabase!.from('pets').delete().eq('id', listing.offeredPetId).then(({ error }) => {
-          if (error) console.error('[mockDb acceptTrade] Error deleting poster pet from Supabase:', error);
-        });
+      const client = supabase;
+      if (isSupabaseEnabled && client) {
+        client.from('pets')
+          .delete()
+          .eq('id', listing.offeredPetId)
+          .returns<SupabasePetRow[]>()
+          .then(({ error }) => {
+            if (error) console.error('[mockDb acceptTrade] Error deleting poster pet from Supabase:', error);
+          });
       }
     }
 
@@ -453,4 +483,4 @@ export const petsDb = {
     }
   },
 };
-export type PetType = any; // backward compatible dummy export
+export type { PetType };

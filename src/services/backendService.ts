@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { mockDb, COSMETIC_ITEMS } from './mockDb';
-import type { User, GameState, Pet, MathStatistic, TimelineEntry } from './mockDb';
+import type { User, GameState, Pet, MathStatistic, TimelineEntry, Clan } from './mockDb';
+import type {
+  SupabaseUserRow,
+  SupabaseGameStateRow,
+  SupabasePetRow,
+  SupabaseMathStatisticRow,
+  SupabaseClanRow
+} from './db/dbConfig';
 import { logger } from './logger';
 
 /**
@@ -100,7 +107,7 @@ if (!isSupabaseEnabled) {
 }
 
 // Helpers for data mapping
-const mapDbToGameState = (row: any): GameState => {
+const mapDbToGameState = (row: SupabaseGameStateRow): GameState => {
   const rawEquipped = row.equipped_cosmetic_id || null;
   let equippedCosmetics: Record<string, string> = {};
   let equippedCosmeticId: string | null = null;
@@ -111,10 +118,10 @@ const mapDbToGameState = (row: any): GameState => {
   if (rawEquipped) {
     if (rawEquipped.startsWith('{')) {
       try {
-        const parsed = JSON.parse(rawEquipped);
-        hasElitePass = parsed.hasElitePass ?? false;
-        auraPassXp = parsed.auraPassXp ?? 0;
-        claimedPassTiers = parsed.claimedPassTiers ?? [];
+        const parsed = JSON.parse(rawEquipped) as Record<string, any>;
+        hasElitePass = (parsed.hasElitePass as boolean | undefined) ?? false;
+        auraPassXp = (parsed.auraPassXp as number | undefined) ?? 0;
+        claimedPassTiers = (parsed.claimedPassTiers as number[] | undefined) ?? [];
         
         equippedCosmetics = { ...parsed };
         delete equippedCosmetics.hasElitePass;
@@ -135,40 +142,53 @@ const mapDbToGameState = (row: any): GameState => {
     }
   }
 
+  const parseStringArray = (val: string[] | string | undefined): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (val.startsWith('{')) {
+      try {
+        return val.replace(/[{}]/g, '').split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+      } catch {
+        return [];
+      }
+    }
+    return [val];
+  };
+
   return {
     userId: row.user_id,
+    campaignStage: row.campaign_stage ?? 1,
+    gems: row.gems ?? 0,
     auraLevel: row.aura_level ?? 1,
     auraXp: row.aura_xp ?? 0,
     auraColor: row.aura_color ?? '#00ffcc',
     rebirths: row.rebirths ?? 0,
-    gems: row.gems ?? 0,
     currentZone: row.current_zone ?? 'forest',
     equippedPetId: row.equipped_pet_id || null,
-    activeAuras: row.active_auras ?? [],
+    activeAuras: parseStringArray(row.active_auras),
     totalPlayTimeSeconds: row.total_play_time_seconds ?? 0,
-    updatedAt: row.updated_at || new Date().toISOString(),
-    purchasedCosmetics: row.purchased_cosmetics ?? [],
+    purchasedCosmetics: parseStringArray(row.purchased_cosmetics),
     equippedCosmetics,
     equippedCosmeticId,
     selectedOperation: row.selected_operation ?? 'multiplication',
     questWins: row.quest_wins ?? 0,
     questCriticals: row.quest_criticals ?? 0,
     questStreak: row.quest_streak ?? 0,
-    claimedQuests: row.claimed_quests ?? [],
+    claimedQuests: parseStringArray(row.claimed_quests),
     classId: row.active_class || null,
     skillPoints: row.skill_points ?? 0,
-    unlockedSkills: row.unlocked_skills ?? [],
+    unlockedSkills: parseStringArray(row.unlocked_skills),
     clanId: row.clan_id || null,
     clanContributions: row.clan_contributions ?? 0,
-    campaignStage: row.campaign_stage ?? 1,
+    updatedAt: row.updated_at || new Date().toISOString(),
     hasElitePass,
     auraPassXp,
     claimedPassTiers,
   };
 };
 
-const mapGameStateToDb = (state: Partial<GameState>) => {
-  const dbRow: any = {};
+const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateRow> => {
+  const dbRow: Partial<SupabaseGameStateRow> = {};
   if (state.campaignStage !== undefined) dbRow.campaign_stage = state.campaignStage;
   if (state.gems !== undefined) dbRow.gems = state.gems;
   if (state.auraLevel !== undefined) dbRow.aura_level = state.auraLevel;
@@ -182,7 +202,7 @@ const mapGameStateToDb = (state: Partial<GameState>) => {
   if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
   
   // Serialize equippedCosmetics and Aura Pass fields together
-  const equippedJsonObj: any = { ...(state.equippedCosmetics || {}) };
+  const equippedJsonObj: Record<string, any> = { ...(state.equippedCosmetics || {}) };
   if (state.hasElitePass !== undefined) equippedJsonObj.hasElitePass = state.hasElitePass;
   if (state.auraPassXp !== undefined) equippedJsonObj.auraPassXp = state.auraPassXp;
   if (state.claimedPassTiers !== undefined) equippedJsonObj.claimedPassTiers = state.claimedPassTiers;
@@ -219,28 +239,31 @@ export const backendService = {
       const stats = await this.getMathStats(userId);
 
       if (state) {
-        const localStates = localStorage.getItem('amq_game_states')
-          ? JSON.parse(localStorage.getItem('amq_game_states')!)
+        const localStatesRaw = localStorage.getItem('amq_game_states');
+        const localStates = localStatesRaw
+          ? JSON.parse(localStatesRaw) as GameState[]
           : [];
-        const filteredStates = localStates.filter((s: any) => s.userId !== userId);
+        const filteredStates = localStates.filter((s) => s.userId !== userId);
         filteredStates.push(state);
         localStorage.setItem('amq_game_states', JSON.stringify(filteredStates));
       }
 
       if (pets) {
-        const localPets = localStorage.getItem('amq_pets')
-          ? JSON.parse(localStorage.getItem('amq_pets')!)
+        const localPetsRaw = localStorage.getItem('amq_pets');
+        const localPets = localPetsRaw
+          ? JSON.parse(localPetsRaw) as Pet[]
           : [];
-        const filteredPets = localPets.filter((p: any) => p.userId !== userId);
+        const filteredPets = localPets.filter((p) => p.userId !== userId);
         filteredPets.push(...pets);
         localStorage.setItem('amq_pets', JSON.stringify(filteredPets));
       }
 
       if (stats) {
-        const localStats = localStorage.getItem('amq_stats')
-          ? JSON.parse(localStorage.getItem('amq_stats')!)
+        const localStatsRaw = localStorage.getItem('amq_stats');
+        const localStats = localStatsRaw
+          ? JSON.parse(localStatsRaw) as MathStatistic[]
           : [];
-        const filteredStats = localStats.filter((s: any) => s.userId !== userId);
+        const filteredStats = localStats.filter((s) => s.userId !== userId);
         filteredStats.push(...stats);
         localStorage.setItem('amq_stats', JSON.stringify(filteredStats));
       }
@@ -293,20 +316,23 @@ export const backendService = {
 
   // 1. User Queries & Management
   async getUsers(): Promise<User[]> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log('[BackendService] Fetching users from Supabase...');
         const { data, error } = await Promise.race([
-          supabase.from('users').select('*'),
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timed out')), 2500))
+          client.from('users').select('*').returns<SupabaseUserRow[]>(),
+          new Promise<{ data: SupabaseUserRow[] | null; error: any }>((_, reject) => 
+            setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
+          )
         ]);
         if (error) throw error;
-        return (data || []).map((u: any) => ({
+        return (data || []).map((u) => ({
           id: u.id,
           username: u.username,
-          role: u.role as 'admin' | 'player',
-          passwordHash: u.password,
-          createdAt: u.created_at || new Date().toISOString()
+          role: u.role,
+          passwordHash: u.password ?? 'secured',
+          createdAt: new Date().toISOString()
         }));
       } catch (err) {
         console.error('[BackendService] Supabase error in getUsers:', err);
@@ -316,11 +342,12 @@ export const backendService = {
   },
 
   async createUser(username: string, passwordPlain: string, role: 'admin' | 'player', isActive: boolean = true): Promise<User | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Creating user: ${username} via Supabase Auth native...`);
         const email = `${username.toLowerCase().trim()}@auramathquest.local`;
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await client.auth.signUp({
           email,
           password: passwordPlain,
           options: {
@@ -335,22 +362,23 @@ export const backendService = {
         if (authData && authData.user) {
           const userId = authData.user.id;
           console.log(`[BackendService] Inserting public profile for user: ${username} with ID: ${userId}...`);
-          const { error: userError } = await supabase.from('users').insert({
+          const { error: userError } = await client.from('users').insert({
             id: userId,
             username: username.trim(),
             role,
             is_active: isActive
-          });
+          }).returns<SupabaseUserRow[]>();
           if (userError) throw userError;
 
           if (role === 'player') {
             const defaultDbRow = mapGameStateToDb({
               userId,
+              campaignStage: 1,
+              gems: 0,
               auraLevel: 1,
               auraXp: 0,
               auraColor: '#00ffcc',
               rebirths: 0,
-              gems: 0,
               currentZone: 'forest',
               equippedPetId: null,
               activeAuras: [],
@@ -367,11 +395,10 @@ export const backendService = {
               unlockedSkills: [],
               clanId: null,
               clanContributions: 0,
-              campaignStage: 1,
             });
             defaultDbRow.user_id = userId;
 
-            const { error: stateError } = await supabase.from('game_states').insert(defaultDbRow);
+            const { error: stateError } = await client.from('game_states').insert(defaultDbRow).returns<SupabaseGameStateRow[]>();
             if (stateError) throw stateError;
           }
 
@@ -398,16 +425,17 @@ export const backendService = {
   },
 
   async updateUser(userId: string, updates: Partial<User>): Promise<boolean> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Updating user: ${userId} in Supabase...`, updates);
-        const dbUpdates: any = {};
+        const dbUpdates: Partial<SupabaseUserRow> = {};
         if (updates.username !== undefined) dbUpdates.username = updates.username;
         if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
         if (updates.role !== undefined) dbUpdates.role = updates.role;
         if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
-        const { error } = await supabase.from('users').update(dbUpdates).eq('id', userId);
+        const { error } = await client.from('users').update(dbUpdates).eq('id', userId).returns<SupabaseUserRow[]>();
         if (error) throw error;
         mockDb.updateUser(userId, updates);
         return true;
@@ -420,10 +448,11 @@ export const backendService = {
   },
 
   async deleteUser(userId: string): Promise<boolean> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Deleting user: ${userId} in Supabase...`);
-        const { error } = await supabase.from('users').delete().eq('id', userId);
+        const { error } = await client.from('users').delete().eq('id', userId).returns<SupabaseUserRow[]>();
         if (error) throw error;
         mockDb.deleteUser(userId);
         return true;
@@ -437,21 +466,23 @@ export const backendService = {
 
   // 2. Auth & Session
   async login(username: string, passwordPlain: string): Promise<User | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Logging in user: ${username} via Supabase Auth native...`);
         const email = `${username.toLowerCase().trim()}@auramathquest.local`;
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        const { data: authData, error: authError } = await client.auth.signInWithPassword({
           email,
           password: passwordPlain
         });
         if (authError) throw authError;
 
         if (authData && authData.user) {
-          const { data, error } = await supabase
+          const { data, error } = await client
             .from('users')
             .select('*')
-            .eq('id', authData.user.id);
+            .eq('id', authData.user.id)
+            .returns<SupabaseUserRow[]>();
           if (error) throw error;
           if (data && data.length > 0) {
             const u = data[0];
@@ -459,10 +490,10 @@ export const backendService = {
             return {
               id: u.id,
               username: u.username,
-              role: u.role as 'admin' | 'player',
+              role: u.role,
               passwordHash: 'secured',
-              createdAt: u.created_at || new Date().toISOString(),
-              isActive: u.is_active !== false
+              createdAt: new Date().toISOString(),
+              isActive: u.is_active ?? true
             };
           }
         }
@@ -499,7 +530,7 @@ export const backendService = {
     
     if (legacyPurchasedRaw) {
       try {
-        const legacyPurchased: string[] = JSON.parse(legacyPurchasedRaw);
+        const legacyPurchased = JSON.parse(legacyPurchasedRaw) as string[];
         legacyPurchased.forEach(board => {
           if (['light_skate', 'tron_bike', 'holo_board'].includes(board) && !purchased.includes(board)) {
             purchased.push(board);
@@ -541,10 +572,11 @@ export const backendService = {
   async getGameState(userId: string): Promise<GameState | null> {
     let state: GameState | null = null;
     
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Fetching game state for ${userId} from Supabase...`);
-        const { data, error } = await supabase.from('game_states').select('*').eq('user_id', userId);
+        const { data, error } = await client.from('game_states').select('*').eq('user_id', userId).returns<SupabaseGameStateRow[]>();
         if (error) throw error;
         
         const localState = mockDb.getGameState(userId);
@@ -563,8 +595,8 @@ export const backendService = {
             if (localTime > dbTime) {
               console.log('🔄 [BackendService] Local state is newer. Syncing to Supabase...');
               const dbUpdates = mapGameStateToDb(localState);
-              supabase.from('game_states').update(dbUpdates).eq('user_id', userId).then(({ error }) => {
-                if (error) console.error('Error syncing local state to Supabase:', error);
+              client.from('game_states').update(dbUpdates).eq('user_id', userId).returns<SupabaseGameStateRow[]>().then(({ error: sError }) => {
+                if (sError) console.error('Error syncing local state to Supabase:', sError);
               });
               state = localState;
             }
@@ -578,7 +610,7 @@ export const backendService = {
           // If not found in Cloud, initialize it
           const dbRow = mapGameStateToDb(localState);
           dbRow.user_id = userId;
-          await supabase.from('game_states').insert(dbRow);
+          await client.from('game_states').insert(dbRow).returns<SupabaseGameStateRow[]>();
           state = localState;
         }
       } catch (err) {
@@ -599,15 +631,17 @@ export const backendService = {
 
   async updateGameState(userId: string, updates: Partial<GameState>): Promise<GameState | null> {
     const localState = mockDb.updateGameState(userId, updates);
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Updating game state for ${userId} in Supabase...`, updates);
         const dbUpdates = mapGameStateToDb(localState || updates);
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('game_states')
           .update(dbUpdates)
           .eq('user_id', userId)
-          .select();
+          .select()
+          .returns<SupabaseGameStateRow[]>();
         
         if (error) throw error;
         
@@ -630,10 +664,11 @@ export const backendService = {
   // 4. Pets Management
   async getPets(userId: string): Promise<Pet[]> {
     const localPets = mockDb.getPets(userId);
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Fetching pets for ${userId} from Supabase...`);
-        const { data, error } = await supabase.from('pets').select('*').eq('user_id', userId);
+        const { data, error } = await client.from('pets').select('*').eq('user_id', userId).returns<SupabasePetRow[]>();
         if (error) throw error;
         
         const dbPets = (data || []).map(p => ({
@@ -641,8 +676,8 @@ export const backendService = {
           userId: p.user_id,
           petTypeId: p.pet_type_id,
           nickname: p.nickname,
-          rarity: p.rarity as any,
-          buffType: p.buff_type as any,
+          rarity: p.rarity,
+          buffType: p.buff_type,
           buffValue: p.buff_value,
           createdAt: p.created_at || new Date().toISOString(),
           level: p.level ?? 1
@@ -652,7 +687,7 @@ export const backendService = {
         if (dbPets.length === 0 && localPets.length > 0) {
           console.log('🔄 [BackendService] Syncing local pets to Supabase...');
           localPets.forEach(pet => {
-            supabase.from('pets').insert({
+            client.from('pets').insert({
               id: pet.id,
               user_id: pet.userId,
               pet_type_id: pet.petTypeId,
@@ -661,8 +696,8 @@ export const backendService = {
               buff_type: pet.buffType,
               buff_value: pet.buffValue,
               level: pet.level
-            }).then(({ error }) => {
-              if (error) console.error('Error syncing local pet to Supabase:', error);
+            }).returns<SupabasePetRow[]>().then(({ error: pError }) => {
+              if (pError) console.error('Error syncing local pet to Supabase:', pError);
             });
           });
           return localPets;
@@ -679,7 +714,8 @@ export const backendService = {
   },
 
   async createPet(userId: string, petTypeId: string, nickname: string): Promise<Pet | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Creating pet ${petTypeId} for ${userId} in Supabase...`);
         
@@ -716,13 +752,13 @@ export const backendService = {
           { id: 'quantum_elephant', rarity: 'legendary', buffType: 'combined', buffValue: 1.55 },
           { id: 'cyber_hamster', rarity: 'common', buffType: 'time_bonus', buffValue: 1.2 },
           { id: 'holo_sloth', rarity: 'rare', buffType: 'time_bonus', buffValue: 2.5 },
-        ];
+        ] as const;
 
         const matchedType = PET_TYPES_LOCAL.find(pt => pt.id === petTypeId);
 
-        let rarity: 'common' | 'rare' | 'epic' | 'legendary' = matchedType ? matchedType.rarity as any : 'common';
-        let buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' | 'combined' = matchedType ? matchedType.buffType as any : 'gem_multiplier';
-        let buffValue = matchedType ? matchedType.buffValue : 1.1;
+        const rarity: 'common' | 'rare' | 'epic' | 'legendary' = matchedType ? matchedType.rarity : 'common';
+        const buffType: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' | 'combined' = matchedType ? matchedType.buffType : 'gem_multiplier';
+        const buffValue = matchedType ? matchedType.buffValue : 1.1;
 
         const petId = 'pet_' + Math.random().toString(36).substring(2, 11);
         const newPet: Pet = {
@@ -737,7 +773,7 @@ export const backendService = {
           createdAt: new Date().toISOString()
         };
 
-        const { error } = await supabase.from('pets').insert({
+        const { error } = await client.from('pets').insert({
           id: petId,
           user_id: userId,
           pet_type_id: petTypeId,
@@ -746,7 +782,7 @@ export const backendService = {
           buff_type: buffType,
           buff_value: buffValue,
           level: 1
-        });
+        }).returns<SupabasePetRow[]>();
 
         if (error) throw error;
         mockDb.createPet(userId, petTypeId, nickname);
@@ -759,32 +795,34 @@ export const backendService = {
   },
 
   async fusePets(userId: string, parentId1: string, parentId2: string): Promise<GameState | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Fusing pets ${parentId1} and ${parentId2} in Supabase...`);
         
         // 1. Fetch both pets and verify they belong to userId (RPC simulation security validation)
-        const { data: petData1 } = await supabase.from('pets').select('*').eq('id', parentId1).eq('user_id', userId);
-        const { data: petData2 } = await supabase.from('pets').select('*').eq('id', parentId2).eq('user_id', userId);
+        const { data: petData1 } = await client.from('pets').select('*').eq('id', parentId1).eq('user_id', userId).returns<SupabasePetRow[]>();
+        const { data: petData2 } = await client.from('pets').select('*').eq('id', parentId2).eq('user_id', userId).returns<SupabasePetRow[]>();
         
         if (!petData1 || petData1.length === 0 || !petData2 || petData2.length === 0) {
           throw new Error('Um ou ambos os pets não pertencem ao usuário ou não existem.');
         }
 
         const pet = petData1[0];
-        const currentStars = pet.stars ?? 1;
-        const { error: updateError } = await supabase
+        const currentStars = (pet as any).stars ?? 1;
+        const { error: updateError } = await client
           .from('pets')
           .update({
-            stars: currentStars + 1,
+            stars: (currentStars as number) + 1,
             buff_value: pet.buff_value * 1.5
           })
-          .eq('id', parentId1);
+          .eq('id', parentId1)
+          .returns<SupabasePetRow[]>();
         if (updateError) throw updateError;
 
-        const { error: deleteError } = await supabase.from('pets').delete().eq('id', parentId2);
+        const { error: deleteError } = await client.from('pets').delete().eq('id', parentId2).returns<SupabasePetRow[]>();
         if (deleteError) throw deleteError;
-      } catch (err: any) {
+      } catch (err) {
         console.error('[BackendService] Supabase error in fusePets:', err);
         throw err;
       }
@@ -803,10 +841,11 @@ export const backendService = {
 
   // 5. Statistics & Adaptive Review
   async getMathStats(userId: string): Promise<MathStatistic[]> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Fetching math stats for ${userId} from Supabase...`);
-        const { data, error } = await supabase.from('math_statistics').select('*').eq('user_id', userId);
+        const { data, error } = await client.from('math_statistics').select('*').eq('user_id', userId).returns<SupabaseMathStatisticRow[]>();
         if (error) throw error;
         return (data || []).map(s => ({
           userId: s.user_id,
@@ -823,16 +862,18 @@ export const backendService = {
   },
 
   async recordMathAnswer(userId: string, questionKey: string, isCorrect: boolean, timeTakenMs: number): Promise<void> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Recording answer for ${userId} in Supabase: ${questionKey}`);
         
         // Fetch existing row to increment
-        const { data } = await supabase
+        const { data } = await client
           .from('math_statistics')
           .select('*')
           .eq('user_id', userId)
-          .eq('question_key', questionKey);
+          .eq('question_key', questionKey)
+          .returns<SupabaseMathStatisticRow[]>();
         
         if (data && data.length > 0) {
           const row = data[0];
@@ -841,21 +882,22 @@ export const backendService = {
             incorrect_count: (row.incorrect_count ?? 0) + (isCorrect ? 0 : 1),
             total_time_taken_ms: (row.total_time_taken_ms ?? 0) + timeTakenMs
           };
-          await supabase
+          await client
             .from('math_statistics')
             .update(updates)
             .eq('user_id', userId)
-            .eq('question_key', questionKey);
+            .eq('question_key', questionKey)
+            .returns<SupabaseMathStatisticRow[]>();
         } else {
           const statId = 'stat_' + Math.random().toString(36).substring(2, 11);
-          await supabase.from('math_statistics').insert({
+          await client.from('math_statistics').insert({
             id: statId,
             user_id: userId,
             question_key: questionKey,
             correct_count: isCorrect ? 1 : 0,
             incorrect_count: isCorrect ? 0 : 1,
             total_time_taken_ms: timeTakenMs
-          });
+          }).returns<SupabaseMathStatisticRow[]>();
         }
       } catch (err) {
         console.error('[BackendService] Supabase error in recordMathAnswer:', err);
@@ -888,7 +930,8 @@ export const backendService = {
 
 
   async completeCampaignStage(userId: string, stageId: number, overrideXp?: number, overrideGems?: number): Promise<GameState | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         const state = await this.getGameState(userId);
         if (state) {
@@ -987,18 +1030,19 @@ export const backendService = {
     selectedOperation?: string;
     unlockedSkillsCount?: number;
   }[]> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
         // Fetch players, game_states, and pets in parallel
         const [usersRes, statesRes, petsRes, clansRes] = await Promise.race([
           Promise.all([
-            supabase.from('users').select('id, username').eq('role', 'player'),
-            supabase.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at'),
-            supabase.from('pets').select('*'),
-            supabase.from('clans').select('id, name')
+            client.from('users').select('id, username').eq('role', 'player').returns<SupabaseUserRow[]>(),
+            client.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at').returns<SupabaseGameStateRow[]>(),
+            client.from('pets').select('*').returns<SupabasePetRow[]>(),
+            client.from('clans').select('id, name').returns<SupabaseClanRow[]>()
           ]),
-          new Promise<any[]>((_, reject) => 
+          new Promise<{ data: any; error: any }[]>((_, reject) => 
             setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
           )
         ]);
@@ -1011,7 +1055,7 @@ export const backendService = {
         const dbPets = petsRes.data || [];
         const dbClans = clansRes.data || [];
 
-        const PET_TYPES = [
+        const PET_TYPES_LOCAL = [
           { id: 'robot_pup', emoji: '🤖', name: 'Robô Pup' },
           { id: 'slime_buddy', emoji: '🧪', name: 'Slime' },
           { id: 'phoenix_chick', emoji: '🔥', name: 'Fênix' },
@@ -1022,8 +1066,9 @@ export const backendService = {
         ];
 
         return dbUsers
-          .map((u: any) => {
-            const state = dbStates.find((s: any) => s.user_id === u.id) || {
+          .map((u: SupabaseUserRow) => {
+            const state = dbStates.find((s: SupabaseGameStateRow) => s.user_id === u.id) || {
+              user_id: u.id,
               aura_level: 1,
               rebirths: 0,
               gems: 0,
@@ -1034,11 +1079,11 @@ export const backendService = {
               clan_id: null,
               clan_contributions: 0,
               total_play_time_seconds: 0,
-              selected_operation: 'multiplication',
+              selected_operation: 'multiplication' as const,
               unlocked_skills: []
             };
-            const equippedPet = state.equipped_pet_id ? dbPets.find((p: any) => p.id === state.equipped_pet_id) : null;
-            const petType = equippedPet ? PET_TYPES.find((pt: any) => pt.id === equippedPet.pet_type_id) : null;
+            const equippedPet = state.equipped_pet_id ? dbPets.find((p: SupabasePetRow) => p.id === state.equipped_pet_id) : null;
+            const petType = equippedPet ? PET_TYPES_LOCAL.find((pt) => pt.id === equippedPet.pet_type_id) : null;
             const petEmoji = petType?.emoji;
             const petName = equippedPet?.nickname || petType?.name;
             const petLevel = equippedPet?.level ?? 1;
@@ -1049,7 +1094,7 @@ export const backendService = {
             if (rawEquipped) {
               if (rawEquipped.startsWith('{')) {
                 try {
-                  equippedCosmetics = JSON.parse(rawEquipped);
+                  equippedCosmetics = JSON.parse(rawEquipped) as Record<string, string>;
                   const values = Object.values(equippedCosmetics);
                   equippedCosmeticId = values.length > 0 ? values[0] : null;
                 } catch (e) {}
@@ -1062,14 +1107,27 @@ export const backendService = {
               }
             }
 
-            const activeTitleId = equippedCosmetics['title'] || (equippedCosmeticId?.startsWith('title_') ? equippedCosmeticId : null);
+            const activeTitleId = equippedCosmetics.title || (equippedCosmeticId?.startsWith('title_') ? equippedCosmeticId : null);
             const titleItem = activeTitleId ? COSMETIC_ITEMS.find(c => c.id === activeTitleId) : null;
             const titleText = titleItem ? titleItem.name.replace('Título: ', '') : undefined;
 
-            const clan = state.clan_id ? dbClans.find((c: any) => c.id === state.clan_id) : null;
+            const clan = state.clan_id ? dbClans.find((c: SupabaseClanRow) => c.id === state.clan_id) : null;
 
             const lastActiveTime = new Date(state.updated_at || 0).getTime();
             const isOnline = (Date.now() - lastActiveTime) < 180000;
+
+            const parseStringArray = (val: string[] | string | undefined): string[] => {
+              if (!val) return [];
+              if (Array.isArray(val)) return val;
+              if (val.startsWith('{')) {
+                try {
+                  return val.replace(/[{}]/g, '').split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+                } catch {
+                  return [];
+                }
+              }
+              return [val];
+            };
 
             return {
               username: u.username,
@@ -1080,7 +1138,7 @@ export const backendService = {
               equippedPetName: petName,
               equippedPetLevel: petLevel,
               equippedTitle: titleText,
-              classId: state.active_class || null,
+              classId: (state.active_class || null) as 'warrior' | 'chronomancer' | 'alchemist' | null,
               auraColor: state.aura_color || '#00ffcc',
               equippedCosmetics,
               equippedCosmeticId,
@@ -1088,12 +1146,11 @@ export const backendService = {
               clanContributions: state.clan_contributions ?? 0,
               totalPlayTimeSeconds: state.total_play_time_seconds ?? 0,
               selectedOperation: state.selected_operation ?? 'multiplication',
-              unlockedSkillsCount: (state.unlocked_skills || []).length,
-              olympicMedals: state.olympicMedals,
+              unlockedSkillsCount: parseStringArray(state.unlocked_skills).length,
               isOnline
             };
           })
-          .sort((a: any, b: any) => {
+          .sort((a: { rebirths: number; level: number }, b: { rebirths: number; level: number }) => {
             if (b.rebirths !== a.rebirths) {
               return b.rebirths - a.rebirths;
             }
@@ -1107,30 +1164,33 @@ export const backendService = {
   },
 
   // 8. Clan APIs
-  async getClanLeaderboard(): Promise<any[]> {
-    if (isSupabaseEnabled && supabase) {
+  async getClanLeaderboard(): Promise<Clan[]> {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log('[BackendService] Fetching clans leaderboard from Supabase...');
-        const [clansRes, statesRes] = await Promise.race([
+        const results = await Promise.race([
           Promise.all([
-            supabase.from('clans').select('*'),
-            supabase.from('game_states').select('user_id, aura_level, rebirths')
+            client.from('clans').select('*').returns<SupabaseClanRow[]>(),
+            client.from('game_states').select('user_id, aura_level, rebirths').returns<SupabaseGameStateRow[]>()
           ]),
-          new Promise<any[]>((_, reject) => 
+          new Promise<[{ data: SupabaseClanRow[] | null; error: any }, { data: SupabaseGameStateRow[] | null; error: any }]>((_, reject) => 
             setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
           )
         ]);
+        const clansRes = results[0];
+        const statesRes = results[1];
         if (clansRes.error) throw clansRes.error;
         const dbClans = clansRes.data || [];
         const dbStates = statesRes.data || [];
 
-        return dbClans.map((clan: any) => {
+        return dbClans.map((clan: SupabaseClanRow) => {
           let totalAuraLevel = 0;
           let totalRebirths = 0;
           const membersList = clan.members || [];
           
           membersList.forEach((memberId: string) => {
-            const state = dbStates.find((s: any) => s.user_id === memberId);
+            const state = dbStates.find((s: SupabaseGameStateRow) => s.user_id === memberId);
             if (state) {
               totalAuraLevel += (state.aura_level ?? 0);
               totalRebirths += (state.rebirths ?? 0);
@@ -1141,20 +1201,20 @@ export const backendService = {
             id: clan.id,
             name: clan.name,
             tag: clan.tag,
-            motto: clan.motto,
+            motto: clan.motto || '',
             badgeEmoji: clan.badge_emoji || '🛡️',
             members: membersList,
             totalAuraLevel,
             totalRebirths,
             level: clan.level ?? 1,
             xp: clan.xp ?? 0,
-            leaderId: clan.leader_id,
+            leaderId: clan.leader_id || '',
             joinRequests: clan.join_requests || [],
             bossHp: clan.boss_hp ?? 5000,
             bossMaxHp: clan.boss_max_hp ?? 5000,
             bossLevel: clan.boss_level ?? 1
           };
-        }).sort((a: any, b: any) => {
+        }).sort((a: { totalRebirths: number; totalAuraLevel: number }, b: { totalRebirths: number; totalAuraLevel: number }) => {
           if (b.totalRebirths !== a.totalRebirths) {
             return b.totalRebirths - a.totalRebirths;
           }
@@ -1168,7 +1228,8 @@ export const backendService = {
   },
 
   async joinClan(userId: string, clanId: string): Promise<GameState | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Student ${userId} joining Clan ${clanId}...`);
         
@@ -1176,7 +1237,7 @@ export const backendService = {
         await this.leaveClan(userId);
 
         // 2. Fetch target clan to update member list
-        const { data: clanData, error: fetchErr } = await supabase.from('clans').select('*').eq('id', clanId);
+        const { data: clanData, error: fetchErr } = await client.from('clans').select('*').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (fetchErr) throw fetchErr;
 
         if (clanData && clanData.length > 0) {
@@ -1184,7 +1245,7 @@ export const backendService = {
           const membersList = clan.members || [];
           if (!membersList.includes(userId)) {
             membersList.push(userId);
-            const { error: updateClanErr } = await supabase.from('clans').update({ members: membersList }).eq('id', clanId);
+            const { error: updateClanErr } = await client.from('clans').update({ members: membersList }).eq('id', clanId).returns<SupabaseClanRow[]>();
             if (updateClanErr) throw updateClanErr;
           }
         }
@@ -1199,25 +1260,26 @@ export const backendService = {
   },
 
   async leaveClan(userId: string): Promise<GameState | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Student ${userId} leaving clan...`);
         const state = await this.getGameState(userId);
         if (state && state.clanId) {
-          const { data: clanData } = await supabase.from('clans').select('*').eq('id', state.clanId);
+          const { data: clanData } = await client.from('clans').select('*').eq('id', state.clanId).returns<SupabaseClanRow[]>();
           if (clanData && clanData.length > 0) {
             const clan = clanData[0];
             const membersList = (clan.members || []).filter((id: string) => id !== userId);
             
             if (membersList.length === 0) {
               // Delete clan if empty
-              await supabase.from('clans').delete().eq('id', state.clanId);
+              await client.from('clans').delete().eq('id', state.clanId).returns<SupabaseClanRow[]>();
             } else {
-              let updatePayload: any = { members: membersList };
+              const updatePayload: Partial<SupabaseClanRow> = { members: membersList };
               if (clan.leader_id === userId) {
                 updatePayload.leader_id = membersList[0];
               }
-              await supabase.from('clans').update(updatePayload).eq('id', state.clanId);
+              await client.from('clans').update(updatePayload).eq('id', state.clanId).returns<SupabaseClanRow[]>();
             }
           }
         }
@@ -1230,7 +1292,8 @@ export const backendService = {
   },
 
   async createClan(userId: string, name: string, tag: string, motto: string, badgeEmoji: string): Promise<GameState | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Student ${userId} creating Clan ${name}...`);
         
@@ -1239,7 +1302,7 @@ export const backendService = {
 
         // 2. Insert new clan row
         const newClanId = 'clan_' + Math.random().toString(36).substring(2, 11);
-        const { error: insertErr } = await supabase.from('clans').insert({
+        const { error: insertErr } = await client.from('clans').insert({
           id: newClanId,
           name: name.trim(),
           tag: tag.trim().toUpperCase(),
@@ -1253,7 +1316,7 @@ export const backendService = {
           boss_hp: 5000,
           boss_max_hp: 5000,
           boss_level: 1
-        });
+        }).returns<SupabaseClanRow[]>();
 
         if (insertErr) throw insertErr;
 
@@ -1261,17 +1324,19 @@ export const backendService = {
         return await this.updateGameState(userId, { clanId: newClanId });
       } catch (err: any) {
         console.error('[BackendService] Supabase error in createClan:', err);
-        alert('Erro no Banco de Dados (Supabase):\n' + (err.message || JSON.stringify(err)) + '\n\nO clã foi salvo apenas no modo Offline/Local.');
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase):\n' + errMsg + '\n\nO clã foi salvo apenas no modo Offline/Local.');
       }
     }
     return mockDb.createClan(userId, name, tag, motto, badgeEmoji);
   },
 
   async damageClanBoss(userId: string, clanId: string, amount: number): Promise<{ bossHp: number; bossMaxHp: number; bossLevel: number; defeated: boolean; rewardGems: number } | null> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Damaging clan boss of ${clanId} by ${amount}...`);
-        const { data, error } = await supabase.from('clans').select('boss_hp, boss_max_hp, boss_level, members, level, xp').eq('id', clanId);
+        const { data, error } = await client.from('clans').select('boss_hp, boss_max_hp, boss_level, members, level, xp').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (error) throw error;
         if (data && data.length > 0) {
           const row = data[0];
@@ -1306,23 +1371,23 @@ export const backendService = {
             }
 
             // Reward all members in Supabase
-            const { data: states } = await supabase.from('game_states').select('user_id, gems').in('user_id', membersList);
+            const { data: states } = await client.from('game_states').select('user_id, gems').in('user_id', membersList).returns<SupabaseGameStateRow[]>();
             if (states) {
               for (const s of states) {
                 const nextGems = (s.gems ?? 0) + rewardGems;
-                await supabase.from('game_states').update({ gems: nextGems }).eq('user_id', s.user_id);
+                await client.from('game_states').update({ gems: nextGems }).eq('user_id', s.user_id).returns<SupabaseGameStateRow[]>();
               }
             }
           }
 
           // Save clan boss state
-          const { error: updateErr } = await supabase.from('clans').update({
+          const { error: updateErr } = await client.from('clans').update({
             boss_hp: bossHp,
             boss_max_hp: bossMaxHp,
             boss_level: bossLevel,
             level,
             xp
-          }).eq('id', clanId);
+          }).eq('id', clanId).returns<SupabaseClanRow[]>();
 
           if (updateErr) throw updateErr;
 
@@ -1333,35 +1398,39 @@ export const backendService = {
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in damageClanBoss:', err);
-        alert('Erro no Banco de Dados (Supabase - Chefão de Clã):\n' + (err.message || JSON.stringify(err)) + '\n\nO progresso do clã foi salvo apenas offline.');
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Chefão de Clã):\n' + errMsg + '\n\nO progresso do clã foi salvo apenas offline.');
       }
     }
     return mockDb.damageClanBoss(userId, clanId, amount);
   },
 
   async applyToClan(userId: string, clanId: string): Promise<void> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('join_requests, members').eq('id', clanId);
+        const { data } = await client.from('clans').select('join_requests, members').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0) {
           const clan = data[0];
           if (!(clan.members || []).includes(userId) && !(clan.join_requests || []).includes(userId)) {
             const newReqs = [...(clan.join_requests || []), userId];
-            await supabase.from('clans').update({ join_requests: newReqs }).eq('id', clanId);
+            await client.from('clans').update({ join_requests: newReqs }).eq('id', clanId).returns<SupabaseClanRow[]>();
           }
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in applyToClan:', err);
-        alert('Erro no Banco de Dados (Supabase - Candidatar-se ao Clã):\n' + (err.message || JSON.stringify(err)));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Candidatar-se ao Clã):\n' + errMsg);
       }
     }
     mockDb.applyToClan(userId, clanId);
   },
 
   async acceptApplication(leaderId: string, clanId: string, candidateId: string): Promise<void> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('leader_id, join_requests, members').eq('id', clanId);
+        const { data } = await client.from('clans').select('leader_id, join_requests, members').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0) {
           const clan = data[0];
           if (clan.leader_id === leaderId) {
@@ -1369,29 +1438,32 @@ export const backendService = {
             const newMembers = [...(clan.members || [])];
             if (!newMembers.includes(candidateId)) newMembers.push(candidateId);
             
-            await supabase.from('clans').update({ join_requests: newReqs, members: newMembers }).eq('id', clanId);
+            await client.from('clans').update({ join_requests: newReqs, members: newMembers }).eq('id', clanId).returns<SupabaseClanRow[]>();
             await this.updateGameState(candidateId, { clanId });
           }
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in acceptApplication:', err);
-        alert('Erro no Banco de Dados (Supabase - Aceitar Membro):\n' + (err.message || JSON.stringify(err)));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Aceitar Membro):\n' + errMsg);
       }
     }
     mockDb.acceptApplication(leaderId, clanId, candidateId);
   },
 
   async rejectApplication(leaderId: string, clanId: string, candidateId: string): Promise<void> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('leader_id, join_requests').eq('id', clanId);
+        const { data } = await client.from('clans').select('leader_id, join_requests').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0 && data[0].leader_id === leaderId) {
           const newReqs = (data[0].join_requests || []).filter((id: string) => id !== candidateId);
-          await supabase.from('clans').update({ join_requests: newReqs }).eq('id', clanId);
+          await client.from('clans').update({ join_requests: newReqs }).eq('id', clanId).returns<SupabaseClanRow[]>();
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in rejectApplication:', err);
-        alert('Erro no Banco de Dados (Supabase - Recusar Membro):\n' + (err.message || JSON.stringify(err)));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Recusar Membro):\n' + errMsg);
       }
     }
     mockDb.rejectApplication(leaderId, clanId, candidateId);
@@ -1399,44 +1471,50 @@ export const backendService = {
 
   async kickMember(leaderId: string, clanId: string, targetId: string): Promise<void> {
     if (leaderId === targetId) return;
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('leader_id, members').eq('id', clanId);
+        const { data } = await client.from('clans').select('leader_id, members').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0 && data[0].leader_id === leaderId) {
           const newMembers = (data[0].members || []).filter((id: string) => id !== targetId);
-          await supabase.from('clans').update({ members: newMembers }).eq('id', clanId);
+          await client.from('clans').update({ members: newMembers }).eq('id', clanId).returns<SupabaseClanRow[]>();
           await this.updateGameState(targetId, { clanId: null });
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in kickMember:', err);
-        alert('Erro no Banco de Dados (Supabase - Expulsar Membro):\n' + (err.message || JSON.stringify(err)));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Expulsar Membro):\n' + errMsg);
       }
     }
     mockDb.kickMember(leaderId, clanId, targetId);
   },
 
   async transferLeadership(leaderId: string, clanId: string, targetId: string): Promise<void> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('leader_id, members').eq('id', clanId);
+        const { data } = await client.from('clans').select('leader_id, members').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0 && data[0].leader_id === leaderId && (data[0].members || []).includes(targetId)) {
-          await supabase.from('clans').update({ leader_id: targetId }).eq('id', clanId);
+          await client.from('clans').update({ leader_id: targetId }).eq('id', clanId).returns<SupabaseClanRow[]>();
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in transferLeadership:', err);
-        alert('Erro no Banco de Dados (Supabase - Promover Líder):\n' + (err.message || JSON.stringify(err)));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Promover Líder):\n' + errMsg);
       }
     }
     mockDb.transferLeadership(leaderId, clanId, targetId);
   },
 
   async addClanXp(clanId: string, amount: number): Promise<void> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('level, xp').eq('id', clanId);
+        const { data } = await client.from('clans').select('level, xp').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0) {
           let { level, xp } = data[0];
-          xp += amount;
+          level = level ?? 1;
+          xp = (xp ?? 0) + amount;
           let nextLevelXp = level * 500;
           while (xp >= nextLevelXp && level < 10) {
             xp -= nextLevelXp;
@@ -1447,20 +1525,22 @@ export const backendService = {
             level = 10;
             xp = Math.min(xp, nextLevelXp);
           }
-          await supabase.from('clans').update({ level, xp }).eq('id', clanId);
+          await client.from('clans').update({ level, xp }).eq('id', clanId).returns<SupabaseClanRow[]>();
         }
       } catch (err: any) {
         console.error('[BackendService] Supabase error in addClanXp:', err);
-        alert('Erro no Banco de Dados (Supabase - Sincronizar XP do Clã):\n' + (err.message || JSON.stringify(err)));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert('Erro no Banco de Dados (Supabase - Sincronizar XP do Clã):\n' + errMsg);
       }
     }
     mockDb.addClanXp(clanId, amount);
   },
 
   async getClanBonus(clanId: string): Promise<{ xpMultiplier: number, gemMultiplier: number }> {
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       try {
-        const { data } = await supabase.from('clans').select('level').eq('id', clanId);
+        const { data } = await client.from('clans').select('level').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (data && data.length > 0) {
           const level = data[0].level ?? 1;
           const bonus = level * 0.02;

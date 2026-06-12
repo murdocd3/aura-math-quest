@@ -53,9 +53,19 @@ CREATE POLICY "Allow users to manage their own game state" ON game_states
 CREATE POLICY "Allow authenticated read clans" ON clans
   FOR SELECT TO authenticated USING (true);
 
--- Authenticated users can modify clans (creation/edits)
-CREATE POLICY "Allow authenticated write clans" ON clans
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Authenticated users can create clans
+CREATE POLICY "Allow authenticated create clans" ON clans
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() is not null);
+
+-- Only the leader of the clan or an admin can modify/delete the clan details
+CREATE POLICY "Allow leaders and admins to modify clans" ON clans
+  FOR UPDATE TO authenticated 
+  USING (auth.uid() = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid() = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+CREATE POLICY "Allow leaders and admins to delete clans" ON clans
+  FOR DELETE TO authenticated 
+  USING (auth.uid() = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- Table: pets
 -- Users can view all pets (for sanctums of other users)

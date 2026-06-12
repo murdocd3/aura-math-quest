@@ -2,7 +2,9 @@ import type {
   User, 
   GameState, 
   Pet, 
-  MathStatistic 
+  MathStatistic,
+  SupabaseUserRow,
+  SupabaseGameStateRow
 } from './dbConfig';
 import { 
   STORAGE_KEYS, 
@@ -88,9 +90,10 @@ export const usersDb = {
     }
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       // Helper map inside usersDb to avoid circular dependency
-      const dbRow: any = {};
+      const dbRow: Partial<SupabaseGameStateRow> = {};
       if (newState) {
         if (newState.campaignStage !== undefined) dbRow.campaign_stage = newState.campaignStage;
         if (newState.gems !== undefined) dbRow.gems = newState.gems;
@@ -117,7 +120,7 @@ export const usersDb = {
         dbRow.updated_at = new Date().toISOString();
       }
 
-      supabase.from('users')
+      client.from('users')
         .insert({
           id: newUser.id,
           username: newUser.username,
@@ -125,6 +128,7 @@ export const usersDb = {
           role: newUser.role,
           is_active: newUser.isActive,
         })
+        .returns<SupabaseUserRow[]>()
         .then(({ error: uError }) => {
           if (uError) {
             console.error('[mockDb] Error syncing new user to Supabase:', uError);
@@ -133,8 +137,9 @@ export const usersDb = {
 
           if (role === 'player' && newState) {
             dbRow.user_id = newUser.id;
-            supabase!.from('game_states')
+            client.from('game_states')
               .insert(dbRow)
+              .returns<SupabaseGameStateRow[]>()
               .then(({ error: sError }) => {
                 if (sError) console.error('[mockDb] Error syncing default game state to Supabase:', sError);
               });
@@ -167,14 +172,16 @@ export const usersDb = {
     setStorageItem(STORAGE_KEYS.USERS, users);
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
-      const dbUpdates: any = {};
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      const dbUpdates: Partial<SupabaseUserRow> = {};
       if (updates.username !== undefined) dbUpdates.username = updates.username;
       if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
       if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
-      supabase.from('users')
+      client.from('users')
         .update(dbUpdates)
         .eq('id', id)
+        .returns<SupabaseUserRow[]>()
         .then(({ error }) => {
           if (error) console.error('[mockDb] Error syncing user update to Supabase:', error);
         });
@@ -201,10 +208,12 @@ export const usersDb = {
     setStorageItem(STORAGE_KEYS.STATS, stats.filter(s => s.userId !== id));
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
-      supabase.from('users')
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      client.from('users')
         .delete()
         .eq('id', id)
+        .returns<SupabaseUserRow[]>()
         .then(({ error }) => {
           if (error) console.error('[mockDb] Error syncing user deletion to Supabase:', error);
         });

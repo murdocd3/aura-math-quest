@@ -1,4 +1,10 @@
-import type { MathStatistic, TimelineEntry, GameState, Pet } from './dbConfig';
+import type { 
+  MathStatistic, 
+  TimelineEntry, 
+  GameState, 
+  Pet,
+  SupabaseMathStatisticRow
+} from './dbConfig';
 import { 
   STORAGE_KEYS, 
   getStorageItem, 
@@ -102,11 +108,13 @@ export const statsDb = {
     setStorageItem(STORAGE_KEYS.TIMELINE, [...otherUsers, ...userTimeline]);
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
-      supabase!.from('math_statistics')
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      client.from('math_statistics')
         .select('*')
         .eq('user_id', userId)
         .eq('question_key', questionKey)
+        .returns<SupabaseMathStatisticRow[]>()
         .then(({ data, error }) => {
           if (error) {
             console.error('[mockDb] Error checking stats in Supabase:', error);
@@ -115,29 +123,32 @@ export const statsDb = {
 
           if (data && data.length > 0) {
             const row = data[0];
-            const updates = {
+            const updates: Partial<SupabaseMathStatisticRow> = {
               correct_count: (row.correct_count ?? 0) + (correct ? 1 : 0),
               incorrect_count: (row.incorrect_count ?? 0) + (correct ? 0 : 1),
               total_time_taken_ms: (row.total_time_taken_ms ?? 0) + timeMs
             };
-            supabase!.from('math_statistics')
+            client.from('math_statistics')
               .update(updates)
               .eq('user_id', userId)
               .eq('question_key', questionKey)
+              .returns<SupabaseMathStatisticRow[]>()
               .then(({ error: uError }) => {
                 if (uError) console.error('[mockDb] Error updating stats in Supabase:', uError);
               });
           } else {
             const statId = 'stat_' + Math.random().toString(36).substring(2, 11);
-            supabase!.from('math_statistics')
-              .insert({
-                id: statId,
-                user_id: userId,
-                question_key: questionKey,
-                correct_count: correct ? 1 : 0,
-                incorrect_count: correct ? 0 : 1,
-                total_time_taken_ms: timeMs
-              })
+            const newStatRow: SupabaseMathStatisticRow = {
+              id: statId,
+              user_id: userId,
+              question_key: questionKey,
+              correct_count: correct ? 1 : 0,
+              incorrect_count: correct ? 0 : 1,
+              total_time_taken_ms: timeMs
+            };
+            client.from('math_statistics')
+              .insert(newStatRow)
+              .returns<SupabaseMathStatisticRow[]>()
               .then(({ error: iError }) => {
                 if (iError) console.error('[mockDb] Error inserting stats to Supabase:', iError);
               });
@@ -167,33 +178,37 @@ export const statsDb = {
     setStorageItem(STORAGE_KEYS.STATS, stats);
 
     // Sync to Supabase if active
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       const updates = {
         correct_count: targetState === 'mastered' ? 5 : 0,
         incorrect_count: targetState === 'weak' ? 3 : 0,
         total_time_taken_ms: targetState === 'mastered' ? 800 : 5000
       };
-      supabase!.from('math_statistics')
+      client.from('math_statistics')
         .select('*')
         .eq('user_id', userId)
         .eq('question_key', questionKey)
+        .returns<SupabaseMathStatisticRow[]>()
         .then(({ data, error }) => {
           if (error) return;
           if (data && data.length > 0) {
-            supabase!.from('math_statistics')
+            client.from('math_statistics')
               .update(updates)
               .eq('user_id', userId)
               .eq('question_key', questionKey)
+              .returns<SupabaseMathStatisticRow[]>()
               .then(() => {});
           } else {
             const statId = 'stat_' + Math.random().toString(36).substring(2, 11);
-            supabase!.from('math_statistics')
+            client.from('math_statistics')
               .insert({
                 id: statId,
                 user_id: userId,
                 question_key: questionKey,
                 ...updates
               })
+              .returns<SupabaseMathStatisticRow[]>()
               .then(() => {});
           }
         });
@@ -205,10 +220,12 @@ export const statsDb = {
     const filtered = stats.filter(s => s.userId !== userId);
     setStorageItem(STORAGE_KEYS.STATS, filtered);
 
-    if (isSupabaseEnabled && supabase) {
-      supabase!.from('math_statistics')
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      client.from('math_statistics')
         .delete()
         .eq('user_id', userId)
+        .returns<SupabaseMathStatisticRow[]>()
         .then(() => {});
     }
   },

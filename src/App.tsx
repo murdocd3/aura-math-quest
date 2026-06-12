@@ -1,12 +1,12 @@
 import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { Login } from './components/Login';
-import { HubWorld } from './components/HubWorld';
 import { seedDatabase, mockDb } from './services/mockDb';
 import { backendService } from './services/backendService';
 import type { User, GameState } from './services/mockDb';
 import { audioEngine } from './components/AudioEngine';
 
 // Lazy load non-critical heavy modules for bundle splitting
+const HubWorld = lazy(() => import('./components/HubWorld').then(m => ({ default: m.HubWorld })));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const PetShop = lazy(() => import('./components/PetShop').then(m => ({ default: m.PetShop })));
 const CombatArena = lazy(() => import('./components/CombatArena').then(m => ({ default: m.CombatArena })));

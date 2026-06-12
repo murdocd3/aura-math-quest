@@ -1,6 +1,7 @@
 import type { 
   GameState, 
-  Pet 
+  Pet,
+  SupabaseGameStateRow
 } from './dbConfig';
 import { 
   STORAGE_KEYS, 
@@ -15,8 +16,8 @@ import { petsDb } from './petsDb';
 
 
 // Reusable local map helper
-const mapGameStateToDb = (state: Partial<GameState>) => {
-  const dbRow: any = {};
+const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateRow> => {
+  const dbRow: Partial<SupabaseGameStateRow> = {};
   if (state.campaignStage !== undefined) dbRow.campaign_stage = state.campaignStage;
   if (state.gems !== undefined) dbRow.gems = state.gems;
   if (state.auraLevel !== undefined) dbRow.aura_level = state.auraLevel;
@@ -103,16 +104,18 @@ export const questsDb = {
     setStorageItem(STORAGE_KEYS.GAME_STATES, states);
 
     // Sync to Supabase in background
-    if (isSupabaseEnabled && supabase) {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
       const finalUpdates: Partial<GameState> = { ...updates };
       if (updates.auraXp !== undefined) {
         finalUpdates.auraLevel = updatedState.auraLevel;
         finalUpdates.auraXp = updatedState.auraXp;
       }
       const dbUpdates = mapGameStateToDb(finalUpdates);
-      supabase!.from('game_states')
+      client.from('game_states')
         .update(dbUpdates)
         .eq('user_id', userId)
+        .returns<SupabaseGameStateRow[]>()
         .then(({ error }) => {
           if (error) {
             console.error('[mockDb] Error syncing game_state to Supabase:', error);

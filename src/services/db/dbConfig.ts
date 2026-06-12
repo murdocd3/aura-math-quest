@@ -243,6 +243,11 @@ export const STORAGE_KEYS = {
   TIMELINE: 'amq_timeline',
 };
 
+/**
+ * ⚠️ WARNING: NON-CRYPTOGRAPHIC INSECURE MOCK HASH!
+ * Only used for local storage/mockDb offline client fallback.
+ * DO NOT reuse this algorithm for production authentication or storing real credentials.
+ */
 export function mockHash(password: string): string {
   let hash = 0;
   for (let i = 0; i < password.length; i++) {
@@ -279,4 +284,78 @@ export interface TimelineEntry {
   correct: boolean;
   timeMs: number;
 }
+
+export interface SupabaseUserRow {
+  id: string;
+  username: string;
+  password?: string;
+  role: 'admin' | 'player';
+  is_active?: boolean;
+}
+
+export interface SupabaseGameStateRow {
+  user_id: string;
+  campaign_stage?: number;
+  gems?: number;
+  aura_level?: number;
+  aura_xp?: number;
+  aura_color?: string;
+  rebirths?: number;
+  current_zone?: 'forest' | 'volcano';
+  equipped_pet_id?: string | null;
+  active_auras?: string[] | string;
+  total_play_time_seconds?: number;
+  purchased_cosmetics?: string[] | string;
+  equipped_cosmetic_id?: string | null;
+  selected_operation?: 'addition' | 'subtraction' | 'multiplication' | 'division';
+  quest_wins?: number;
+  quest_criticals?: number;
+  quest_streak?: number;
+  claimed_quests?: string[] | string;
+  active_class?: 'warrior' | 'chronomancer' | 'alchemist' | null;
+  skill_points?: number;
+  unlocked_skills?: string[] | string;
+  clan_id?: string | null;
+  clan_contributions?: number;
+  updated_at?: string;
+}
+
+export interface SupabasePetRow {
+  id: string;
+  user_id: string;
+  pet_type_id: string;
+  nickname: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  buff_type: 'time_bonus' | 'aura_multiplier' | 'gem_multiplier' | 'combined';
+  buff_value: number;
+  level: number;
+  xp?: number;
+  created_at?: string;
+}
+
+export interface SupabaseMathStatisticRow {
+  id: string;
+  user_id: string;
+  question_key: string;
+  correct_count: number;
+  incorrect_count: number;
+  total_time_taken_ms: number;
+}
+
+export interface SupabaseClanRow {
+  id: string;
+  name: string;
+  tag: string;
+  motto?: string;
+  badge_emoji?: string;
+  members?: string[];
+  level?: number;
+  xp?: number;
+  leader_id?: string;
+  join_requests?: string[];
+  boss_hp?: number;
+  boss_max_hp?: number;
+  boss_level?: number;
+}
+
 
