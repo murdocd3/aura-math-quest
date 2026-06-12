@@ -149,11 +149,23 @@ export const usersDb = {
 
     return newUser;
   },
-
   updateUser(id: string, updates: Partial<Pick<User, 'username' | 'passwordHash' | 'isActive'>>): boolean {
     const users = this.getUsers();
     const index = users.findIndex(u => u.id === id);
-    if (index === -1) return false;
+
+    if (index === -1) {
+      const newUser: User = {
+        id,
+        username: updates.username || 'usuario_synced',
+        role: 'player',
+        passwordHash: updates.passwordHash ? mockHash(updates.passwordHash) : mockHash('123'),
+        createdAt: new Date().toISOString(),
+        isActive: updates.isActive !== false,
+      };
+      users.push(newUser);
+      setStorageItem(STORAGE_KEYS.USERS, users);
+      return true;
+    }
 
     if (updates.username) {
       const cleanUser = updates.username.trim();
