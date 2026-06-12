@@ -103,11 +103,23 @@ const mapDbToGameState = (row: any): GameState => {
   const rawEquipped = row.equipped_cosmetic_id || null;
   let equippedCosmetics: Record<string, string> = {};
   let equippedCosmeticId: string | null = null;
+  let hasElitePass = false;
+  let auraPassXp = 0;
+  let claimedPassTiers: number[] = [];
   
   if (rawEquipped) {
     if (rawEquipped.startsWith('{')) {
       try {
-        equippedCosmetics = JSON.parse(rawEquipped);
+        const parsed = JSON.parse(rawEquipped);
+        hasElitePass = parsed.hasElitePass ?? false;
+        auraPassXp = parsed.auraPassXp ?? 0;
+        claimedPassTiers = parsed.claimedPassTiers ?? [];
+        
+        equippedCosmetics = { ...parsed };
+        delete equippedCosmetics.hasElitePass;
+        delete equippedCosmetics.auraPassXp;
+        delete equippedCosmetics.claimedPassTiers;
+        
         const values = Object.values(equippedCosmetics);
         equippedCosmeticId = values.length > 0 ? values[0] : null;
       } catch (e) {
@@ -148,6 +160,9 @@ const mapDbToGameState = (row: any): GameState => {
     clanId: row.clan_id || null,
     clanContributions: row.clan_contributions ?? 0,
     campaignStage: row.campaign_stage ?? 1,
+    hasElitePass,
+    auraPassXp,
+    claimedPassTiers,
   };
 };
 
@@ -165,11 +180,13 @@ const mapGameStateToDb = (state: Partial<GameState>) => {
   if (state.totalPlayTimeSeconds !== undefined) dbRow.total_play_time_seconds = state.totalPlayTimeSeconds;
   if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
   
-  if (state.equippedCosmetics !== undefined) {
-    dbRow.equipped_cosmetic_id = JSON.stringify(state.equippedCosmetics);
-  } else if (state.equippedCosmeticId !== undefined) {
-    dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
-  }
+  // Serialize equippedCosmetics and Aura Pass fields together
+  const equippedJsonObj: any = { ...(state.equippedCosmetics || {}) };
+  if (state.hasElitePass !== undefined) equippedJsonObj.hasElitePass = state.hasElitePass;
+  if (state.auraPassXp !== undefined) equippedJsonObj.auraPassXp = state.auraPassXp;
+  if (state.claimedPassTiers !== undefined) equippedJsonObj.claimedPassTiers = state.claimedPassTiers;
+  
+  dbRow.equipped_cosmetic_id = JSON.stringify(equippedJsonObj);
   
   if (state.selectedOperation !== undefined) dbRow.selected_operation = state.selectedOperation;
   if (state.questWins !== undefined) dbRow.quest_wins = state.questWins;
@@ -519,7 +536,7 @@ export const backendService = {
     if (isSupabaseEnabled && supabase) {
       try {
         console.log(`[BackendService] Updating game state for ${userId} in Supabase...`, updates);
-        const dbUpdates = mapGameStateToDb(updates);
+        const dbUpdates = mapGameStateToDb(localState || updates);
         const { data, error } = await supabase
           .from('game_states')
           .update(dbUpdates)

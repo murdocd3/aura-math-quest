@@ -278,6 +278,7 @@ export const AuraPass: React.FC<AuraPassProps> = ({
   onNavigateToSanctum,
   onSelectZone,
 }) => {
+  const [claimedReward, setClaimedReward] = React.useState<{ name: string; icon: string; isPremium: boolean } | null>(null);
   const currentXp = gameState.auraPassXp || 0;
   const isPremiumUnlocked = gameState.hasElitePass || false;
   const claimedTiers = gameState.claimedPassTiers || [];
@@ -342,6 +343,11 @@ export const AuraPass: React.FC<AuraPassProps> = ({
       });
       if (finalState) {
         onStateUpdate(finalState);
+        setClaimedReward({
+          name: isPremium ? config.premiumReward.name : config.freeReward.name,
+          icon: isPremium ? config.premiumReward.icon : config.freeReward.icon,
+          isPremium
+        });
       }
     }
   };
@@ -716,6 +722,126 @@ export const AuraPass: React.FC<AuraPassProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Style definitions for custom animations */}
+      <style>{`
+        @keyframes customFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes customScaleUp {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes customBounceEmoji {
+          0% { transform: translateY(0) scale(1); }
+          100% { transform: translateY(-12px) scale(1.08); }
+        }
+        .custom-sparkle-burst {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, transparent 20%, rgba(255,255,255,0.02) 40%, transparent 60%);
+          transform: translate(-50%, -50%);
+          animation: customRotateBg 15s linear infinite;
+          pointer-events: none;
+          z-index: 0;
+        }
+        @keyframes customRotateBg {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Claimed Reward Visual Celebration Modal */}
+      {claimedReward && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15,23,42,0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'customFadeIn 0.3s ease-out',
+          padding: '16px',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{
+            background: 'rgba(30,41,59,0.95)',
+            border: `2px solid ${claimedReward.isPremium ? 'var(--neon-yellow)' : 'var(--neon-purple)'}`,
+            borderRadius: '16px',
+            padding: '32px',
+            textAlign: 'center',
+            maxWidth: '400px',
+            width: '100%',
+            boxShadow: `0 0 30px ${claimedReward.isPremium ? 'rgba(234,179,8,0.3)' : 'rgba(168,85,247,0.3)'}`,
+            position: 'relative',
+            overflow: 'hidden',
+            animation: 'customScaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            boxSizing: 'border-box'
+          }}>
+            <div className="custom-sparkle-burst" />
+
+            <div style={{
+              fontSize: '1rem',
+              color: claimedReward.isPremium ? 'var(--neon-yellow)' : 'var(--neon-purple)',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              marginBottom: '8px',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {claimedReward.isPremium ? '⭐ Recompensa Elite ⭐' : '🎁 Item Resgatado!'}
+            </div>
+            
+            <div style={{
+              fontSize: '5rem',
+              margin: '20px 0',
+              display: 'inline-block',
+              animation: 'customBounceEmoji 1s infinite alternate',
+              filter: `drop-shadow(0 0 15px ${claimedReward.isPremium ? 'rgba(234,179,8,0.5)' : 'rgba(168,85,247,0.5)'})`,
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {claimedReward.icon}
+            </div>
+
+            <h3 style={{ fontSize: '1.6rem', color: '#fff', fontWeight: 800, marginBottom: '12px', position: 'relative', zIndex: 1 }}>
+              {claimedReward.name}
+            </h3>
+
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
+              Parabéns! O item foi adicionado com sucesso ao seu inventário. Continue jogando para liberar novos níveis!
+            </p>
+
+            <button
+              className="cyber-btn"
+              onClick={() => setClaimedReward(null)}
+              style={{
+                borderColor: claimedReward.isPremium ? 'var(--neon-yellow)' : 'var(--neon-purple)',
+                color: '#fff',
+                padding: '12px 32px',
+                fontSize: '0.9rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: `0 0 10px ${claimedReward.isPremium ? 'rgba(234,179,8,0.2)' : 'rgba(168,85,247,0.2)'}`,
+                position: 'relative',
+                zIndex: 1
+              }}
+            >
+              INCRÍVEL!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

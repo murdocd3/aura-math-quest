@@ -268,6 +268,31 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 }) => {
   const userId = playerUser.id;
 
+  const isMountedRef = useRef(true);
+  const matchmakingTimeoutRef = useRef<any>(null);
+  const feedbackTimeoutRef = useRef<any>(null);
+  const flashTimeoutRef = useRef<any>(null);
+  const victoryTimeoutRef = useRef<any>(null);
+  const defeatTimeoutRef = useRef<any>(null);
+  const monsterShakeTimeoutRef = useRef<any>(null);
+  const playerShakeTimeoutRef = useRef<any>(null);
+  const hitSplatsTimeoutsRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (matchmakingTimeoutRef.current) clearTimeout(matchmakingTimeoutRef.current);
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+      if (victoryTimeoutRef.current) clearTimeout(victoryTimeoutRef.current);
+      if (defeatTimeoutRef.current) clearTimeout(defeatTimeoutRef.current);
+      if (monsterShakeTimeoutRef.current) clearTimeout(monsterShakeTimeoutRef.current);
+      if (playerShakeTimeoutRef.current) clearTimeout(playerShakeTimeoutRef.current);
+      hitSplatsTimeoutsRef.current.forEach(id => clearTimeout(id));
+    };
+  }, []);
+
   const getPetElement = () => {
     if (gameState.equippedPetId) {
       const pets = mockDb.getPets(userId);
@@ -503,7 +528,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setMatchmaking(true);
     audioEngine.playHatchRoll();
 
-    setTimeout(() => {
+    if (matchmakingTimeoutRef.current) clearTimeout(matchmakingTimeoutRef.current);
+    matchmakingTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
       const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.isActive !== false && u.username !== playerUser.username);
       const randomOpponent = (activePlayers.length > 0 ? activePlayers[Math.floor(Math.random() * activePlayers.length)] : { id: 'player-lucas', username: 'lucas', role: 'player' }) as any;
       const opponentEmoji = randomOpponent.username === 'sofia' ? '🧪' : randomOpponent.username === 'beatriz' ? '👑' : '🧙‍♂️';
@@ -534,11 +561,15 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const [maxStreak, setMaxStreak] = useState(0);
 
   const spawnHitSplat = (text: string, isPlayer: boolean, type: 'critical' | 'normal' | 'error') => {
+    if (!isMountedRef.current) return;
     const id = Math.random().toString(36).substring(2, 9);
     setHitSplats(prev => [...prev, { id, text, isPlayer, type }]);
-    setTimeout(() => {
-      setHitSplats(prev => prev.filter(hs => hs.id !== id));
+    const tId = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setHitSplats(prev => prev.filter(hs => hs.id !== id));
+      }
     }, 1200);
+    hitSplatsTimeoutsRef.current.push(tId);
   };
 
   // Generate question
@@ -1070,9 +1101,12 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     const nextHpRemaining = willBlock ? playerHp : (playerHp - damageAmount);
     if (nextHpRemaining > 0) {
       setIsFeedbackActive(true);
-      setTimeout(() => {
-        setIsFeedbackActive(false);
-        nextQuestion();
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = window.setTimeout(() => {
+        if (isMountedRef.current) {
+          setIsFeedbackActive(false);
+          nextQuestion();
+        }
       }, 5000);
     }
   };
@@ -1265,7 +1299,12 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       setMonster(prev => {
         const nextHp = prev.hp - 4;
         if (nextHp <= 0) {
-          setTimeout(() => handleVictory(), 1000);
+          if (victoryTimeoutRef.current) clearTimeout(victoryTimeoutRef.current);
+          victoryTimeoutRef.current = window.setTimeout(() => {
+            if (isMountedRef.current) {
+              handleVictory();
+            }
+          }, 1000);
         }
         return { ...prev, hp: Math.max(0, nextHp) };
       });
@@ -1456,14 +1495,18 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
         questStreak: newQuestStreak,
       });
 
-      onBattleFinished(xpGained, gemsGained, true);
+      if (isMountedRef.current) {
+        onBattleFinished(xpGained, gemsGained, true);
+      }
     } catch (e) {
       console.error('❌ Erro ao salvar vitória no combate:', e);
       // Fallback local update
       mockDb.updateGameState(userId, {
         gems: gameState.gems + (perfectBattle ? 3 : 0) + 1
       });
-      onBattleFinished(10, 0, true);
+      if (isMountedRef.current) {
+        onBattleFinished(10, 0, true);
+      }
     }
   };
 
@@ -1476,10 +1519,14 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       await backendService.updateGameState(userId, {
         auraXp: gameState.auraXp + 10,
       });
-      onBattleFinished(10, 0, false);
+      if (isMountedRef.current) {
+        onBattleFinished(10, 0, false);
+      }
     } catch (e) {
       console.error('❌ Erro ao processar derrota no combate:', e);
-      onBattleFinished(10, 0, false);
+      if (isMountedRef.current) {
+        onBattleFinished(10, 0, false);
+      }
     }
   };
 
@@ -1513,25 +1560,39 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
   // Flash UI screen triggers
   const triggerFlashEffect = (type: 'correct' | 'critical' | 'incorrect') => {
+    if (!isMountedRef.current) return;
     setFlashEffect(type);
-    setTimeout(() => setFlashEffect(null), 400);
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setFlashEffect(null);
+      }
+    }, 400);
   };
 
   const triggerMonsterShake = () => {
+    if (!isMountedRef.current) return;
     setMonsterShake(true);
     setScreenShake(true);
-    setTimeout(() => {
-      setMonsterShake(false);
-      setScreenShake(false);
+    if (monsterShakeTimeoutRef.current) clearTimeout(monsterShakeTimeoutRef.current);
+    monsterShakeTimeoutRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setMonsterShake(false);
+        setScreenShake(false);
+      }
     }, 400);
   };
 
   const triggerPlayerShake = () => {
+    if (!isMountedRef.current) return;
     setPlayerShake(true);
     setScreenShake(true);
-    setTimeout(() => {
-      setPlayerShake(false);
-      setScreenShake(false);
+    if (playerShakeTimeoutRef.current) clearTimeout(playerShakeTimeoutRef.current);
+    playerShakeTimeoutRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setPlayerShake(false);
+        setScreenShake(false);
+      }
     }, 400);
   };
 
@@ -1563,9 +1624,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   };
 
   const getFlashColor = () => {
-    if (flashEffect === 'critical') return 'rgba(234, 179, 8, 0.25)'; // Golden
-    if (flashEffect === 'correct') return 'rgba(34, 197, 94, 0.25)'; // Green
-    if (flashEffect === 'incorrect') return 'rgba(244, 63, 94, 0.25)'; // Pink/Red
+    if (flashEffect === 'critical') return 'rgba(234, 179, 8, 0.4)'; // Vibrant Golden
+    if (flashEffect === 'correct') return 'rgba(0, 255, 204, 0.35)'; // Vibrant Neon Cyan
+    if (flashEffect === 'incorrect') return 'rgba(244, 63, 94, 0.4)'; // Vibrant Neon Pink/Red
     return 'transparent';
   };
 

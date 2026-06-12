@@ -1040,6 +1040,88 @@ export const HubWorld: React.FC<HubWorldProps> = ({
             </div>
           </div>
 
+          {/* Visual Aura Pass Progress Widget */}
+          <div className="cyber-card" style={{
+            borderColor: 'var(--neon-purple)',
+            boxShadow: '0 0 15px rgba(168,85,247,0.15)',
+            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(15, 23, 42, 0.8) 100%)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '1.1rem', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🌌 Passe de Aura Sazonal
+              </h3>
+              {gameState.hasElitePass ? (
+                <span style={{
+                  background: 'rgba(250,204,21,0.15)',
+                  border: '1px solid var(--neon-yellow)',
+                  color: 'var(--neon-yellow)',
+                  fontSize: '0.7rem',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontWeight: 800,
+                  textShadow: '0 0 4px rgba(234,179,8,0.4)'
+                }}>
+                  ⭐ ELITE ATIVO
+                </span>
+              ) : (
+                <span style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '0.7rem',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontWeight: 800
+                }}>
+                  PADRÃO
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
+              Suba de nível resolvendo missões e resgate recompensas incríveis na aba do Passe.
+            </p>
+            <div style={{
+              background: 'rgba(15,23,42,0.4)',
+              border: '1px solid rgba(255,255,255,0.03)',
+              borderRadius: '10px',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 800 }}>
+                  Nível do Passe: <span style={{ color: 'var(--neon-purple)', textShadow: '0 0 6px rgba(168,85,247,0.3)' }}>{Math.floor((gameState.auraPassXp || 0) / 100) + 1}</span>
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                  {(gameState.auraPassXp || 0)} XP Total
+                </span>
+              </div>
+              <div style={{ width: '100%', height: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', position: 'relative' }}>
+                <div style={{ width: `${Math.min(100, (gameState.auraPassXp || 0) % 100)}%`, height: '100%', background: 'linear-gradient(90deg, var(--neon-purple), var(--neon-pink))', transition: 'width 0.4s ease' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
+                  {100 - ((gameState.auraPassXp || 0) % 100)} XP para Nvl {Math.floor((gameState.auraPassXp || 0) / 100) + 2}
+                </span>
+                <button
+                  className="cyber-btn"
+                  onClick={() => { audioEngine.playCorrect(); setActiveHubTab('aurapass'); }}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.7rem',
+                    borderColor: 'var(--neon-purple)',
+                    background: 'rgba(168, 85, 247, 0.1)',
+                    color: '#fff',
+                    fontWeight: 800
+                  }}
+                >
+                  Ver Recompensas 🎁
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Aura Customizer color selector */}
           <div className="cyber-card">
             <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', color: '#fff' }}>🎨 Escolha a Cor de sua Aura</h3>
