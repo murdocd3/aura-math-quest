@@ -9,8 +9,6 @@ import type {
 } from './dbConfig';
 import { 
   STORAGE_KEYS, 
-  isSupabaseEnabled, 
-  supabase,
   mockHash
 } from './dbConfig';
 
@@ -268,54 +266,7 @@ export function seedDatabase() {
     localStorage.setItem('amq_timeline', JSON.stringify(defaultTimeline));
   }
 
-  // Clear specific users (patricia, luigi, manu, maju) if they exist in localStorage
-  try {
-    const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
-    if (rawUsers) {
-      const users: User[] = JSON.parse(rawUsers);
-      const targets = ['patricia', 'luigi', 'manu', 'maju'];
-      const usersToClear = users.filter(u => targets.includes(u.username.toLowerCase()));
 
-      if (usersToClear.length > 0) {
-        const remainingUsers = users.filter(u => !targets.includes(u.username.toLowerCase()));
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(remainingUsers));
-
-        const userIdsToClear = usersToClear.map(u => u.id);
-
-        // Clear GameStates
-        const rawStates = localStorage.getItem(STORAGE_KEYS.GAME_STATES);
-        if (rawStates) {
-          const states: GameState[] = JSON.parse(rawStates);
-          localStorage.setItem(STORAGE_KEYS.GAME_STATES, JSON.stringify(states.filter(s => !userIdsToClear.includes(s.userId))));
-        }
-
-        // Clear Pets
-        const rawPets = localStorage.getItem(STORAGE_KEYS.PETS);
-        if (rawPets) {
-          const pets: Pet[] = JSON.parse(rawPets);
-          localStorage.setItem(STORAGE_KEYS.PETS, JSON.stringify(pets.filter(p => !userIdsToClear.includes(p.userId))));
-        }
-
-        // Clear Stats
-        const rawStats = localStorage.getItem(STORAGE_KEYS.STATS);
-        if (rawStats) {
-          const stats: MathStatistic[] = JSON.parse(rawStats);
-          localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats.filter(s => !userIdsToClear.includes(s.userId))));
-        }
-
-        // Sync deletion to Supabase in background
-        if (isSupabaseEnabled && supabase) {
-          userIdsToClear.forEach(id => {
-            supabase!.from('users').delete().eq('id', id).then(({ error }) => {
-              if (error) console.error('[mockDb seed clean] Error cleaning user from Supabase:', error);
-            });
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[mockDb] Error during user cleanup step:', err);
-  }
 
   // Dynamic creation and seeding for robust demonstration user
   try {
@@ -328,7 +279,7 @@ export function seedDatabase() {
           id: 'player-demo',
           username: 'aluno_demonstracao',
           role: 'player',
-          passwordHash: 'demo123',
+          passwordHash: mockHash('demo123'),
           createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
           isActive: false
         };
