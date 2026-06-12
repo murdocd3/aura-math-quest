@@ -10,17 +10,18 @@ import type {
 import { 
   STORAGE_KEYS, 
   isSupabaseEnabled, 
-  supabase 
+  supabase,
+  mockHash
 } from './dbConfig';
 
 export function seedDatabase() {
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     const defaultUsers: User[] = [
-      { id: 'admin-id', username: 'admin', role: 'admin', passwordHash: 'auraadmin123', createdAt: new Date().toISOString() },
-      { id: 'player-lucas', username: 'lucas', role: 'player', passwordHash: 'lucas123', createdAt: new Date().toISOString() },
-      { id: 'player-sofia', username: 'sofia', role: 'player', passwordHash: 'sofia123', createdAt: new Date().toISOString() },
-      { id: 'player-gabriel', username: 'gabriel', role: 'player', passwordHash: 'gabriel123', createdAt: new Date().toISOString() },
-      { id: 'player-beatriz', username: 'beatriz', role: 'player', passwordHash: 'beatriz123', createdAt: new Date().toISOString() },
+      { id: 'admin-id', username: 'admin', role: 'admin', passwordHash: mockHash('auraadmin123'), createdAt: new Date().toISOString() },
+      { id: 'player-lucas', username: 'lucas', role: 'player', passwordHash: mockHash('lucas123'), createdAt: new Date().toISOString() },
+      { id: 'player-sofia', username: 'sofia', role: 'player', passwordHash: mockHash('sofia123'), createdAt: new Date().toISOString() },
+      { id: 'player-gabriel', username: 'gabriel', role: 'player', passwordHash: mockHash('gabriel123'), createdAt: new Date().toISOString() },
+      { id: 'player-beatriz', username: 'beatriz', role: 'player', passwordHash: mockHash('beatriz123'), createdAt: new Date().toISOString() },
     ];
 
     const defaultGameStates: GameState[] = [
