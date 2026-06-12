@@ -73,7 +73,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow authenticated to view profiles" ON public.users;
 CREATE POLICY "Allow authenticated to view profiles" ON public.users
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO authenticated, anon USING (true);
 
 DROP POLICY IF EXISTS "Allow users to manage their own profile" ON public.users;
 CREATE POLICY "Allow users to manage their own profile" ON public.users
