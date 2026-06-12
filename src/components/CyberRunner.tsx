@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { mockDb, PET_TYPES } from '../services/mockDb';
+import { backendService } from '../services/backendService';
 import type { User, GameState } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
 
@@ -143,12 +144,28 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
   // Vehicle customization states
   const [selectedVehicle, setSelectedVehicle] = useState<string>(() => {
-    return localStorage.getItem(`amq_runner_equipped_board_${playerUser.id}`) || 'light_skate';
+    return gameState.equippedCosmetics?.vehicle || 'light_skate';
   });
   const [purchasedVehicles, setPurchasedVehicles] = useState<string[]>(() => {
-    const local = localStorage.getItem(`amq_runner_purchased_boards_${playerUser.id}`);
-    return local ? JSON.parse(local) : ['light_skate'];
+    const owned = (gameState.purchasedCosmetics || []).filter(c => ['light_skate', 'tron_bike', 'holo_board'].includes(c));
+    const finalOwned = owned.length > 0 ? owned : ['light_skate'];
+    if (!finalOwned.includes('light_skate')) finalOwned.unshift('light_skate');
+    return finalOwned;
   });
+
+  useEffect(() => {
+    if (gameState) {
+      const equipped = gameState.equippedCosmetics?.vehicle || 'light_skate';
+      setSelectedVehicle(equipped);
+      
+      const owned = (gameState.purchasedCosmetics || []).filter(c => ['light_skate', 'tron_bike', 'holo_board'].includes(c));
+      const finalOwned = owned.length > 0 ? owned : ['light_skate'];
+      if (!finalOwned.includes('light_skate')) {
+        finalOwned.unshift('light_skate');
+      }
+      setPurchasedVehicles(finalOwned);
+    }
+  }, [gameState]);
 
   // Active question references (shared with canvas thread)
   const currentQuestionRef = useRef<RunnerQuestion | null>(null);
@@ -1787,13 +1804,22 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
   };
 
   // Buy or equip vehicle board
-  const selectVehicleBoard = (vehicle: Vehicle) => {
+  const selectVehicleBoard = async (vehicle: Vehicle) => {
     const isOwned = purchasedVehicles.includes(vehicle.id);
 
     if (isOwned) {
       // Equip
       setSelectedVehicle(vehicle.id);
-      localStorage.setItem(`amq_runner_equipped_board_${playerUser.id}`, vehicle.id);
+      const newEquipped = {
+        ...(gameState.equippedCosmetics || {}),
+        vehicle: vehicle.id
+      };
+      const updated = await backendService.updateGameState(playerUser.id, {
+        equippedCosmetics: newEquipped
+      });
+      if (updated) {
+        onStateUpdate(updated);
+      }
       addFloatingText(`EQUIPOU: ${vehicle.name}!`, 80, playerYRef.current - 15, vehicle.trailColor);
     } else {
       // Check gems in state
@@ -1807,13 +1833,20 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
         setPurchasedVehicles(newPurchased);
         setSelectedVehicle(vehicle.id);
 
-        localStorage.setItem(`amq_runner_purchased_boards_${playerUser.id}`, JSON.stringify(newPurchased));
-        localStorage.setItem(`amq_runner_equipped_board_${playerUser.id}`, vehicle.id);
+        const finalPurchased = Array.from(new Set([...(gameState.purchasedCosmetics || []), vehicle.id]));
+        const newEquipped = {
+          ...(gameState.equippedCosmetics || {}),
+          vehicle: vehicle.id
+        };
 
-        // Deduct from db
-        mockDb.updateGameState(playerUser.id, {
+        const updated = await backendService.updateGameState(playerUser.id, {
           gems: newGemsVal,
+          purchasedCosmetics: finalPurchased,
+          equippedCosmetics: newEquipped
         });
+        if (updated) {
+          onStateUpdate(updated);
+        }
 
         // Set gems gained to balance UI
         scoreRef.current.gems = scoreRef.current.gems - vehicle.cost;

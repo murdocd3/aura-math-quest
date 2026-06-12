@@ -398,8 +398,66 @@ export const backendService = {
     return null;
   },
 
+  // Helper to migrate legacy board settings from localStorage to GameState / Supabase
+  checkAndMigrateLegacyBoards(userId: string, state: GameState): GameState {
+    if (typeof window === 'undefined') return state;
+    const legacyEquipped = localStorage.getItem(`amq_runner_equipped_board_${userId}`);
+    const legacyPurchasedRaw = localStorage.getItem(`amq_runner_purchased_boards_${userId}`);
+    
+    if (!legacyEquipped && !legacyPurchasedRaw) {
+      return state;
+    }
+    
+    console.log(`[BackendService] Migrating legacy runner board data for ${userId} to game state...`);
+    
+    let updated = false;
+    const purchased = [...(state.purchasedCosmetics || [])];
+    const equipped = { ...(state.equippedCosmetics || {}) };
+    
+    if (legacyPurchasedRaw) {
+      try {
+        const legacyPurchased: string[] = JSON.parse(legacyPurchasedRaw);
+        legacyPurchased.forEach(board => {
+          if (['light_skate', 'tron_bike', 'holo_board'].includes(board) && !purchased.includes(board)) {
+            purchased.push(board);
+            updated = true;
+          }
+        });
+      } catch (e) {
+        console.error('Failed to parse legacy boards JSON:', e);
+      }
+    }
+    
+    if (legacyEquipped && ['light_skate', 'tron_bike', 'holo_board'].includes(legacyEquipped)) {
+      if (equipped.vehicle !== legacyEquipped) {
+        equipped.vehicle = legacyEquipped;
+        updated = true;
+      }
+    }
+    
+    if (updated) {
+      state.purchasedCosmetics = purchased;
+      state.equippedCosmetics = equipped;
+      state.updatedAt = new Date().toISOString();
+      
+      // Update in local mockDb
+      mockDb.updateGameState(userId, {
+        purchasedCosmetics: purchased,
+        equippedCosmetics: equipped
+      });
+      
+      // Remove legacy keys
+      localStorage.removeItem(`amq_runner_equipped_board_${userId}`);
+      localStorage.removeItem(`amq_runner_purchased_boards_${userId}`);
+    }
+    
+    return state;
+  },
+
   // 3. Game State
   async getGameState(userId: string): Promise<GameState | null> {
+    let state: GameState | null = null;
+    
     if (isSupabaseEnabled && supabase) {
       try {
         console.log(`[BackendService] Fetching game state for ${userId} from Supabase...`);
@@ -425,27 +483,35 @@ export const backendService = {
               supabase.from('game_states').update(dbUpdates).eq('user_id', userId).then(({ error }) => {
                 if (error) console.error('Error syncing local state to Supabase:', error);
               });
-              return localState;
+              state = localState;
             }
           }
-          // Sync to local mockDb
-          mockDb.syncGameState(dbState);
-          return dbState;
-        }
-        
-        // If not found in Cloud, initialize it
-        if (localState) {
+          if (!state) {
+            // Sync to local mockDb
+            mockDb.syncGameState(dbState);
+            state = dbState;
+          }
+        } else if (localState) {
+          // If not found in Cloud, initialize it
           const dbRow = mapGameStateToDb(localState);
           dbRow.user_id = userId;
           await supabase.from('game_states').insert(dbRow);
-          return localState;
+          state = localState;
         }
-        return null;
       } catch (err) {
         console.error('[BackendService] Supabase error in getGameState:', err);
       }
     }
-    return mockDb.getGameState(userId);
+    
+    if (!state) {
+      state = mockDb.getGameState(userId);
+    }
+    
+    if (state) {
+      state = this.checkAndMigrateLegacyBoards(userId, state);
+    }
+    
+    return state;
   },
 
   async updateGameState(userId: string, updates: Partial<GameState>): Promise<GameState | null> {
