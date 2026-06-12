@@ -431,8 +431,8 @@ export const backendService = {
         }
         return null;
       } catch (err) {
-        console.error('[BackendService] Supabase error in createUser:', err);
-        return null;
+        console.error('[BackendService] Supabase error in createUser, falling back to mockDb:', err);
+        return mockDb.createUser(username, passwordPlain, role, isActive);
       }
     }
     return mockDb.createUser(username, passwordPlain, role, isActive);
@@ -454,8 +454,8 @@ export const backendService = {
         mockDb.updateUser(userId, updates);
         return true;
       } catch (err) {
-        console.error('[BackendService] Supabase error in updateUser:', err);
-        return false;
+        console.error('[BackendService] Supabase error in updateUser, falling back to mockDb:', err);
+        return mockDb.updateUser(userId, updates);
       }
     }
     return mockDb.updateUser(userId, updates);
@@ -471,8 +471,8 @@ export const backendService = {
         mockDb.deleteUser(userId);
         return true;
       } catch (err) {
-        console.error('[BackendService] Supabase error in deleteUser:', err);
-        return false;
+        console.error('[BackendService] Supabase error in deleteUser, falling back to mockDb:', err);
+        return mockDb.deleteUser(userId);
       }
     }
     return mockDb.deleteUser(userId);
