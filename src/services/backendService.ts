@@ -345,9 +345,20 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Creating user: ${username} via Supabase Auth native...`);
+        console.log(`[BackendService] Creating user: ${username} via Supabase Auth (tempClient)...`);
         const email = `${username.toLowerCase().trim()}@auramathquest.local`;
-        const { data: authData, error: authError } = await client.auth.signUp({
+
+        // Create a temporary client so it doesn't overwrite/hijack the admin session
+        const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        });
+
+        // 1. Sign up the user in Supabase Auth via the temp client
+        const { data: authData, error: authError } = await tempClient.auth.signUp({
           email,
           password: passwordPlain,
           options: {
@@ -362,9 +373,12 @@ export const backendService = {
         if (authData && authData.user) {
           const userId = authData.user.id;
           console.log(`[BackendService] Inserting public profile for user: ${username} with ID: ${userId}...`);
+
+          // 2. Insert user profile via PRIMARY client (preserves logged-in admin session and executes with admin RLS permissions)
           const { error: userError } = await client.from('users').insert({
             id: userId,
             username: username.trim(),
+            password: passwordPlain, // Keep plain text in users table so password trigger can update auth.users
             role,
             is_active: isActive
           }).returns<SupabaseUserRow[]>();
