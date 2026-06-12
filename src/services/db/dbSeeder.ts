@@ -15,7 +15,27 @@ import {
 } from './dbConfig';
 
 export function seedDatabase() {
-  if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+  const storedUsersRaw = localStorage.getItem(STORAGE_KEYS.USERS);
+  let needsSeed = !storedUsersRaw;
+
+  if (storedUsersRaw) {
+    try {
+      const parsedUsers = JSON.parse(storedUsersRaw) as User[];
+      const hasUnhashed = parsedUsers.some(u => !u.passwordHash.startsWith('mockhash_'));
+      if (hasUnhashed) {
+        needsSeed = true;
+        localStorage.removeItem(STORAGE_KEYS.USERS);
+        localStorage.removeItem(STORAGE_KEYS.GAME_STATES);
+        localStorage.removeItem(STORAGE_KEYS.PETS);
+        localStorage.removeItem(STORAGE_KEYS.STATS);
+        localStorage.removeItem(STORAGE_KEYS.CLANS);
+      }
+    } catch (e) {
+      needsSeed = true;
+    }
+  }
+
+  if (needsSeed) {
     const defaultUsers: User[] = [
       { id: 'admin-id', username: 'admin', role: 'admin', passwordHash: mockHash('auraadmin123'), createdAt: new Date().toISOString() },
       { id: 'player-lucas', username: 'lucas', role: 'player', passwordHash: mockHash('lucas123'), createdAt: new Date().toISOString() },
