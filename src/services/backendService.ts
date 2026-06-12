@@ -8,6 +8,11 @@ import type {
   SupabaseMathStatisticRow,
   SupabaseClanRow
 } from './db/dbConfig';
+import {
+  STORAGE_KEYS,
+  getStorageItem,
+  setStorageItem
+} from './db/dbConfig';
 import { logger } from './logger';
 
 /**
@@ -636,6 +641,55 @@ export const backendService = {
       state = mockDb.getGameState(userId);
     }
     
+    if (!state) {
+      console.warn(`[BackendService] No game state found for ${userId}. Initializing default state...`);
+      const defaultState: GameState = {
+        userId,
+        auraLevel: 1,
+        auraXp: 0,
+        auraColor: '#00ffcc',
+        rebirths: 0,
+        gems: 0,
+        currentZone: 'forest',
+        equippedPetId: null,
+        activeAuras: [],
+        totalPlayTimeSeconds: 0,
+        updatedAt: new Date().toISOString(),
+        purchasedCosmetics: [],
+        equippedCosmeticId: null,
+        selectedOperation: 'multiplication',
+        questWins: 0,
+        questCriticals: 0,
+        questStreak: 0,
+        claimedQuests: [],
+        classId: null,
+        skillPoints: 0,
+        unlockedSkills: [],
+        clanId: null,
+        clanContributions: 0,
+        campaignStage: 1,
+        customTimeLimit: 15,
+        masteryThreshold: 5,
+        lockedOperations: [],
+      };
+
+      const gameStates = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
+      gameStates.push(defaultState);
+      setStorageItem(STORAGE_KEYS.GAME_STATES, gameStates);
+
+      state = defaultState;
+
+      // Sync default state to Supabase in background
+      const client = supabase;
+      if (isSupabaseEnabled && client) {
+        const dbRow = mapGameStateToDb(defaultState);
+        dbRow.user_id = userId;
+        client.from('game_states').insert(dbRow).returns<SupabaseGameStateRow[]>().then(({ error: sError }) => {
+          if (sError) console.error('[BackendService] Error inserting seeded state on getGameState:', sError);
+        });
+      }
+    }
+
     if (state) {
       state = this.checkAndMigrateLegacyBoards(userId, state);
     }
