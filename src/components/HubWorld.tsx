@@ -205,9 +205,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
 
 
-  const handleSelectClass = (classId: 'warrior' | 'chronomancer' | 'alchemist') => {
+  const handleSelectClass = async (classId: 'warrior' | 'chronomancer' | 'alchemist') => {
     audioEngine.playLevelUp();
-    const updated = mockDb.selectClass(playerUser.id, classId);
+    const updated = await backendService.updateGameState(playerUser.id, { classId, unlockedSkills: [], skillPoints: 0 });
     if (updated) {
       onStateUpdate(updated);
       setRpgSuccess(`Você escolheu a classe ${classId === 'warrior' ? 'Guerreiro Crítico ⚔️' : classId === 'chronomancer' ? 'Mago do Tempo 🔮' : 'Alquimista de Aura 🧪'}!`);
@@ -219,16 +219,34 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleBuySkill = (skillId: string, skillName: string) => {
+  const handleBuySkill = async (skillId: string, skillName: string) => {
     audioEngine.playCorrect();
-    const updated = mockDb.buySkill(playerUser.id, skillId);
+    const skill = SKILL_TREE.find(s => s.id === skillId);
+    if (!skill) return;
+    
+    const spentPoints = gameState.unlockedSkills.reduce((acc, sid) => {
+      const sk = SKILL_TREE.find(s => s.id === sid);
+      return acc + (sk ? sk.cost : 0);
+    }, 0);
+    const availablePoints = gameState.rebirths - spentPoints;
+    
+    if (availablePoints < skill.cost) {
+      audioEngine.playError();
+      setRpgError('Pontos de Rebirth insuficientes para comprar esta habilidade!');
+      setTimeout(() => { setRpgError(null); }, 4000);
+      return;
+    }
+
+    const updated = await backendService.updateGameState(playerUser.id, {
+      unlockedSkills: [...gameState.unlockedSkills, skillId]
+    });
     if (updated) {
       onStateUpdate(updated);
       setRpgSuccess(`Habilidade "${skillName}" desbloqueada com sucesso!`);
       setTimeout(() => { setRpgSuccess(null); }, 4000);
     } else {
       audioEngine.playError();
-      setRpgError('Pontos de Rebirth insuficientes para comprar esta habilidade!');
+      setRpgError('Erro ao desbloquear habilidade. Tente novamente.');
       setTimeout(() => { setRpgError(null); }, 4000);
     }
   };
@@ -294,9 +312,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
 
 
 
-  const handleColorChange = (color: string) => {
+  const handleColorChange = async (color: string) => {
     audioEngine.playHatchRoll();
-    const updated = mockDb.updateGameState(playerUser.id, { auraColor: color });
+    const updated = await backendService.updateGameState(playerUser.id, { auraColor: color });
     if (updated) {
       onStateUpdate(updated);
       setSelectedColor(color);
@@ -305,7 +323,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleRebirth = () => {
+  const handleRebirth = async () => {
     if (gameState.auraLevel < 100) {
       audioEngine.playError();
       alert('Você precisa atingir o Nível de Aura 100 para fazer um Renascimento (Rebirth)!');
@@ -318,7 +336,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       )
     ) {
       audioEngine.playLevelUp();
-      const updated = mockDb.updateGameState(playerUser.id, {
+      const updated = await backendService.updateGameState(playerUser.id, {
         auraLevel: 1,
         auraXp: 0,
         rebirths: gameState.rebirths + 1,
@@ -355,9 +373,9 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     }
   };
 
-  const handleOperationChange = (op: 'addition' | 'subtraction' | 'multiplication' | 'division') => {
+  const handleOperationChange = async (op: 'addition' | 'subtraction' | 'multiplication' | 'division') => {
     audioEngine.playHatchRoll();
-    const updated = mockDb.updateGameState(playerUser.id, { selectedOperation: op });
+    const updated = await backendService.updateGameState(playerUser.id, { selectedOperation: op });
     if (updated) {
       onStateUpdate(updated);
     }
@@ -1635,13 +1653,15 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div style={{ marginTop: '20px', textAlign: 'center' }}>
                     <button
                       className="cyber-btn cyber-btn-pink"
-                      onClick={() => {
+                      onClick={async () => {
                         if (window.confirm('Deseja resetar sua classe? Suas habilidades serão bloqueadas e seus pontos serão devolvidos.')) {
                           audioEngine.playLevelUp();
-                          mockDb.updateGameState(playerUser.id, { classId: null, unlockedSkills: [] });
-                          onStateUpdate(mockDb.getGameState(playerUser.id)!);
-                          setRpgSuccess('Classe resetada com sucesso!');
-                          setTimeout(() => { setRpgSuccess(null); }, 4000);
+                          const updated = await backendService.updateGameState(playerUser.id, { classId: null, unlockedSkills: [] });
+                          if (updated) {
+                            onStateUpdate(updated);
+                            setRpgSuccess('Classe resetada com sucesso!');
+                            setTimeout(() => { setRpgSuccess(null); }, 4000);
+                          }
                         }
                       }}
                       style={{ padding: '8px 16px', fontSize: '0.75rem' }}
