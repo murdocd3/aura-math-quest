@@ -937,15 +937,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         audioEngine.playError();
       }
     } else {
-      const newUser = await backendService.createUser(usernameInput, passwordInput, roleInput, isActiveInput);
-      if (newUser) {
-        setFormSuccess(`Usuário ${usernameInput} criado com sucesso!`);
-        audioEngine.playCorrect();
-        resetForm();
-        await loadUsers();
-        setSelectedUserId(newUser.id);
-      } else {
-        setFormError('Nome de usuário já existe.');
+      try {
+        const newUser = await backendService.createUser(usernameInput, passwordInput, roleInput, isActiveInput);
+        if (newUser) {
+          setFormSuccess(`Usuário ${usernameInput} criado com sucesso!`);
+          audioEngine.playCorrect();
+          resetForm();
+          await loadUsers();
+          setSelectedUserId(newUser.id);
+        } else {
+          setFormError('Nome de usuário já existe ou ocorreu um erro.');
+          audioEngine.playError();
+        }
+      } catch (err: any) {
+        const errMsg = err?.message || '';
+        if (errMsg.includes('Password should be')) {
+          setFormError('A senha deve conter pelo menos 6 caracteres.');
+        } else {
+          setFormError(errMsg || 'Nome de usuário já existe ou ocorreu um erro.');
+        }
         audioEngine.playError();
       }
     }

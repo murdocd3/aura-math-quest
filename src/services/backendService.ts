@@ -431,7 +431,7 @@ export const backendService = {
         return null;
       } catch (err) {
         console.error('[BackendService] Supabase error in createUser:', err);
-        return null;
+        throw err;
       }
     }
     return mockDb.createUser(username, passwordPlain, role, isActive);
