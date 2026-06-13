@@ -31,15 +31,20 @@ export const usersDb = {
     return null;
   },
 
-  createUser(username: string, passwordPlain: string, role: 'admin' | 'player', isActive: boolean = true): User | null {
+  createUser(username: string, passwordPlain: string, role: 'admin' | 'player', isActive: boolean = true, id?: string): User | null {
     const users = this.getUsers();
     const cleanUser = username.trim();
     if (users.some(u => u.username.toLowerCase() === cleanUser.toLowerCase())) {
-      return null; // Username exists
+      const existing = users.find(u => u.username.toLowerCase() === cleanUser.toLowerCase());
+      if (existing && id && existing.id !== id) {
+        existing.id = id;
+        setStorageItem(STORAGE_KEYS.USERS, users);
+      }
+      return existing || null;
     }
 
     const newUser: User = {
-      id: 'usr_' + Math.random().toString(36).substring(2, 11),
+      id: id || 'usr_' + Math.random().toString(36).substring(2, 11),
       username: cleanUser,
       role,
       passwordHash: mockHash(passwordPlain),

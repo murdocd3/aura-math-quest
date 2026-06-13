@@ -389,7 +389,10 @@ export const statsDb = {
 
     return users
       .map(u => {
-        const state = states.find(gs => gs.userId === u.id) || {
+        const state = states.find(gs => gs.userId === u.id) || states.find(gs => {
+          const linkedUser = users.find(usr => usr.id === gs.userId);
+          return linkedUser && linkedUser.username.toLowerCase() === u.username.toLowerCase();
+        }) || {
           auraLevel: 1,
           rebirths: 0,
           gems: 0,

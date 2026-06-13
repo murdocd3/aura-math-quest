@@ -425,7 +425,7 @@ export const backendService = {
           };
 
           // Mirror locally just in case
-          mockDb.createUser(username, passwordPlain, role, isActive);
+          mockDb.createUser(username, passwordPlain, role, isActive, userId);
           return newUser;
         }
         return null;
@@ -511,7 +511,7 @@ export const backendService = {
             };
             
             // Sync locally to mockDb cache for offline/visual operations
-            mockDb.createUser(u.username, passwordPlain, u.role, true);
+            mockDb.createUser(u.username, passwordPlain, u.role, true, u.id);
             return loggedInUser;
           }
         }
@@ -1130,7 +1130,10 @@ export const backendService = {
 
         return dbUsers
           .map((u: SupabaseUserRow) => {
-            const state = dbStates.find((s: SupabaseGameStateRow) => s.user_id === u.id) || {
+            const state = dbStates.find((s: SupabaseGameStateRow) => s.user_id === u.id) || dbStates.find((s: SupabaseGameStateRow) => {
+              const linkedUser = dbUsers.find(usr => usr.id === s.user_id);
+              return linkedUser && linkedUser.username.toLowerCase() === u.username.toLowerCase();
+            }) || {
               user_id: u.id,
               aura_level: 1,
               rebirths: 0,
