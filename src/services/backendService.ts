@@ -325,12 +325,7 @@ export const backendService = {
     if (isSupabaseEnabled && client) {
       try {
         console.log('[BackendService] Fetching users from Supabase...');
-        const { data, error } = await Promise.race([
-          client.from('users').select('*').returns<SupabaseUserRow[]>(),
-          new Promise<{ data: SupabaseUserRow[] | null; error: any }>((_, reject) => 
-            setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
-          )
-        ]);
+        const { data, error } = await client.from('users').select('*').returns<SupabaseUserRow[]>();
         if (error) throw error;
         return (data || []).map((u) => ({
           id: u.id,
@@ -1111,16 +1106,11 @@ export const backendService = {
       try {
         console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
         // Fetch players, game_states, and pets in parallel
-        const [usersRes, statesRes, petsRes, clansRes] = await Promise.race([
-          Promise.all([
-            client.from('users').select('id, username, role, is_active').returns<SupabaseUserRow[]>(),
-            client.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at').returns<SupabaseGameStateRow[]>(),
-            client.from('pets').select('*').returns<SupabasePetRow[]>(),
-            client.from('clans').select('id, name').returns<SupabaseClanRow[]>()
-          ]),
-          new Promise<{ data: any; error: any }[]>((_, reject) => 
-            setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
-          )
+        const [usersRes, statesRes, petsRes, clansRes] = await Promise.all([
+          client.from('users').select('id, username, role, is_active').returns<SupabaseUserRow[]>(),
+          client.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at').returns<SupabaseGameStateRow[]>(),
+          client.from('pets').select('*').returns<SupabasePetRow[]>(),
+          client.from('clans').select('id, name').returns<SupabaseClanRow[]>()
         ]);
 
         if (usersRes.error) throw usersRes.error;
@@ -1245,17 +1235,10 @@ export const backendService = {
     if (isSupabaseEnabled && client) {
       try {
         console.log('[BackendService] Fetching clans leaderboard from Supabase...');
-        const results = await Promise.race([
-          Promise.all([
-            client.from('clans').select('*').returns<SupabaseClanRow[]>(),
-            client.from('game_states').select('user_id, aura_level, rebirths').returns<SupabaseGameStateRow[]>()
-          ]),
-          new Promise<[{ data: SupabaseClanRow[] | null; error: any }, { data: SupabaseGameStateRow[] | null; error: any }]>((_, reject) => 
-            setTimeout(() => reject(new Error('Supabase request timed out')), 2500)
-          )
+        const [clansRes, statesRes] = await Promise.all([
+          client.from('clans').select('*').returns<SupabaseClanRow[]>(),
+          client.from('game_states').select('user_id, aura_level, rebirths').returns<SupabaseGameStateRow[]>()
         ]);
-        const clansRes = results[0];
-        const statesRes = results[1];
         if (clansRes.error) throw clansRes.error;
         const dbClans = clansRes.data || [];
         const dbStates = statesRes.data || [];

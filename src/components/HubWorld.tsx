@@ -283,6 +283,14 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return () => clearInterval(interval);
   }, [playerUser.id]);
 
+  // Periodic Leaderboard Refresh (Every 10 seconds for near real-time updates)
+  useEffect(() => {
+    const leaderboardInterval = setInterval(() => {
+      refreshLeaderboard();
+    }, 10000);
+    return () => clearInterval(leaderboardInterval);
+  }, []);
+
 
 
 
