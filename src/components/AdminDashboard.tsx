@@ -1094,7 +1094,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         backgroundColor: selectedUserId === u.id ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
                         cursor: 'pointer',
                       }}
-                      onClick={() => setSelectedUserId(u.id)}
+                      onClick={() => { setSelectedUserId(u.id); }}
                     >
                       <td style={{ padding: '12px 8px', fontWeight: 600 }}>
                         {u.username} {u.id === adminUser.id && '👑'}
@@ -1130,7 +1130,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                       <td style={{ padding: '12px 8px', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
                         {new Date(u.createdAt).toLocaleDateString('pt-BR')}
                       </td>
-                      <td style={{ padding: '12px 8px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                      <td style={{ padding: '12px 8px', textAlign: 'right' }} onClick={(e) => { e.stopPropagation(); }}>
                         {u.id !== adminUser.id && (
                           <button
                             onClick={() => handleToggleUserActive(u.id, u.isActive !== false)}
@@ -1147,7 +1147,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                           </button>
                         )}
                         <button
-                          onClick={() => startEdit(u)}
+                          onClick={() => { startEdit(u); }}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -1192,7 +1192,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                 <input
                   type="text"
                   value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
+                  onChange={(e) => { setUsernameInput(e.target.value); }}
                   placeholder="Nome de login (ex: sophia)"
                   style={{
                     width: '100%',
@@ -1212,7 +1212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                 <input
                   type="password"
                   value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
+                  onChange={(e) => { setPasswordInput(e.target.value); }}
                   placeholder={isEditing ? 'Nova senha opcional' : 'Senha de acesso'}
                   style={{
                     width: '100%',
@@ -1230,7 +1230,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem' }}>Cargo</label>
                   <select
                     value={roleInput}
-                    onChange={(e) => setRoleInput(e.target.value as 'admin' | 'player')}
+                    onChange={(e) => { setRoleInput(e.target.value as 'admin' | 'player'); }}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -1251,7 +1251,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                   <input
                     type="checkbox"
                     checked={isActiveInput}
-                    onChange={(e) => setIsActiveInput(e.target.checked)}
+                    onChange={(e) => { setIsActiveInput(e.target.checked); }}
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
                   Conta Ativa (Permite login e visibilidade)
@@ -1535,7 +1535,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                           <input
                             type="number"
                             value={levelAdjustment}
-                            onChange={(e) => setLevelAdjustment(e.target.value)}
+                            onChange={(e) => { setLevelAdjustment(e.target.value); }}
                             min="1"
                             max="100"
                             style={{
@@ -1572,7 +1572,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                             <input
                               type="number"
                               value={timeLimitInput}
-                              onChange={(e) => setTimeLimitInput(Number(e.target.value))}
+                              onChange={(e) => { setTimeLimitInput(Number(e.target.value)); }}
                               min="3"
                               max="60"
                               style={{
@@ -1590,7 +1590,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                             <input
                               type="number"
                               value={masteryThresholdInput}
-                              onChange={(e) => setMasteryThresholdInput(Number(e.target.value))}
+                              onChange={(e) => { setMasteryThresholdInput(Number(e.target.value)); }}
                               min="2"
                               max="20"
                               style={{
@@ -1620,7 +1620,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                                   type="button"
                                   key={op.id}
                                   className={`cyber-btn ${isLocked ? 'cyber-btn-pink' : ''}`}
-                                  onClick={() => toggleLockedOp(op.id)}
+                                  onClick={() => { toggleLockedOp(op.id); }}
                                   style={{
                                     padding: '6px 12px',
                                     fontSize: '0.8rem',
@@ -1659,7 +1659,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         <input
                           type="text"
                           value={customFactKey}
-                          onChange={(e) => setCustomFactKey(e.target.value)}
+                          onChange={(e) => { setCustomFactKey(e.target.value); }}
                           placeholder="Nova conta (ex: 7x8)"
                           style={{
                             width: '130px',
@@ -1673,7 +1673,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         />
                         <select
                           value={customFactState}
-                          onChange={(e) => setCustomFactState(e.target.value as 'mastered' | 'weak')}
+                          onChange={(e) => { setCustomFactState(e.target.value as 'mastered' | 'weak'); }}
                           style={{
                             padding: '6px',
                             borderRadius: '6px',

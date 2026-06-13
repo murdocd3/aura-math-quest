@@ -140,7 +140,7 @@ export const petsDb = {
     return true;
   },
 
-  fusePets(userId: string, petId1: string, petId2: string): GameState | null {
+  async fusePets(userId: string, petId1: string, petId2: string): Promise<GameState | null> {
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
     const p1Index = pets.findIndex(p => p.id === petId1 && p.userId === userId);
     const p2Index = pets.findIndex(p => p.id === petId2 && p.userId === userId);
@@ -173,8 +173,8 @@ export const petsDb = {
     const baseType = PET_TYPES.find(pt => pt.id === pet1.petTypeId);
     const baseBuffVal = baseType ? baseType.buffValue : pet1.buffValue;
     
-    let nextLevel = pet1.level + 1;
-    let scaledValue = pet1.buffValue;
+    const nextLevel = pet1.level + 1;
+    let scaledValue: number;
 
     if (pet1.buffType === 'time_bonus') {
       scaledValue = baseBuffVal * nextLevel;
@@ -203,7 +203,7 @@ export const petsDb = {
 
     setStorageItem(STORAGE_KEYS.PETS, updatedPets);
 
-    // Sync to Supabase in background
+    // Sync to Supabase
     const client = supabase;
     if (isSupabaseEnabled && client) {
       const p1Updates: Partial<SupabasePetRow> = {
@@ -211,17 +211,21 @@ export const petsDb = {
         nickname: updatedPets[p1NewIndex].nickname,
         buff_value: updatedPets[p1NewIndex].buffValue
       };
-      client.from('pets')
-        .update(p1Updates)
-        .eq('id', petId1)
-        .returns<SupabasePetRow[]>()
-        .then(() => {
-          client.from('pets')
-            .delete()
-            .eq('id', petId2)
-            .returns<SupabasePetRow[]>()
-            .then(() => {});
-        });
+      try {
+        const { error: updateError } = await client.from('pets')
+          .update(p1Updates)
+          .eq('id', petId1)
+          .returns<SupabasePetRow[]>();
+        if (updateError) throw updateError;
+
+        const { error: deleteError } = await client.from('pets')
+          .delete()
+          .eq('id', petId2)
+          .returns<SupabasePetRow[]>();
+        if (deleteError) throw deleteError;
+      } catch (err) {
+        console.error('[petsDb] Supabase error in fusePets sync:', err);
+      }
     }
 
     return questsDb.getGameState(userId);

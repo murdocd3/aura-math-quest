@@ -185,8 +185,8 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => { setIsOnline(true); };
+    const handleOffline = () => { setIsOnline(false); };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -211,11 +211,11 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     if (updated) {
       onStateUpdate(updated);
       setRpgSuccess(`Você escolheu a classe ${classId === 'warrior' ? 'Guerreiro Crítico ⚔️' : classId === 'chronomancer' ? 'Mago do Tempo 🔮' : 'Alquimista de Aura 🧪'}!`);
-      setTimeout(() => setRpgSuccess(null), 4000);
+      setTimeout(() => { setRpgSuccess(null); }, 4000);
     } else {
       audioEngine.playError();
       setRpgError('Erro ao escolher a classe. Tente novamente.');
-      setTimeout(() => setRpgError(null), 4000);
+      setTimeout(() => { setRpgError(null); }, 4000);
     }
   };
 
@@ -225,11 +225,11 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     if (updated) {
       onStateUpdate(updated);
       setRpgSuccess(`Habilidade "${skillName}" desbloqueada com sucesso!`);
-      setTimeout(() => setRpgSuccess(null), 4000);
+      setTimeout(() => { setRpgSuccess(null); }, 4000);
     } else {
       audioEngine.playError();
       setRpgError('Pontos de Rebirth insuficientes para comprar esta habilidade!');
-      setTimeout(() => setRpgError(null), 4000);
+      setTimeout(() => { setRpgError(null); }, 4000);
     }
   };
 
@@ -280,7 +280,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       }
     }, 30000);
 
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); };
   }, [playerUser.id]);
 
   // Periodic Leaderboard Refresh (Every 10 seconds for near real-time updates)
@@ -288,7 +288,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     const leaderboardInterval = setInterval(() => {
       refreshLeaderboard();
     }, 10000);
-    return () => clearInterval(leaderboardInterval);
+    return () => { clearInterval(leaderboardInterval); };
   }, []);
 
 
@@ -738,7 +738,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     key={op.id}
                     className="cyber-btn"
                     disabled={isLocked}
-                    onClick={() => handleOperationChange(op.id as any)}
+                    onClick={() => { handleOperationChange(op.id as any); }}
                     style={{
                       flex: 1,
                       padding: '8px 4px',
@@ -950,7 +950,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div key={opt.hex} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                     <button
                       disabled={isLocked}
-                      onClick={() => handleColorChange(opt.hex)}
+                      onClick={() => { handleColorChange(opt.hex); }}
                       style={{
                         width: '45px',
                         height: '45px',
@@ -1511,7 +1511,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     
                     {/* Warrior */}
-                    <div className="cyber-card hover-glow" style={{ border: '1px solid rgba(244, 63, 94, 0.3)', background: 'rgba(244, 63, 94, 0.02)', textAlign: 'center', padding: '20px', cursor: 'pointer' }} onClick={() => handleSelectClass('warrior')}>
+                    <div className="cyber-card hover-glow" style={{ border: '1px solid rgba(244, 63, 94, 0.3)', background: 'rgba(244, 63, 94, 0.02)', textAlign: 'center', padding: '20px', cursor: 'pointer' }} onClick={() => { handleSelectClass('warrior'); }}>
                       <div style={{ fontSize: '3rem', marginBottom: '10px' }}>⚔️</div>
                       <h5 style={{ fontSize: '1.2rem', color: 'var(--neon-pink)', fontWeight: 800, marginBottom: '8px' }}>Guerreiro Crítico</h5>
                       <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2rem' }}>
@@ -1520,7 +1520,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     </div>
 
                     {/* Chronomancer */}
-                    <div className="cyber-card hover-glow" style={{ border: '1px solid rgba(168, 85, 247, 0.3)', background: 'rgba(168, 85, 247, 0.02)', textAlign: 'center', padding: '20px', cursor: 'pointer' }} onClick={() => handleSelectClass('chronomancer')}>
+                    <div className="cyber-card hover-glow" style={{ border: '1px solid rgba(168, 85, 247, 0.3)', background: 'rgba(168, 85, 247, 0.02)', textAlign: 'center', padding: '20px', cursor: 'pointer' }} onClick={() => { handleSelectClass('chronomancer'); }}>
                       <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🔮</div>
                       <h5 style={{ fontSize: '1.2rem', color: 'var(--neon-purple)', fontWeight: 800, marginBottom: '8px' }}>Mago do Tempo</h5>
                       <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2rem' }}>
@@ -1529,7 +1529,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                     </div>
 
                     {/* Alchemist */}
-                    <div className="cyber-card hover-glow" style={{ border: '1px solid rgba(234, 179, 8, 0.3)', background: 'rgba(234, 179, 8, 0.02)', textAlign: 'center', padding: '20px', cursor: 'pointer' }} onClick={() => handleSelectClass('alchemist')}>
+                    <div className="cyber-card hover-glow" style={{ border: '1px solid rgba(234, 179, 8, 0.3)', background: 'rgba(234, 179, 8, 0.02)', textAlign: 'center', padding: '20px', cursor: 'pointer' }} onClick={() => { handleSelectClass('alchemist'); }}>
                       <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🧪</div>
                       <h5 style={{ fontSize: '1.2rem', color: 'var(--neon-yellow)', fontWeight: 800, marginBottom: '8px' }}>Alquimista de Aura</h5>
                       <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2rem' }}>
@@ -1612,7 +1612,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                               <button
                                 className="cyber-btn"
                                 disabled={!canAfford}
-                                onClick={() => handleBuySkill(skill.id, skill.name)}
+                                onClick={() => { handleBuySkill(skill.id, skill.name); }}
                                 style={{
                                   width: '100%',
                                   padding: '8px',
@@ -1641,7 +1641,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
                           mockDb.updateGameState(playerUser.id, { classId: null, unlockedSkills: [] });
                           onStateUpdate(mockDb.getGameState(playerUser.id)!);
                           setRpgSuccess('Classe resetada com sucesso!');
-                          setTimeout(() => setRpgSuccess(null), 4000);
+                          setTimeout(() => { setRpgSuccess(null); }, 4000);
                         }
                       }}
                       style={{ padding: '8px 16px', fontSize: '0.75rem' }}

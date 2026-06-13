@@ -1201,7 +1201,7 @@ export const backendService = {
               equippedPetName: petName,
               equippedPetLevel: petLevel,
               equippedTitle: titleText,
-              classId: (state.active_class || null) as 'warrior' | 'chronomancer' | 'alchemist' | null,
+              classId: (state.active_class || null),
               auraColor: state.aura_color || '#00ffcc',
               equippedCosmetics,
               equippedCosmeticId,

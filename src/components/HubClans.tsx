@@ -48,7 +48,7 @@ export const HubClans: React.FC<HubClansProps> = ({
       await backendService.applyToClan(playerUser.id, clanId);
       await loadClans();
       setClanSuccess(`Candidatura enviada para ${clanName}!`);
-      setTimeout(() => setClanSuccess(null), 4000);
+      setTimeout(() => { setClanSuccess(null); }, 4000);
     }
   };
 
@@ -88,11 +88,11 @@ export const HubClans: React.FC<HubClansProps> = ({
         onStateUpdate(updated);
         await loadClans();
         setClanSuccess('Você saiu do clã.');
-        setTimeout(() => setClanSuccess(null), 4000);
+        setTimeout(() => { setClanSuccess(null); }, 4000);
       } else {
         audioEngine.playError();
         setClanError('Erro ao sair do clã.');
-        setTimeout(() => setClanError(null), 4000);
+        setTimeout(() => { setClanError(null); }, 4000);
       }
     }
   };
@@ -102,14 +102,14 @@ export const HubClans: React.FC<HubClansProps> = ({
     if (!newClanName.trim() || !newClanTag.trim() || !newClanMotto.trim()) {
       audioEngine.playError();
       setClanError('Por favor, preencha todos os campos do clã.');
-      setTimeout(() => setClanError(null), 4000);
+      setTimeout(() => { setClanError(null); }, 4000);
       return;
     }
 
     if (newClanTag.trim().length > 4) {
       audioEngine.playError();
       setClanError('A TAG do clã deve ter no máximo 4 caracteres.');
-      setTimeout(() => setClanError(null), 4000);
+      setTimeout(() => { setClanError(null); }, 4000);
       return;
     }
 
@@ -121,11 +121,11 @@ export const HubClans: React.FC<HubClansProps> = ({
       setNewClanName('');
       setNewClanTag('');
       setNewClanMotto('');
-      setTimeout(() => setClanSuccess(null), 4000);
+      setTimeout(() => { setClanSuccess(null); }, 4000);
     } else {
       audioEngine.playError();
       setClanError('Erro ao criar clã. Nome ou TAG já podem estar em uso.');
-      setTimeout(() => setClanError(null), 4000);
+      setTimeout(() => { setClanError(null); }, 4000);
     }
   };
 
@@ -361,23 +361,23 @@ export const HubClans: React.FC<HubClansProps> = ({
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <div style={{ flex: 2 }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Nome do Clã:</label>
-                      <input type="text" value={newClanName} onChange={e => setNewClanName(e.target.value)} placeholder="Ex: Math Titans" maxLength={20} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }} />
+                      <input type="text" value={newClanName} onChange={e => { setNewClanName(e.target.value); }} placeholder="Ex: Math Titans" maxLength={20} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>TAG (TNS):</label>
-                      <input type="text" value={newClanTag} onChange={e => setNewClanTag(e.target.value)} placeholder="Ex: TNS" maxLength={4} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase' }} />
+                      <input type="text" value={newClanTag} onChange={e => { setNewClanTag(e.target.value); }} placeholder="Ex: TNS" maxLength={4} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase' }} />
                     </div>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Lema do Clã:</label>
-                    <input type="text" value={newClanMotto} onChange={e => setNewClanMotto(e.target.value)} placeholder="Ex: Resolver até o infinito!" maxLength={40} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }} />
+                    <input type="text" value={newClanMotto} onChange={e => { setNewClanMotto(e.target.value); }} placeholder="Ex: Resolver até o infinito!" maxLength={40} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }} />
                   </div>
 
                   <div style={{ display: 'flex', justifyItems: 'center', gap: '10px' }}>
                     <div style={{ flex: 1.5 }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Emblema:</label>
-                      <select value={newClanBadge} onChange={e => setNewClanBadge(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }}>
+                      <select value={newClanBadge} onChange={e => { setNewClanBadge(e.target.value); }} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }}>
                         <option value="🛡️">🛡️ Escudo Cósmico</option>
                         <option value="🔥">🔥 Chama de Aura</option>
                         <option value="👑">👑 Coroa de Ouro</option>
@@ -420,7 +420,7 @@ export const HubClans: React.FC<HubClansProps> = ({
                     gap: '8px',
                     cursor: 'pointer',
                   }}
-                  onClick={() => setExpandedClanId(isExpanded ? null : clan.id)}
+                  onClick={() => { setExpandedClanId(isExpanded ? null : clan.id); }}
                 >
                   {/* Main Row / Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -458,7 +458,7 @@ export const HubClans: React.FC<HubClansProps> = ({
                   {/* Expanded Details Section */}
                   {isExpanded && (
                     <div
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); }}
                       style={{
                         borderTop: '1px solid rgba(255,255,255,0.08)',
                         paddingTop: '8px',

@@ -31,7 +31,7 @@ export function seedDatabase() {
         localStorage.removeItem('amq_timeline');
         localStorage.removeItem('amq_weekly_leaderboard');
       }
-    } catch (e) {
+    } catch {
       needsSeed = true;
     }
   }

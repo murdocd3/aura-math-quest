@@ -10,6 +10,36 @@ import { CyberSprite } from './CyberSprite';
 import { CombatVfxCanvas } from './CombatVfxCanvas';
 import type { CombatVfxCanvasRef } from './CombatVfxCanvas';
 
+interface CombatEvaluation {
+  isUnderplayed: boolean;
+  isDominated: boolean;
+}
+
+function evaluateCombatStats(userId: string, totalQuestions: number, masteredQuestions: number, activeOp: string): CombatEvaluation {
+  try {
+    const stats = mockDb.getMathStats(userId);
+    const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
+    const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
+    const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
+    const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+
+    let isUnderplayed = false;
+    if (addCount > 30) {
+      if (activeOp === 'subtraction' && subCount < 15) isUnderplayed = true;
+      if (activeOp === 'multiplication' && multCount < 15) isUnderplayed = true;
+      if (activeOp === 'division' && divCount < 15) isUnderplayed = true;
+    }
+
+    const masteredRatio = totalQuestions > 0 ? masteredQuestions / totalQuestions : 0;
+    const isDominated = masteredRatio > 0.5;
+
+    return { isUnderplayed, isDominated };
+  } catch (e) {
+    console.warn('Error checking stats in evaluateCombatStats:', e);
+    return { isUnderplayed: false, isDominated: false };
+  }
+}
+
 interface CombatArenaProps {
   playerUser: User;
   zone: 'forest' | 'volcano' | 'unified';
@@ -214,7 +244,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       if (defeatTimeoutRef.current) clearTimeout(defeatTimeoutRef.current);
       if (monsterShakeTimeoutRef.current) clearTimeout(monsterShakeTimeoutRef.current);
       if (playerShakeTimeoutRef.current) clearTimeout(playerShakeTimeoutRef.current);
-      hitSplatsTimeoutsRef.current.forEach(id => clearTimeout(id));
+      hitSplatsTimeoutsRef.current.forEach(id => { clearTimeout(id); });
     };
   }, []);
 
@@ -363,10 +393,12 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const [timerActive, setTimerActive] = useState(false);
   const [isFeedbackActive, setIsFeedbackActive] = useState(false);
   const timerRef = useRef<any | null>(null);
+  const lastTickTimeRef = useRef<number>(Date.now());
   const vfxCanvasRef = useRef<CombatVfxCanvasRef | null>(null);
   const totalQuestionsRef = useRef(0);
   const masteredQuestionsRef = useRef(0);
-  const isBattleDominatedRef = useRef(false);
+  const [isBattleDominated, setIsBattleDominated] = useState(false);
+  const [isUnderplayedBonusActive, setIsUnderplayedBonusActive] = useState(false);
 
   // Anim stats
   const [battleLogs, setBattleLogs] = useState<string[]>([]);
@@ -418,7 +450,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       }
     }, 6500);
 
-    return () => clearInterval(pvpInterval);
+    return () => { clearInterval(pvpInterval); };
   }, [battleState, battleMode, matchedOpponent]);
 
   // Simulated Co-op Party Loop
@@ -445,7 +477,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       }, false, allyOp);
     }, 5500);
 
-    return () => clearInterval(coopInterval);
+    return () => { clearInterval(coopInterval); };
   }, [battleState, battleMode]);
 
   const triggerMatchmaking = () => {
@@ -512,7 +544,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     getNewQuestion,
   } = useQuestionEngine(
     userId,
-    (gameState.selectedOperation || 'multiplication') as any,
+    (gameState.selectedOperation || 'multiplication'),
     campaignStageId,
     bossOp
   );
@@ -580,7 +612,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       hp: scaledMaxHp,
       element: resolvedElement,
       introDialogue: resolvedDialogue
-    } as any);
+    });
 
     setPlayerHp(maxPlayerHp);
     setPerfectBattle(true);
@@ -597,7 +629,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setRogueDoubleRewardsActive(false);
     totalQuestionsRef.current = 0;
     masteredQuestionsRef.current = 0;
-    isBattleDominatedRef.current = false;
+    setIsBattleDominated(false);
+    setIsUnderplayedBonusActive(false);
 
     if (mode === 'pvp') {
       setBattleLogs([`Duelo PvP Iniciado! Enfrente ${monsterName} (${monsterEmoji})!`]);
@@ -682,7 +715,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       hp: scaledMaxHp,
       element: activeElement,
       introDialogue: resolvedDialogue
-    } as any);
+    });
 
     setPlayerHp(maxPlayerHp);
     setPerfectBattle(true);
@@ -700,7 +733,8 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     setRogueDoubleRewardsActive(false);
     totalQuestionsRef.current = 0;
     masteredQuestionsRef.current = 0;
-    isBattleDominatedRef.current = false;
+    setIsBattleDominated(false);
+    setIsUnderplayedBonusActive(false);
 
     setBattleLogs([`Batalha de Campanha Iniciada! Enfrente ${monsterName} (${monsterEmoji})!`]);
 
@@ -721,7 +755,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     if (campaignStageId) {
       startCampaignBattle(campaignStageId);
     }
-    return () => stopTimer();
+    return () => { stopTimer(); };
   }, [campaignStageId]);
 
   // Timer loop
@@ -730,19 +764,30 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
     const isFire = (monster.element || getMonsterElement(monster.name, monster.emoji)) === 'fire';
     const tickMs = isFire ? 77 : 100;
+    
+    lastTickTimeRef.current = Date.now();
 
     timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const deltaMs = now - lastTickTimeRef.current;
+      lastTickTimeRef.current = now;
+
+      // Scale delta for fire monsters (speed factor)
+      const timeSpeedFactor = isFire ? (100 / 77) : 1.0;
+      const deltaSec = (deltaMs / 1000) * timeSpeedFactor;
+
       setTimeLeft(prev => {
-        if (prev <= 0.1) {
-          clearInterval(timerRef.current!);
+        const nextVal = prev - deltaSec;
+        if (nextVal <= 0.1) {
+          clearInterval(timerRef.current);
           handleTimeout();
           return 0;
         }
-        return Math.round((prev - 0.1) * 10) / 10;
+        return Math.round(nextVal * 10) / 10;
       });
     }, tickMs);
 
-    return () => stopTimer();
+    return () => { stopTimer(); };
   }, [timerActive, battleState, currentQuestion, monster]);
 
   // Ice glitch scramble effect
@@ -766,7 +811,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       spawnHitSplat("EMBARALHADO! ❄️", true, 'error');
     }, 4000);
 
-    return () => clearInterval(scrambleInterval);
+    return () => { clearInterval(scrambleInterval); };
   }, [battleState, monster, currentQuestion]);
 
   useEffect(() => {
@@ -937,7 +982,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
             audioEngine.playLevelUp();
             alert(`🎉 Incrível! O Chefe do Clã foi derrotado!\nTodos os membros ganharam +${res.rewardGems} Gemas!\nO Chefe renasceu no Nível ${res.bossLevel}!`);
           }
-        }).catch(err => console.error('Error damaging clan boss:', err));
+        }).catch(err => { console.error('Error damaging clan boss:', err); });
       }
 
       if (monster.hp - damageDealt > 0) {
@@ -1049,7 +1094,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       const opIndex = Math.floor(nextCount / 2) % opsList.length;
       const nextOp = opsList[opIndex];
 
-      setMonster(prev => ({ ...prev, element: nextElement } as any));
+      setMonster(prev => ({ ...prev, element: nextElement }));
       setBossOp(nextOp);
 
       nextTurnLog(`⚡ CHEFE TRANSFEITO: Elemento mutado para ${nextElement.toUpperCase()} e Operação para ${nextOp.toUpperCase()}!`);
@@ -1077,28 +1122,13 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       audioEngine.playLevelUp();
 
       // Check if underplayed study bonus is active or if battle is dominated
-      let isUnderplayedBonusActive = false;
-      let isDominated = false;
-      try {
-        const stats = mockDb.getMathStats(userId);
-        const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
-        const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
-        const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
-        const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
+      const activeOp = campaignStageId ? getCampaignOp(campaignStageId) : (gameState.selectedOperation || 'multiplication');
+      const evalResult = evaluateCombatStats(userId, totalQuestionsRef.current, masteredQuestionsRef.current, activeOp);
+      const isDominated = evalResult.isDominated;
+      const isUnderplayedBonus = evalResult.isUnderplayed;
 
-        const activeOp = campaignStageId ? getCampaignOp(campaignStageId) : (gameState.selectedOperation || 'multiplication');
-        if (addCount > 30) {
-          if (activeOp === 'subtraction' && subCount < 15) isUnderplayedBonusActive = true;
-          if (activeOp === 'multiplication' && multCount < 15) isUnderplayedBonusActive = true;
-          if (activeOp === 'division' && divCount < 15) isUnderplayedBonusActive = true;
-        }
-
-        const masteredRatio = totalQuestionsRef.current > 0 ? masteredQuestionsRef.current / totalQuestionsRef.current : 0;
-        isDominated = masteredRatio > 0.5;
-        isBattleDominatedRef.current = isDominated;
-      } catch (e) {
-        console.warn('Error checking stats in handleVictory:', e);
-      }
+      setIsBattleDominated(isDominated);
+      setIsUnderplayedBonusActive(isUnderplayedBonus);
 
       if (campaignStageId) {
         setVictoryDialogueIndex(0);
@@ -1146,7 +1176,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       if (isDominated) {
         finalXP = Math.round(finalXP * 0.5);
         finalGems = 0;
-      } else if (isUnderplayedBonusActive) {
+      } else if (isUnderplayedBonus) {
         finalXP = finalXP * 2;
       }
 
@@ -1272,7 +1302,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => { window.removeEventListener('keydown', handleKeyDown); };
   }, [textAnswer, battleState, currentQuestion]);
 
   // Flash UI screen triggers
@@ -1370,7 +1400,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
               
               <button
                 className="cyber-btn cyber-btn-cyan"
-                onClick={() => startBattle('solo')}
+                onClick={() => { startBattle('solo'); }}
                 style={{ padding: '16px', fontSize: '1.1rem', justifyContent: 'space-between', width: '100%' }}
               >
                 <span>Solo (Treino Tradicional)</span>
@@ -1388,7 +1418,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
               <button
                 className="cyber-btn"
-                onClick={() => startBattle('coop')}
+                onClick={() => { startBattle('coop'); }}
                 style={{ padding: '16px', fontSize: '1.1rem', justifyContent: 'space-between', width: '100%', borderColor: 'var(--neon-yellow)', background: 'rgba(234, 179, 8, 0.1)' }}
               >
                 <span>Raid Co-op (Desafio de Chefe)</span>
@@ -2180,7 +2210,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                               key={choice}
                               className="cyber-btn"
                               disabled={isFeedbackActive}
-                              onClick={() => handleAnswerSubmit(choice)}
+                              onClick={() => { handleAnswerSubmit(choice); }}
                               style={{
                                 padding: '14px',
                                 fontSize: '1.4rem',
@@ -2213,7 +2243,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                               key={num}
                               className="cyber-btn cyber-btn-cyan"
                               disabled={isFeedbackActive}
-                              onClick={() => handleNumpadClick(num)}
+                              onClick={() => { handleNumpadClick(num); }}
                               style={{ padding: '8px', fontSize: '1rem', fontFamily: 'Share Tech Mono', opacity: isFeedbackActive ? 0.6 : 1, cursor: isFeedbackActive ? 'not-allowed' : 'pointer' }}
                             >
                               {num}
@@ -2367,30 +2397,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                         if (rogueDoubleRewardsActive) {
                           rewards = { xp: rewards.xp * 2, gems: rewards.gems * 2 };
                         }
-                        if (isBattleDominatedRef.current) {
+                        if (isBattleDominated) {
                           rewards = { xp: Math.round(rewards.xp * 0.5), gems: 0 };
-                        } else {
-                          // Check if underplayed bonus is active
-                          let isUnderplayedBonusActive = false;
-                          try {
-                            const stats = mockDb.getMathStats(userId);
-                            const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
-                            const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
-                            const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
-                            const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
-
-                            const activeOp = getCampaignOp(campaignStageId);
-                            if (addCount > 30) {
-                              if (activeOp === 'subtraction' && subCount < 15) isUnderplayedBonusActive = true;
-                              if (activeOp === 'multiplication' && multCount < 15) isUnderplayedBonusActive = true;
-                              if (activeOp === 'division' && divCount < 15) isUnderplayedBonusActive = true;
-                            }
-                          } catch (e) {
-                            console.warn(e);
-                          }
-                          if (isUnderplayedBonusActive) {
-                            rewards = { xp: rewards.xp * 2, gems: rewards.gems };
-                          }
+                        } else if (isUnderplayedBonusActive) {
+                          rewards = { xp: rewards.xp * 2, gems: rewards.gems };
                         }
                         onBattleFinished(rewards.xp, rewards.gems, true);
                       }}
@@ -2460,35 +2470,16 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                 </span>
               </div>
 
-              {isBattleDominatedRef.current && (
+              {isBattleDominated && (
                 <div style={{ fontSize: '0.8rem', color: 'var(--neon-pink)', backgroundColor: 'rgba(244, 63, 94, 0.1)', padding: '6px', borderRadius: '4px', textAlign: 'center', marginTop: '12px', fontWeight: 'bold' }}>
                   ⚠️ DOMINADO: Recompensas reduzidas por grinding de contas fáceis!
                 </div>
               )}
 
-              {!isBattleDominatedRef.current && (
-                (() => {
-                  const stats = mockDb.getMathStats(userId);
-                  const addCount = stats.filter(s => s.questionKey.includes('+')).reduce((sum, s) => sum + s.correctCount, 0);
-                  const subCount = stats.filter(s => s.questionKey.includes('-')).reduce((sum, s) => sum + s.correctCount, 0);
-                  const multCount = stats.filter(s => s.questionKey.includes('x') || s.questionKey.includes('*')).reduce((sum, s) => sum + s.correctCount, 0);
-                  const divCount = stats.filter(s => s.questionKey.includes('/') || s.questionKey.includes('÷')).reduce((sum, s) => sum + s.correctCount, 0);
-                  const activeOp = campaignStageId ? getCampaignOp(campaignStageId) : (gameState.selectedOperation || 'multiplication');
-                  let isUnderplayed = false;
-                  if (addCount > 30) {
-                    if (activeOp === 'subtraction' && subCount < 15) isUnderplayed = true;
-                    if (activeOp === 'multiplication' && multCount < 15) isUnderplayed = true;
-                    if (activeOp === 'division' && divCount < 15) isUnderplayed = true;
-                  }
-                  if (isUnderplayed) {
-                    return (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--neon-yellow)', backgroundColor: 'rgba(234, 179, 8, 0.1)', padding: '6px', borderRadius: '4px', textAlign: 'center', marginTop: '12px', fontWeight: 'bold' }}>
-                        💡 BÔNUS DE ESTUDO: 2x XP concedido por praticar operação recomendada!
-                      </div>
-                    );
-                  }
-                  return null;
-                })()
+              {!isBattleDominated && isUnderplayedBonusActive && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--neon-yellow)', backgroundColor: 'rgba(234, 179, 8, 0.1)', padding: '6px', borderRadius: '4px', textAlign: 'center', marginTop: '12px', fontWeight: 'bold' }}>
+                  💡 BÔNUS DE ESTUDO: 2x XP concedido por praticar operação recomendada!
+                </div>
               )}
 
               {clanBonus.xpMultiplier > 1 && (

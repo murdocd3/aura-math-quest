@@ -30,7 +30,7 @@ interface LeaderboardProps {
   currentUsername: string;
 }
 
-export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUsername }) => {
+export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername }) => {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const safeEntries = Array.isArray(entries) ? entries : [];
@@ -94,7 +94,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
             <span style={{ fontWeight: 'bold' }}>{toastMessage}</span>
           </div>
           <button 
-            onClick={() => setToastMessage(null)}
+            onClick={() => { setToastMessage(null); }}
             style={{
               background: 'none',
               border: 'none',
@@ -344,7 +344,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries = [], currentUserna
               {/* Expandable details panel */}
               {isExpanded && (
                 <div 
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); }}
                   style={{
                     borderTop: '1px solid rgba(255,255,255,0.06)',
                     background: 'rgba(10, 15, 30, 0.5)',

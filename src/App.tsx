@@ -231,10 +231,10 @@ function App() {
                 setSelectedCampaignStageId(stageId);
                 setScreen('combat');
               }}
-              onNavigateToPetShop={() => setScreen('pet_shop')}
-              onNavigateToRunner={() => setScreen('runner')}
-              onNavigateToOlympics={() => setScreen('olympics')}
-              onNavigateToSanctum={() => setScreen('sanctum')}
+              onNavigateToPetShop={() => { setScreen('pet_shop'); }}
+              onNavigateToRunner={() => { setScreen('runner'); }}
+              onNavigateToOlympics={() => { setScreen('olympics'); }}
+              onNavigateToSanctum={() => { setScreen('sanctum'); }}
               onLogout={handleLogout}
             />
           )}
@@ -244,7 +244,7 @@ function App() {
               userId={user.id}
               gameState={gameState}
               onStateUpdate={setGameState}
-              onBack={() => setScreen('hub')}
+              onBack={() => { setScreen('hub'); }}
             />
           )}
 
@@ -266,7 +266,7 @@ function App() {
             <CyberRunner
               playerUser={user}
               gameState={gameState}
-              onBack={() => setScreen('hub')}
+              onBack={() => { setScreen('hub'); }}
               onStateUpdate={setGameState}
             />
           )}
@@ -274,7 +274,7 @@ function App() {
           {screen === 'olympics' && user && gameState && (
             <Olympics
               gameState={gameState}
-              onBack={() => setScreen('hub')}
+              onBack={() => { setScreen('hub'); }}
               onStateUpdate={setGameState}
             />
           )}
@@ -284,7 +284,7 @@ function App() {
               playerUser={user}
               gameState={gameState}
               onStateUpdate={setGameState}
-              onBack={() => setScreen('hub')}
+              onBack={() => { setScreen('hub'); }}
             />
           )}
         </Suspense>

@@ -260,12 +260,15 @@ export function mockHash(password: string): string {
 
 export function getStorageItem<T>(key: string): T[] {
   seedDatabase();
+  if (typeof localStorage === 'undefined') return [];
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : [];
 }
 
-export function setStorageItem<T>(key: string, data: T[]): void {
-  localStorage.setItem(key, JSON.stringify(data));
+export function setStorageItem(key: string, data: unknown[]): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
 }
 
 export interface MathStatistic {

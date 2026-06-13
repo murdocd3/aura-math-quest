@@ -52,7 +52,7 @@ interface Shockwave {
   alpha: number;
 }
 
-export const CombatVfxCanvas = React.memo(forwardRef<CombatVfxCanvasRef, {}>((_, ref) => {
+export const CombatVfxCanvas = React.memo(forwardRef<CombatVfxCanvasRef>((_, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Arrays to hold physics entities

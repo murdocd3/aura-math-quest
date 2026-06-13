@@ -708,7 +708,7 @@ export const AuraPass: React.FC<AuraPassProps> = ({
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 className="cyber-btn"
-                onClick={() => executeQuestShortcut(q.target)}
+                onClick={() => { executeQuestShortcut(q.target); }}
                 style={{
                   padding: '6px 12px',
                   fontSize: '0.75rem',
@@ -824,7 +824,7 @@ export const AuraPass: React.FC<AuraPassProps> = ({
 
             <button
               className="cyber-btn"
-              onClick={() => setClaimedReward(null)}
+              onClick={() => { setClaimedReward(null); }}
               style={{
                 borderColor: claimedReward.isPremium ? 'var(--neon-yellow)' : 'var(--neon-purple)',
                 color: '#fff',

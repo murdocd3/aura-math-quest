@@ -73,7 +73,7 @@ export const generateQuestion = (
     }
 
     const difficultyMultiplier = (1 + (cycle - 1) * 0.5) * streakBonus * opLevelBonus;
-    let answer = 0;
+    let answer: number;
 
     if (op === 'addition') {
       const maxVal = Math.round(15 * difficultyMultiplier);
@@ -104,7 +104,7 @@ export const generateQuestion = (
     const key = op === 'multiplication' ? `${num1}x${num2}` : `${num1}${opSym}${num2}`;
     const choices = new Set<number>([answer]);
     while (choices.size < 4) {
-      let fakeAnswer = 0;
+      let fakeAnswer: number;
       if (op === 'multiplication') {
         const offset = (Math.floor(Math.random() * 5) - 2) * num1;
         fakeAnswer = answer + (offset === 0 ? num1 : offset);
@@ -151,34 +151,18 @@ export const generateQuestion = (
                           (s.questionKey.includes('/') || s.questionKey.includes('÷'));
         if (!isMatchOp) return false;
         
-        const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
+        const parts = s.questionKey.split(/[+\-*x/÷]/);
         const n1 = parseInt(parts[0]);
-        const n2 = parseInt(parts[1] || '0');
         if (isNaN(n1)) return false;
-
-        let isUnlocked = false;
-        if (op === 'multiplication' || op === 'division') {
-          const h = op === 'multiplication' ? n1 : n2;
-          isUnlocked = progress.unlockedList.includes(h);
-        } else {
-          if (op === 'addition') {
-            const sum = n1 + n2;
-            const tier = sum <= 20 ? 1 : sum <= 50 ? 2 : sum <= 100 ? 3 : sum <= 200 ? 4 : 5;
-            isUnlocked = progress.unlockedList.includes(tier);
-          } else {
-            const tier = n1 <= 10 ? 1 : n1 <= 30 ? 2 : n1 <= 60 ? 3 : n1 <= 120 ? 4 : 5;
-            isUnlocked = progress.unlockedList.includes(tier);
-          }
-        }
 
         const total = s.correctCount + s.errorCount;
         const isWeak = s.errorCount >= 2 || (total > 0 && (s.correctCount / total) < 0.70);
-        return isWeak && isUnlocked;
+        return isWeak;
       });
 
       if (weakSpots.length > 0) {
         const chosen = weakSpots[Math.floor(Math.random() * weakSpots.length)];
-        const parts = chosen.questionKey.split(/[\+\-\*x\/÷]/);
+        const parts = chosen.questionKey.split(/[+\-*x/÷]/);
         num1 = parseInt(parts[0]);
         num2 = parseInt(parts[1]);
         isWeakPoint = true;
@@ -253,7 +237,7 @@ export const generateQuestion = (
     num2 = Math.floor(Math.random() * 8) + 2;
   }
 
-  let answer = 0;
+  let answer: number;
   if (op === 'addition') answer = num1 + num2;
   else if (op === 'subtraction') answer = num1 - num2;
   else if (op === 'division') answer = Math.round(num1 / num2);
@@ -263,7 +247,7 @@ export const generateQuestion = (
 
   const choices = new Set<number>([answer]);
   while (choices.size < 4) {
-    let fakeAnswer = 0;
+    let fakeAnswer: number;
     if (op === 'multiplication') {
       const offset = (Math.floor(Math.random() * 5) - 2) * num1;
       fakeAnswer = answer + (offset === 0 ? num1 : offset);

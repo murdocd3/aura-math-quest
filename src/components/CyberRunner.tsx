@@ -658,7 +658,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
                            theme === 'space'  ? '🌌 ENTRANDO NO ESPAÇO SIDERAL!' :
                                                 '🏙️ RETORNANDO À CIDADE CIBERNÉTICA!';
         setThemeBanner(bannerText);
-        setTimeout(() => setThemeBanner(null), 3500);
+        setTimeout(() => { setThemeBanner(null); }, 3500);
       }
 
       const themeColors = {
@@ -2104,7 +2104,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
                   <button
                     key={idx}
                     className="cyber-btn cyber-btn-pink"
-                    onClick={() => handleBossAnswer(idx)}
+                    onClick={() => { handleBossAnswer(idx); }}
                     style={{ flex: 1, padding: '8px', fontSize: '1rem', textShadow: 'none' }}
                   >
                     {choice}

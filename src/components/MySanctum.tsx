@@ -144,11 +144,11 @@ export const MySanctum: React.FC<MySanctumProps> = ({
         const randomThought = PET_THOUGHTS[Math.floor(Math.random() * PET_THOUGHTS.length)];
         setPetThought(randomThought);
         // Fade thought bubble after 4 seconds
-        setTimeout(() => setPetThought(null), 4000);
+        setTimeout(() => { setPetThought(null); }, 4000);
       }
     }, 4500);
 
-    return () => clearInterval(petMovementInterval);
+    return () => { clearInterval(petMovementInterval); };
   }, []);
 
   const saveItems = (updatedItems: SanctumItem[]) => {
@@ -291,39 +291,39 @@ export const MySanctum: React.FC<MySanctumProps> = ({
   const handleItemInteract = (item: SanctumItem) => {
     audioEngine.playHatchSuccess();
     setToyActiveId(item.id);
-    setTimeout(() => setToyActiveId(null), 1200);
+    setTimeout(() => { setToyActiveId(null); }, 1200);
 
     // Dynamic reaction logic
     if (item.id === 'console') {
       setPetThought("Uau! Esse jogo de 8-bits parece super divertido! 🎮");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'trophy') {
       setPetThought("Glória eterna aos matemáticos! 🏆");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'chair') {
       setPetThought("Parece super confortável. Posso deitar? 💺");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'bed') {
       setPetThought("Que delícia de cama flutuante! Zzz... 🛌");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'plant') {
       setPetThought("Essa planta brilha no escuro! Que incrível! 🌵");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'window') {
       setPetThought("Olha as estrelas lá fora! O espaço é infinito... 🖼️");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'rug') {
       setPetThought("Esse tapete faz cócegas eletrônicas nas patinhas! 🪩");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'bookshelf') {
       setPetThought("Muitos gigabytes de pura sabedoria nessa estante! 📚");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'pethouse') {
       setPetThought("Meu próprio casulo espacial de recarga! Obrigado! 🚀");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     } else if (item.id === 'lamp') {
       setPetThought("Essa lâmpada flutuante de plasma é hipnotizante... 🔮");
-      setTimeout(() => setPetThought(null), 4000);
+      setTimeout(() => { setPetThought(null); }, 4000);
     }
   };
 
@@ -449,8 +449,8 @@ export const MySanctum: React.FC<MySanctumProps> = ({
               return (
                 <div
                   key={item.id}
-                  onMouseDown={(e) => handleDragStart(item.id, e)}
-                  onTouchStart={(e) => handleDragStart(item.id, e)}
+                  onMouseDown={(e) => { handleDragStart(item.id, e); }}
+                  onTouchStart={(e) => { handleDragStart(item.id, e); }}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleItemInteract(item);
@@ -608,7 +608,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
                   {!item.purchased ? (
                     <button
                       className="cyber-btn cyber-btn-cyan"
-                      onClick={() => handleBuy(item)}
+                      onClick={() => { handleBuy(item); }}
                       style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}
                     >
                       Comprar
@@ -616,7 +616,7 @@ export const MySanctum: React.FC<MySanctumProps> = ({
                   ) : (
                     <button
                       className={`cyber-btn ${item.placed ? 'cyber-btn-pink' : ''}`}
-                      onClick={() => handleTogglePlace(item)}
+                      onClick={() => { handleTogglePlace(item); }}
                       style={{ padding: '6px 10px', fontSize: '0.75rem', height: '28px' }}
                     >
                       {item.placed ? 'Guardar' : 'Posicionar'}
@@ -641,13 +641,13 @@ export const MySanctum: React.FC<MySanctumProps> = ({
           </div>
           
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="cyber-btn" onClick={() => moveItem('left')} style={{ width: '40px', height: '40px', padding: 0 }}>◀</button>
+            <button className="cyber-btn" onClick={() => { moveItem('left'); }} style={{ width: '40px', height: '40px', padding: 0 }}>◀</button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <button className="cyber-btn" onClick={() => moveItem('up')} style={{ width: '40px', height: '18px', padding: 0 }}>▲</button>
-              <button className="cyber-btn" onClick={() => moveItem('down')} style={{ width: '40px', height: '18px', padding: 0 }}>▼</button>
+              <button className="cyber-btn" onClick={() => { moveItem('up'); }} style={{ width: '40px', height: '18px', padding: 0 }}>▲</button>
+              <button className="cyber-btn" onClick={() => { moveItem('down'); }} style={{ width: '40px', height: '18px', padding: 0 }}>▼</button>
             </div>
-            <button className="cyber-btn" onClick={() => moveItem('right')} style={{ width: '40px', height: '40px', padding: 0 }}>▶</button>
-            <button className="cyber-btn cyber-btn-pink" onClick={() => setSelectedItem(null)} style={{ padding: '0 12px', height: '40px', fontSize: '0.75rem' }}>OK</button>
+            <button className="cyber-btn" onClick={() => { moveItem('right'); }} style={{ width: '40px', height: '40px', padding: 0 }}>▶</button>
+            <button className="cyber-btn cyber-btn-pink" onClick={() => { setSelectedItem(null); }} style={{ padding: '0 12px', height: '40px', fontSize: '0.75rem' }}>OK</button>
           </div>
         </div>
       )}

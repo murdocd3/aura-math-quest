@@ -116,7 +116,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div style={{ textAlign: 'left', marginTop: '10px' }}>
               <button
-                onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
+                onClick={() => { this.setState(prev => ({ showDetails: !prev.showDetails })); }}
                 style={{
                   background: 'none',
                   border: 'none',

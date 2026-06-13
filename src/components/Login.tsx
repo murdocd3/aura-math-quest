@@ -15,6 +15,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    audioEngine.initContext();
     if (!username.trim() || !password.trim()) {
       setError('Por favor, preencha todos os campos.');
       triggerError();
@@ -34,7 +35,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const triggerError = () => {
     audioEngine.playError();
     setShake(true);
-    setTimeout(() => setShake(false), 500);
+    setTimeout(() => { setShake(false); }, 500);
   };
 
   return (
@@ -105,7 +106,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => { setUsername(e.target.value); }}
               placeholder="Digite o nome de usuário"
               style={{
                 width: '100%',
@@ -138,7 +139,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); }}
               placeholder="Digite a senha"
               style={{
                 width: '100%',
@@ -194,7 +195,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               if (window.confirm('Deseja limpar os dados temporários locais e forçar a atualização dos Pets/Fases? (Seu progresso da nuvem será sincronizado novamente no próximo login)')) {
                 // Clear local storage keys except the connection configs if any
                 const keys = ['amq_game_states', 'amq_pets', 'amq_stats', 'amq_trades', 'amq_clans'];
-                keys.forEach(k => localStorage.removeItem(k));
+                keys.forEach(k => { localStorage.removeItem(k); });
                 
                 // Clear browser caches if possible via API
                 if (window.caches) {

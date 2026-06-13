@@ -8,13 +8,13 @@ class AudioEngine {
   private soundtrackInterval: any = null;
   private soundtrackStep: number = 0;
 
-  private initContext() {
+  public initContext() {
     if (!this.ctx) {
       // Create audio context lazily on user interaction to comply with browser policies
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
     return this.ctx;
   }

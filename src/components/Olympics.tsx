@@ -1048,7 +1048,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
       if (nextMedal) {
         const updatedState = mockDb.recordOlympicMedal(gameState.userId, category, nextMedal);
         if (updatedState) {
-          setTimeout(() => onStateUpdate(updatedState), 0);
+          setTimeout(() => { onStateUpdate(updatedState); }, 0);
         }
       }
 
@@ -1136,7 +1136,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => { window.removeEventListener('keydown', handleKeyDown); };
   }, [selectedOption, answerSubmitted, activeQuestion, isCorrect]);
 
   // Generate SVG Radar Chart Points
@@ -1397,7 +1397,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
                         <button
                           key={idx}
                           disabled={extraQuestion.submitted}
-                          onClick={() => setExtraQuestion(prev => prev ? { ...prev, selected: opt } : null)}
+                          onClick={() => { setExtraQuestion(prev => prev ? { ...prev, selected: opt } : null); }}
                           style={{
                             width: '100%',
                             textAlign: 'left',
@@ -1595,7 +1595,7 @@ export const Olympics: React.FC<OlympicsProps> = ({
                         <button
                           key={idx}
                           disabled={answerSubmitted}
-                          onClick={() => handleOptionSelect(option)}
+                          onClick={() => { handleOptionSelect(option); }}
                           aria-label={`Opção ${idx + 1}: ${option}`}
                           aria-pressed={isSelected}
                           style={{

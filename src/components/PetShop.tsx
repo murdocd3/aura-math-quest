@@ -92,7 +92,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     const timer = setInterval(() => {
       setTick(t => t + 1);
     }, 1000);
-    return () => clearInterval(timer);
+    return () => { clearInterval(timer); };
   }, []);
 
   // Trading States
@@ -261,7 +261,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (currentTreats < 5) {
       audioEngine.playError();
       setPetErrorMsg('Você precisa de pelo menos 5 Guloseimas 🍖 para alimentar o pet!');
-      setTimeout(() => setPetErrorMsg(null), 3000);
+      setTimeout(() => { setPetErrorMsg(null); }, 3000);
       return;
     }
     
@@ -277,7 +277,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       onStateUpdate(updatedState);
       setPetSuccessMsg('Seu pet foi alimentado! +50% de bônus ativo por 2 horas!');
       setScreenReaderAnnouncement('Seu pet foi alimentado! Ganhou bônus de XP!');
-      setTimeout(() => setPetSuccessMsg(null), 4000);
+      setTimeout(() => { setPetSuccessMsg(null); }, 4000);
     }
   };
 
@@ -287,7 +287,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (gameState.equippedPetId === expeditionPetId) {
       audioEngine.playError();
       setPetErrorMsg('Você não pode enviar o seu pet equipado em uma expedição! Desequipe-o primeiro.');
-      setTimeout(() => setPetErrorMsg(null), 3000);
+      setTimeout(() => { setPetErrorMsg(null); }, 3000);
       return;
     }
     
@@ -310,7 +310,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (currentExpeditions.some(e => e.petId === expeditionPetId)) {
       audioEngine.playError();
       setPetErrorMsg('Este pet já está em uma expedição!');
-      setTimeout(() => setPetErrorMsg(null), 3000);
+      setTimeout(() => { setPetErrorMsg(null); }, 3000);
       return;
     }
     
@@ -324,7 +324,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       setPetSuccessMsg('Expedição iniciada com sucesso! O pet partiu em sua jornada.');
       setScreenReaderAnnouncement('Expedição iniciada com sucesso! Seu pet partiu em jornada.');
       setExpeditionPetId(null);
-      setTimeout(() => setPetSuccessMsg(null), 4000);
+      setTimeout(() => { setPetSuccessMsg(null); }, 4000);
     }
   };
 
@@ -336,7 +336,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (new Date(expedition.endTime) > new Date()) {
       audioEngine.playError();
       setPetErrorMsg('Esta expedição ainda não terminou!');
-      setTimeout(() => setPetErrorMsg(null), 3000);
+      setTimeout(() => { setPetErrorMsg(null); }, 3000);
       return;
     }
     
@@ -351,7 +351,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       onStateUpdate(updatedState);
       setPetSuccessMsg(`Expedição concluída! Você coletou 💎 ${expedition.rewardGems} gemas!`);
       setScreenReaderAnnouncement(`Expedição concluída! Você resgatou ${expedition.rewardGems} gemas.`);
-      setTimeout(() => setPetSuccessMsg(null), 4000);
+      setTimeout(() => { setPetSuccessMsg(null); }, 4000);
     }
   };
 
@@ -371,7 +371,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       if (gameState.gems < listing.requestedAmount) {
         audioEngine.playError();
         setTradeErrorMsg('Gemas insuficientes para aceitar esta troca!');
-        setTimeout(() => setTradeErrorMsg(null), 4000);
+        setTimeout(() => { setTradeErrorMsg(null); }, 4000);
         return;
       }
     } else {
@@ -380,7 +380,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
         audioEngine.playError();
         const petTypeName = PET_TYPES.find(pt => pt.id === listing.requestedPetTypeId)?.name || 'pet';
         setTradeErrorMsg(`Você não possui um pet do tipo "${petTypeName}" no Nível 1 para oferecer!`);
-        setTimeout(() => setTradeErrorMsg(null), 4000);
+        setTimeout(() => { setTradeErrorMsg(null); }, 4000);
         return;
       }
     }
@@ -391,11 +391,11 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       setTradeSuccessMsg('Troca realizada com sucesso! Novo pet adicionado à mochila.');
       onStateUpdate(updatedState);
       loadPets();
-      setTimeout(() => setTradeSuccessMsg(null), 4000);
+      setTimeout(() => { setTradeSuccessMsg(null); }, 4000);
     } else {
       audioEngine.playError();
       setTradeErrorMsg('Erro ao aceitar troca. Verifique seus requisitos.');
-      setTimeout(() => setTradeErrorMsg(null), 4000);
+      setTimeout(() => { setTradeErrorMsg(null); }, 4000);
     }
   };
 
@@ -403,7 +403,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (!selectedOfferPetId) {
       audioEngine.playError();
       setTradeErrorMsg('Selecione um pet de sua mochila para oferecer!');
-      setTimeout(() => setTradeErrorMsg(null), 4000);
+      setTimeout(() => { setTradeErrorMsg(null); }, 4000);
       return;
     }
 
@@ -413,7 +413,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     if (petToOffer.level !== 1) {
       audioEngine.playError();
       setTradeErrorMsg('Apenas pets de Nível 1 podem ser anunciados!');
-      setTimeout(() => setTradeErrorMsg(null), 4000);
+      setTimeout(() => { setTradeErrorMsg(null); }, 4000);
       return;
     }
 
@@ -427,11 +427,11 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
       setSelectedOfferPetId(null);
       onStateUpdate(updatedState);
       loadPets();
-      setTimeout(() => setTradeSuccessMsg(null), 4000);
+      setTimeout(() => { setTradeSuccessMsg(null); }, 4000);
     } else {
       audioEngine.playError();
       setTradeErrorMsg('Erro ao publicar o anúncio. Tente novamente.');
-      setTimeout(() => setTradeErrorMsg(null), 4000);
+      setTimeout(() => { setTradeErrorMsg(null); }, 4000);
     }
   };
 
@@ -452,7 +452,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
     audioEngine.playCorrect();
     setTradeSuccessMsg('Anúncio cancelado e pet retornado à mochila!');
     loadPets();
-    setTimeout(() => setTradeSuccessMsg(null), 4000);
+    setTimeout(() => { setTradeSuccessMsg(null); }, 4000);
   };
 
   const handleFusion = async () => {
@@ -493,7 +493,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
         setSelectedPet2Id(null);
         onStateUpdate(updatedState);
         loadPets();
-        setTimeout(() => setFusionSuccessMsg(null), 5000);
+        setTimeout(() => { setFusionSuccessMsg(null); }, 5000);
       } else {
         audioEngine.playError();
         alert('Erro ao realizar a fusão dos pets. Verifique as regras.');
@@ -1059,7 +1059,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '0.85rem', color: '#ea580c', fontWeight: 'bold' }}>🏃‍♂️ Corrida dos Cálculos</span>
-                    <button className="cyber-btn" onClick={() => setTrainingGameMode('select')} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Sair</button>
+                    <button className="cyber-btn" onClick={() => { setTrainingGameMode('select'); }} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Sair</button>
                   </div>
 
                   {/* Visual progress bar / chase track */}
@@ -1093,7 +1093,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         <input
                           type="number"
                           value={foodChaseInput}
-                          onChange={(e) => setFoodChaseInput(e.target.value)}
+                          onChange={(e) => { setFoodChaseInput(e.target.value); }}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleCheckFoodChaseAnswer(); }}
                           placeholder="Resposta"
                           style={{
@@ -1124,7 +1124,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '0.85rem', color: 'var(--neon-purple)', fontWeight: 'bold' }}>🌌 Matriz de Memória</span>
-                    <button className="cyber-btn" onClick={() => setTrainingGameMode('select')} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Sair</button>
+                    <button className="cyber-btn" onClick={() => { setTrainingGameMode('select'); }} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Sair</button>
                   </div>
 
                   {memoryMatrixQuestion ? (
@@ -1152,7 +1152,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         <input
                           type="number"
                           value={memoryMatrixInput}
-                          onChange={(e) => setMemoryMatrixInput(e.target.value)}
+                          onChange={(e) => { setMemoryMatrixInput(e.target.value); }}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleCheckMemoryMatrixAnswer(); }}
                           placeholder="Resultado Final"
                           style={{
@@ -1210,7 +1210,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                   <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Selecione o Pet:</label>
                   <select
                     value={expeditionPetId || ''}
-                    onChange={(e) => setExpeditionPetId(e.target.value || null)}
+                    onChange={(e) => { setExpeditionPetId(e.target.value || null); }}
                     style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: '#0b0f19', color: '#fff', fontSize: '0.85rem' }}
                   >
                     <option value="">-- Escolha um Pet --</option>
@@ -1231,7 +1231,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                   <div className="responsive-grid-3">
                     <button
                       className="cyber-btn"
-                      onClick={() => setExpeditionDuration('short')}
+                      onClick={() => { setExpeditionDuration('short'); }}
                       style={{
                         padding: '8px',
                         fontSize: '0.8rem',
@@ -1244,7 +1244,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     </button>
                     <button
                       className="cyber-btn"
-                      onClick={() => setExpeditionDuration('medium')}
+                      onClick={() => { setExpeditionDuration('medium'); }}
                       style={{
                         padding: '8px',
                         fontSize: '0.8rem',
@@ -1257,7 +1257,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     </button>
                     <button
                       className="cyber-btn"
-                      onClick={() => setExpeditionDuration('long')}
+                      onClick={() => { setExpeditionDuration('long'); }}
                       style={{
                         padding: '8px',
                         fontSize: '0.8rem',
@@ -1368,7 +1368,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 </div>
                 <button
                   className="cyber-btn cyber-btn-cyan"
-                  onClick={() => handleHatch('standard')}
+                  onClick={() => { handleHatch('standard'); }}
                   style={{ padding: '12px 20px', minWidth: '120px' }}
                 >
                   Hachar<br />💎 {EGG_COSTS.standard}
@@ -1397,7 +1397,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 </div>
                 <button
                   className="cyber-btn"
-                  onClick={() => handleHatch('golden')}
+                  onClick={() => { handleHatch('golden'); }}
                   style={{
                     padding: '12px 20px',
                     minWidth: '120px',
@@ -1464,7 +1464,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
               {/* Slot 1 */}
               <div
                 className="cyber-card"
-                onClick={() => setSelectedPet1Id(null)}
+                onClick={() => { setSelectedPet1Id(null); }}
                 style={{
                   height: '140px',
                   display: 'flex',
@@ -1506,7 +1506,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
               {/* Slot 2 */}
               <div
                 className="cyber-card"
-                onClick={() => setSelectedPet2Id(null)}
+                onClick={() => { setSelectedPet2Id(null); }}
                 style={{
                   height: '140px',
                   display: 'flex',
@@ -1662,7 +1662,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                   </label>
                   <select
                     value={selectedOfferPetId || ''}
-                    onChange={(e) => setSelectedOfferPetId(e.target.value || null)}
+                    onChange={(e) => { setSelectedOfferPetId(e.target.value || null); }}
                     style={{ width: '100%', padding: '10px', borderRadius: '6px', backgroundColor: '#0b0f19', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
                   >
                     <option value="">-- Selecione um pet --</option>
@@ -1684,7 +1684,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                     </label>
                     <select
                       value={tradeRequestedType}
-                      onChange={(e) => setTradeRequestedType(e.target.value as 'gems' | 'pet')}
+                      onChange={(e) => { setTradeRequestedType(e.target.value as 'gems' | 'pet'); }}
                       style={{ width: '100%', padding: '10px', borderRadius: '6px', backgroundColor: '#0b0f19', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
                     >
                       <option value="gems">💎 Gemas</option>
@@ -1703,7 +1703,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                           min={1}
                           max={100}
                           value={tradeRequestedAmount}
-                          onChange={(e) => setTradeRequestedAmount(Number(e.target.value))}
+                          onChange={(e) => { setTradeRequestedAmount(Number(e.target.value)); }}
                           style={{ width: '100%', padding: '10px', borderRadius: '6px', backgroundColor: '#0b0f19', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
                         />
                       </>
@@ -1714,7 +1714,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         </label>
                         <select
                           value={tradeRequestedPetTypeId}
-                          onChange={(e) => setTradeRequestedPetTypeId(e.target.value)}
+                          onChange={(e) => { setTradeRequestedPetTypeId(e.target.value); }}
                           style={{ width: '100%', padding: '10px', borderRadius: '6px', backgroundColor: '#0b0f19', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
                         >
                           {PET_TYPES.map(pt => (
@@ -1816,7 +1816,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         {isOwnListing ? (
                           <button
                             className="cyber-btn cyber-btn-pink"
-                            onClick={() => handleCancelTrade(listing.id)}
+                            onClick={() => { handleCancelTrade(listing.id); }}
                             style={{ padding: '6px 12px', fontSize: '0.75rem' }}
                           >
                             ❌ Cancelar Anúncio
@@ -1825,7 +1825,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                           <button
                             className="cyber-btn"
                             disabled={!canAccept}
-                            onClick={() => handleAcceptTrade(listing.id)}
+                            onClick={() => { handleAcceptTrade(listing.id); }}
                             style={{
                               padding: '6px 12px',
                               fontSize: '0.75rem',
@@ -1860,7 +1860,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', minWidth: '60px' }}>Raridade:</span>
                 <select
                   value={filterRarity}
-                  onChange={(e) => setFilterRarity(e.target.value)}
+                  onChange={(e) => { setFilterRarity(e.target.value); }}
                   style={{
                     flex: 1,
                     background: '#030712',
@@ -1884,7 +1884,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', minWidth: '60px' }}>Elemento:</span>
                 <select
                   value={filterElement}
-                  onChange={(e) => setFilterElement(e.target.value)}
+                  onChange={(e) => { setFilterElement(e.target.value); }}
                   style={{
                     flex: 1,
                     background: '#030712',
@@ -2250,11 +2250,9 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                         left: '50%',
                         top: '40%',
                         animationDelay: delay,
-                        // @ts-ignore
                         '--tx': tx,
-                        // @ts-ignore
                         '--ty': ty,
-                      }}
+                      } as React.CSSProperties}
                     >
                       {randomEmoji}
                     </span>
@@ -2310,7 +2308,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
                   <input
                     type="text"
                     value={petNicknameInput}
-                    onChange={(e) => setPetNicknameInput(e.target.value)}
+                    onChange={(e) => { setPetNicknameInput(e.target.value); }}
                     placeholder="Apelido do pet"
                     maxLength={15}
                     style={{
@@ -2391,7 +2389,7 @@ export const PetShop: React.FC<PetShopProps> = ({ userId, gameState, onStateUpda
 
             <button
               className="cyber-btn"
-              onClick={() => setLevelUpMessage(null)}
+              onClick={() => { setLevelUpMessage(null); }}
               style={{
                 padding: '12px 30px',
                 fontSize: '1rem',
