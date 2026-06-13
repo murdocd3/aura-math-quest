@@ -285,27 +285,11 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
           
           const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
           const n1 = parseInt(parts[0]);
-          const n2 = parseInt(parts[1] || '0');
           if (isNaN(n1)) return false;
-
-          let isUnlocked = false;
-          if (op === 'multiplication' || op === 'division') {
-            const h = op === 'multiplication' ? n1 : n2;
-            isUnlocked = progress.unlockedList.includes(h);
-          } else {
-            if (op === 'addition') {
-              const sum = n1 + n2;
-              const tier = sum <= 20 ? 1 : sum <= 50 ? 2 : sum <= 100 ? 3 : sum <= 200 ? 4 : 5;
-              isUnlocked = progress.unlockedList.includes(tier);
-            } else {
-              const tier = n1 <= 10 ? 1 : n1 <= 30 ? 2 : n1 <= 60 ? 3 : n1 <= 120 ? 4 : 5;
-              isUnlocked = progress.unlockedList.includes(tier);
-            }
-          }
 
           const total = s.correctCount + s.errorCount;
           const isWeak = s.errorCount >= 2 || (total > 0 && (s.correctCount / total) < 0.70);
-          return isWeak && isUnlocked;
+          return isWeak;
         });
 
         if (weakSpots.length > 0) {
