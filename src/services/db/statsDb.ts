@@ -382,7 +382,7 @@ export const statsDb = {
     unlockedSkillsCount?: number;
     isOnline: boolean;
   }[] {
-    const users = usersDb.getUsers().filter(u => u.role === 'player' && u.isActive !== false);
+    const users = usersDb.getUsers();
     const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
     const clans = getStorageItem<any>(STORAGE_KEYS.CLANS);
