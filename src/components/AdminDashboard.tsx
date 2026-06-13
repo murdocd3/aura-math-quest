@@ -8,6 +8,12 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
+interface ActiveStats {
+  user: User;
+  state: GameState | null;
+  stats: MathStatistic[];
+}
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLogout }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -16,7 +22,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const [gameStatesMap, setGameStatesMap] = useState<Record<string, GameState>>({});
   
   // Active stats state for selected user
-  const [activeStats, setActiveStats] = useState<any>(null);
+  const [activeStats, setActiveStats] = useState<ActiveStats | null>(null);
 
   // Form states for creating/editing
   const [isEditing, setIsEditing] = useState(false);
@@ -66,7 +72,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   };
 
   useEffect(() => {
-    loadUsers();
+    void loadUsers();
   }, []);
 
   // Fetch selected user details asynchronously
@@ -99,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       }
     };
 
-    fetchStats();
+    void fetchStats();
   }, [selectedUserId, users]);
 
   const handleSaveCurriculum = async () => {
@@ -1704,14 +1710,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         </h5>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '25vh', overflowY: 'auto' }}>
                           {(() => {
-                            const weakList = activeStats.stats.filter((s: any) => s.errorCount >= 2 || (s.correctCount + s.errorCount > 0 && (s.correctCount / (s.correctCount + s.errorCount)) < 0.7));
+                            const weakList = activeStats.stats.filter((s: MathStatistic) => s.errorCount >= 2 || (s.correctCount + s.errorCount > 0 && (s.correctCount / (s.correctCount + s.errorCount)) < 0.7));
                             if (weakList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', padding: '10px 0', textAlign: 'center' }}>Nenhuma dificuldade crítica registrada.</div>;
-                            return weakList.map((s: any) => (
+                            return weakList.map((s: MathStatistic) => (
                               <div key={s.questionKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(244, 63, 94, 0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(244, 63, 94, 0.1)' }}>
                                 <span style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '1rem', color: 'var(--neon-pink)' }}>{s.questionKey.replace('x', '×')}</span>
                                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                   <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>({s.errorCount}❌)</span>
-                                  <button type="button" className="cyber-btn" onClick={() => handleForceSrsState(s.questionKey, 'mastered')} style={{ padding: '2px 6px', fontSize: '0.65rem', borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>Forçar Domínio</button>
+                                  <button type="button" className="cyber-btn" onClick={() => void handleForceSrsState(s.questionKey, 'mastered')} style={{ padding: '2px 6px', fontSize: '0.65rem', borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}>Forçar Domínio</button>
                                 </div>
                               </div>
                             ));
@@ -1727,14 +1733,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '25vh', overflowY: 'auto' }}>
                           {(() => {
                             const threshold = activeStats.state?.masteryThreshold !== undefined ? activeStats.state.masteryThreshold : 5;
-                            const masteredList = activeStats.stats.filter((s: any) => s.correctCount >= threshold && s.errorCount === 0);
+                            const masteredList = activeStats.stats.filter((s: MathStatistic) => s.correctCount >= threshold && s.errorCount === 0);
                             if (masteredList.length === 0) return <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', padding: '10px 0', textAlign: 'center' }}>Nenhuma conta dominada ainda.</div>;
-                            return masteredList.map((s: any) => (
+                            return masteredList.map((s: MathStatistic) => (
                               <div key={s.questionKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 255, 204, 0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(0, 255, 204, 0.1)' }}>
                                 <span style={{ fontFamily: 'Share Tech Mono', fontWeight: 'bold', fontSize: '1rem', color: 'var(--neon-cyan)' }}>{s.questionKey.replace('x', '×')}</span>
                                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                   <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>({s.correctCount}✔️)</span>
-                                  <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => handleForceSrsState(s.questionKey, 'weak')} style={{ padding: '2px 6px', fontSize: '0.65rem' }}>Forçar Re-Treino</button>
+                                  <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => { void handleForceSrsState(s.questionKey, 'weak'); }} style={{ padding: '2px 6px', fontSize: '0.65rem' }}>Forçar Re-Treino</button>
                                 </div>
                               </div>
                             ));

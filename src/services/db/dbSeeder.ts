@@ -31,7 +31,8 @@ export function seedDatabase() {
         localStorage.removeItem('amq_timeline');
         localStorage.removeItem('amq_weekly_leaderboard');
       }
-    } catch {
+    } catch (err) {
+      console.error('[dbSeeder] Erro ao analisar usuários armazenados para semeadura:', err);
       needsSeed = true;
     }
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Login } from './components/Login';
 import { seedDatabase, mockDb } from './services/mockDb';
 import { backendService } from './services/backendService';
@@ -63,6 +63,16 @@ function App() {
   const [selectedCampaignStageId, setSelectedCampaignStageId] = useState<number | null>(null);
   const [showLevelUpCelebration, setShowLevelUpCelebration] = useState<number | null>(null);
   const [lastLevel, setLastLevel] = useState<number | null>(null);
+
+  const confettiParticles = useMemo(() => {
+    if (showLevelUpCelebration === null) return [];
+    return Array.from({ length: 25 }).map((_, idx) => ({
+      delay: Math.random() * 3,
+      left: Math.random() * 100,
+      duration: 2 + Math.random() * 2,
+      color: ['var(--neon-yellow)', 'var(--neon-cyan)', 'var(--neon-purple)', 'var(--neon-pink)'][idx % 4],
+    }));
+  }, [showLevelUpCelebration]);
 
   // Global Level Up Detection Effect
   useEffect(() => {
@@ -349,24 +359,21 @@ function App() {
         >
           {/* Confetti simulation (standard CSS elements) */}
           <div style={{ pointerEvents: 'none', position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
-            {Array.from({ length: 25 }).map((_, idx) => {
-              const delay = Math.random() * 3;
-              const left = Math.random() * 100;
-              const color = ['var(--neon-yellow)', 'var(--neon-cyan)', 'var(--neon-purple)', 'var(--neon-pink)'][idx % 4];
+            {confettiParticles.map((particle, idx) => {
               return (
                 <div
                   key={idx}
                   style={{
                     position: 'absolute',
                     top: '-20px',
-                    left: `${left}%`,
+                    left: `${particle.left}%`,
                     width: '10px',
                     height: '10px',
-                    backgroundColor: color,
+                    backgroundColor: particle.color,
                     borderRadius: '20%',
-                    boxShadow: `0 0 6px ${color}`,
-                    animation: `fall ${2 + Math.random() * 2}s linear infinite`,
-                    animationDelay: `${delay}s`,
+                    boxShadow: `0 0 6px ${particle.color}`,
+                    animation: `fall ${particle.duration}s linear infinite`,
+                    animationDelay: `${particle.delay}s`,
                   }}
                 />
               );
