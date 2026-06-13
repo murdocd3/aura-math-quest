@@ -431,56 +431,8 @@ export const petsDb = {
   },
 
   simulateNPCTrades(): void {
-    if (Math.random() > 0.15) return;
-    
-    const trades = getStorageItem<TradeListing>(STORAGE_KEYS.TRADES);
-    const npcs = ['sofia', 'lucas', 'beatriz', 'gabriel'];
-    const npcsIds = ['player-sofia', 'player-lucas', 'player-beatriz', 'player-gabriel'];
-    
-    if (Math.random() < 0.6 && trades.length < 5) {
-      const npcIdx = Math.floor(Math.random() * npcs.length);
-      const npcName = npcs[npcIdx];
-      const npcId = npcsIds[npcIdx];
-      
-      const randomPetType = PET_TYPES[Math.floor(Math.random() * PET_TYPES.length)];
-      const isGemsRequest = Math.random() < 0.5;
-      
-      const newListing: TradeListing = {
-        id: 'trade_npc_' + Math.random().toString(36).substring(2, 9),
-        posterId: npcId,
-        posterUsername: npcName,
-        offeredPetId: null,
-        offeredPetTypeId: randomPetType.id,
-        offeredPetEmoji: randomPetType.emoji,
-        offeredPetName: randomPetType.name,
-        requestedType: isGemsRequest ? 'gems' : 'pet',
-        requestedAmount: isGemsRequest ? Math.floor(Math.random() * 15) + 8 : 0,
-        requestedPetTypeId: isGemsRequest ? null : PET_TYPES[Math.floor(Math.random() * PET_TYPES.length)].id,
-        createdAt: new Date().toISOString()
-      };
-      
-      trades.push(newListing);
-      setStorageItem(STORAGE_KEYS.TRADES, trades);
-    }
-    
-    const playerListingIndex = trades.findIndex(t => t.posterId.startsWith('usr_'));
-    if (playerListingIndex !== -1 && Math.random() < 0.3) {
-      const listing = trades[playerListingIndex];
-      const posterState = questsDb.getGameState(listing.posterId);
-      
-      if (posterState) {
-        if (listing.requestedType === 'gems') {
-          questsDb.updateGameState(listing.posterId, { gems: posterState.gems + listing.requestedAmount });
-        } else {
-          if (listing.requestedPetTypeId) {
-            this.createPet(listing.posterId, listing.requestedPetTypeId);
-          }
-        }
-        
-        const cleanTrades = trades.filter(t => t.id !== listing.id);
-        setStorageItem(STORAGE_KEYS.TRADES, cleanTrades);
-      }
-    }
+    // Disabled to prevent simulated NPC activity
+    return;
   },
 };
 export type { PetType };

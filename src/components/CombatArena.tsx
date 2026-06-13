@@ -453,16 +453,43 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     audioEngine.playHatchRoll();
 
     if (matchmakingTimeoutRef.current) clearTimeout(matchmakingTimeoutRef.current);
-    matchmakingTimeoutRef.current = setTimeout(() => {
+    matchmakingTimeoutRef.current = setTimeout(async () => {
       if (!isMountedRef.current) return;
-      const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.isActive !== false && u.username !== playerUser.username);
-      const randomOpponent = (activePlayers.length > 0 ? activePlayers[Math.floor(Math.random() * activePlayers.length)] : { id: 'player-lucas', username: 'lucas', role: 'player' }) as any;
+      
+      let activePlayers: any[] = [];
+      try {
+        const allUsers = await backendService.getUsers();
+        activePlayers = allUsers.filter(u => u.role === 'player' && u.isActive !== false && u.username !== playerUser.username);
+      } catch (err) {
+        console.error('Error fetching users for matchmaking:', err);
+      }
+
+      const hasPlayers = activePlayers.length > 0;
+      const randomOpponent = hasPlayers 
+        ? activePlayers[Math.floor(Math.random() * activePlayers.length)] 
+        : { id: 'training-dummy', username: 'Treinador Virtual', role: 'player' };
+
       const opponentEmoji = randomOpponent.username === 'sofia' ? '🧪' : randomOpponent.username === 'beatriz' ? '👑' : '🧙‍♂️';
       
+      let opponentLevel = 25;
+      let opponentRebirths = 0;
+
+      if (hasPlayers) {
+        try {
+          const state = await backendService.getGameState(randomOpponent.id);
+          if (state) {
+            opponentLevel = state.auraLevel;
+            opponentRebirths = state.rebirths;
+          }
+        } catch (err) {
+          console.error('Error fetching game state for opponent:', err);
+        }
+      }
+
       setMatchedOpponent({
         username: randomOpponent.username,
-        level: mockDb.getGameState(randomOpponent.id || 'player-lucas')?.auraLevel || 40,
-        rebirths: mockDb.getGameState(randomOpponent.id || 'player-lucas')?.rebirths || 1,
+        level: opponentLevel,
+        rebirths: opponentRebirths,
         emoji: opponentEmoji,
       });
 
@@ -528,7 +555,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
       monsterEmoji = '👾';
       baseMaxHp = 12;
     } else if (mode === 'pvp') {
-      const opponentName = matchedOpponent?.username || 'lucas';
+      const opponentName = matchedOpponent?.username || 'Treinador Virtual';
       monsterName = `Duelo: ${opponentName}`;
       monsterEmoji = matchedOpponent?.emoji || '🧙‍♂️';
       baseMaxHp = 4;

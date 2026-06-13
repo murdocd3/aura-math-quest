@@ -181,7 +181,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [selectedColor, setSelectedColor] = useState(gameState.auraColor || '#00ffcc');
   const [activeHubTab, setActiveHubTab] = useState<'maps' | 'campaign' | 'rpg' | 'clans' | 'gincana' | 'shop' | 'aurapass'>('maps');
-  const [serverNotification, setServerNotification] = useState<string | null>(null);
+
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
 
   useEffect(() => {
@@ -283,59 +283,6 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return () => clearInterval(interval);
   }, [playerUser.id]);
 
-  // Dynamic Server Simulation interval
-  useEffect(() => {
-    const simulatorInterval = setInterval(() => {
-      const fictitiousUserIds = ['player-lucas', 'player-sofia', 'player-gabriel', 'player-beatriz'];
-      const activePlayers = mockDb.getUsers().filter(u => u.role === 'player' && u.isActive !== false && u.id !== playerUser.id && !fictitiousUserIds.includes(u.id));
-      if (activePlayers.length === 0) return;
-
-      const randomPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];
-      const pState = mockDb.getGameState(randomPlayer.id);
-      if (!pState) return;
-
-      const roll = Math.random();
-      let alertMsg = '';
-
-      if (roll < 0.4) {
-        const nextLvl = pState.auraLevel + 1;
-        mockDb.updateGameState(randomPlayer.id, { auraLevel: nextLvl });
-        alertMsg = `O aluno ${randomPlayer.username} subiu para o Nível de Aura ${nextLvl}!`;
-      } else if (roll < 0.6) {
-        const nextRebirth = pState.rebirths + 1;
-        mockDb.updateGameState(randomPlayer.id, { auraLevel: 1, rebirths: nextRebirth });
-        alertMsg = `🌌 ${randomPlayer.username} realizou um REBIRTH e alcançou ★ ${nextRebirth}!`;
-      } else if (roll < 0.8) {
-        if (Math.random() < 0.5) {
-          const rarities = ['Raro 🌟', 'Épico 💎', 'Lendário 👑'];
-          const randomRarity = rarities[Math.floor(Math.random() * rarities.length)];
-          alertMsg = `🎉 ${randomPlayer.username} chocou um Pet ${randomRarity} no Gacha!`;
-        } else {
-          const pets = mockDb.getPets(randomPlayer.id);
-          if (pets.length > 0) {
-            const randPet = pets[Math.floor(Math.random() * pets.length)];
-            mockDb.equipPet(randomPlayer.id, randPet.id);
-            alertMsg = `${randomPlayer.username} equipou o Pet: ${randPet.nickname}!`;
-          }
-        }
-      } else {
-        const nextGems = pState.gems + 5;
-        mockDb.updateGameState(randomPlayer.id, { gems: nextGems });
-        alertMsg = `💰 ${randomPlayer.username} ganhou 💎 5 Gemas em combate!`;
-      }
-
-      if (alertMsg) {
-        audioEngine.playHatchRoll();
-        setServerNotification(alertMsg);
-        refreshLeaderboard();
-        setTimeout(() => {
-          setServerNotification(null);
-        }, 4000);
-      }
-    }, 15000); // Ticks every 15 seconds
-
-    return () => clearInterval(simulatorInterval);
-  }, [playerUser.id]);
 
 
 
@@ -527,32 +474,6 @@ export const HubWorld: React.FC<HubWorldProps> = ({
         </div>
       </div>
 
-      {/* Floating Server Simulation Notification Alert */}
-      {serverNotification && (
-        <div
-          className="cyber-card border-glow-purple"
-          style={{
-            position: 'fixed',
-            top: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            padding: '12px 24px',
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: '2px solid var(--neon-purple)',
-            boxShadow: '0 0 20px rgba(168, 85, 247, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            animation: 'float 2s ease-in-out infinite alternate',
-          }}
-        >
-          <span style={{ fontSize: '1.3rem' }}>📣</span>
-          <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>
-            {serverNotification}
-          </span>
-        </div>
-      )}
 
       {/* Main Content Layout: Profile & Map Select (Left) vs Leaderboard (Right) */}
       <div className="main-layout-grid">

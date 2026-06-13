@@ -807,12 +807,6 @@ const WEEKLY_CHALLENGE_QUESTION: OlympicQuestion = {
   explanation: "Esse é um super desafio dos deuses! 🏛️⚡\nVamos analisar as pistas sabendo que apenas um portão fala a verdade:\n1) Se o portão Alfa falasse a verdade (\"Beta é seguro\"), o portão Beta estaria mentindo ao dizer \"Gama está quebrado\" (então Gama estaria seguro). Mas só um portão pode ser seguro! Isso cria uma contradição, então o Alfa está mentindo (o que significa que Beta NÃO é seguro).\n2) Se o portão Gama falasse a verdade (\"Eu sou o caminho real\"), as outras seriam mentiras. Mas se Gama é a verdade, o portão Alfa mentir faz sentido, e o portão Beta mentir (\"Gama está quebrado\" seria mentira, então Gama estaria seguro) também faz sentido! Nesse caso, Gama seria o portão seguro e verdadeiro.\n3) Mas se analisarmos todas as pistas detalhadamente, descobrimos que quando o portão Beta é o único seguro, o portão Beta é o único que diz a verdade, e todas as outras frases são mentiras sem contradições! Portanto, o portão seguro é o Beta!"
 };
 
-const WEEKLY_LEADERBOARD = [
-  { username: "sofia", time: "14.2s" },
-  { username: "lucas", time: "18.5s" },
-  { username: "gabriel", time: "24.1s" },
-  { username: "beatriz", time: "29.8s" },
-];
 
 const getMiniTutorialText = (category: string) => {
   switch (category) {
@@ -866,6 +860,10 @@ export const Olympics: React.FC<OlympicsProps> = ({
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [isReTrainingMode, setIsReTrainingMode] = useState<boolean>(false);
   const [isWeeklyMode, setIsWeeklyMode] = useState<boolean>(false);
+  const [weeklyLeaderboard, setWeeklyLeaderboard] = useState<Array<{ username: string; time: string }>>(() => {
+    const saved = localStorage.getItem(`amq_weekly_leaderboard`);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showMiniTutorial, setShowMiniTutorial] = useState<boolean>(false);
   const [showExtraExercise, setShowExtraExercise] = useState<boolean>(false);
   const [extraQuestion, setExtraQuestion] = useState<{ question: string; options: string[]; answer: string; selected: string | null; submitted: boolean; isCorrect: boolean } | null>(null);
@@ -977,6 +975,20 @@ export const Olympics: React.FC<OlympicsProps> = ({
 
     // Log answer to math statistics and timeline
     mockDb.recordMathAnswer(gameState.userId, 'Olimpíadas L' + activeQuestion.level, correct, Math.round(timeTakenSec * 1000));
+    
+    if (correct && isWeeklyMode) {
+      const currentUserProfile = mockDb.getUsers().find(u => u.id === gameState.userId);
+      const currentUsername = currentUserProfile ? currentUserProfile.username : 'Você';
+      const userTimeStr = timeTakenSec.toFixed(1) + 's';
+      
+      setWeeklyLeaderboard(prev => {
+        const entry = { username: currentUsername, time: userTimeStr };
+        const filtered = prev.filter(x => x.username !== entry.username);
+        const next = [...filtered, entry].sort((a, b) => parseFloat(a.time) - parseFloat(b.time));
+        localStorage.setItem(`amq_weekly_leaderboard`, JSON.stringify(next));
+        return next;
+      });
+    }
     
     if (correct) {
       audioEngine.playHatchSuccess();
@@ -1695,12 +1707,18 @@ export const Olympics: React.FC<OlympicsProps> = ({
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
-                {WEEKLY_LEADERBOARD.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px', fontSize: '0.9rem' }}>
-                    <span>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🏃'} <strong>{item.username}</strong></span>
-                    <span style={{ color: 'var(--neon-cyan)', fontFamily: 'Share Tech Mono' }}>{item.time}</span>
+                {weeklyLeaderboard.length === 0 ? (
+                  <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '10px 0' }}>
+                    Nenhum envio para o desafio desta semana!
                   </div>
-                ))}
+                ) : (
+                  weeklyLeaderboard.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px', fontSize: '0.9rem' }}>
+                      <span>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🏃'} <strong>{item.username}</strong></span>
+                      <span style={{ color: 'var(--neon-cyan)', fontFamily: 'Share Tech Mono' }}>{item.time}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div style={{ marginTop: '16px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
