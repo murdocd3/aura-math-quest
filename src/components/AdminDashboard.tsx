@@ -931,7 +931,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         resetForm();
         await loadUsers();
       } else {
-        setFormError('Erro ao atualizar usuário. Nome de usuário já existe.');
+        setFormError('Erro ao atualizar usuário. Verifique se o nome de usuário já existe ou se há restrições de RLS/banco no Supabase.');
         audioEngine.playError();
       }
     } else {
