@@ -176,7 +176,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     if (!selectedUserId || !customFactKey.trim()) return;
     const cleanKey = customFactKey.replace(/\s+/g, '').toLowerCase(); // Remove spaces
     // Verify format (e.g. 7x8 or 5+5)
-    if (!/^\d+[\+\-x\/]\d+$/.test(cleanKey)) {
+    if (!/^\d+[[+\-x/]]\d+$/.test(cleanKey)) {
       alert('Formato inválido. Use formatos como: 7x8, 5+5, 12-4, 15/3');
       return;
     }
@@ -200,7 +200,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     const groupedByDate: Record<string, { total: number; correct: number; timeSum: number; categories: Record<string, { total: number; correct: number }> }> = {};
     
     timeline.forEach(t => {
-      let dateStr = '';
+      let dateStr: string;
       try {
         dateStr = new Date(t.timestamp).toISOString().substring(0, 10);
       } catch (e) {
@@ -331,7 +331,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         
         if (!isTargetOp) return;
 
-        const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
+        const parts = s.questionKey.split(/[+\-*x/÷]/);
         if (parts.length >= 2) {
           const n1 = parseInt(parts[0]);
           const n2 = parseInt(parts[1]);
@@ -357,7 +357,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
 
           let cellStyle = 'background-color: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb;';
           let tooltipText = `Sem dados para ${row} ${opSymbol} ${col}`;
-          let cellValue = '';
+          let cellValue: string;
 
           if (selectedOp === 'addition') {
             cellValue = (row + col).toString();
@@ -433,8 +433,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     const cognitiveHeatmapHtml = generateCognitiveHeatmapHtml(mathStats, activeStats.state?.selectedOperation || 'multiplication');
 
     // Generate timeline rows and visualization
-    let timelineHtml = '';
-    let progressionAnalysis = '';
+    let timelineHtml: string;
+    let progressionAnalysis: string;
     
     if (datesSorted.length > 0) {
       timelineHtml = datesSorted.slice(-7).map(date => {
@@ -448,17 +448,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         
         return `
           <div style="margin-bottom: 12px; border-bottom: 1px dashed #e5e7eb; padding-bottom: 8px;">
-            <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 12px; margin-bottom: 4px;">
-              <span>📅 ${formattedDate}</span>
-              <span style="color: #4b5563; font-weight: 500;">${d.total} resolvidas • Tempo Médio: ${avgTimeSec}s</span>
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 11px;">
+              <span>📅 Dia ${formattedDate}</span>
+              <span class="badge ${accuracy >= 80 ? 'success' : accuracy >= 50 ? 'warning' : 'danger'}">${accuracy}% Precisão</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="flex-grow: 1; background-color: #e5e7eb; height: 16px; border-radius: 8px; overflow: hidden; position: relative;">
-                <div style="background: linear-gradient(90deg, #7c3aed, #4f46e5); width: ${accuracy}%; height: 100%; border-radius: 8px;"></div>
-                <span style="position: absolute; width: 100%; text-align: center; left: 0; top: 0; font-size: 9px; color: ${accuracy > 50 ? '#fff' : '#1f2937'}; font-weight: bold; line-height: 16px;">
-                  Precisão: ${accuracy}%
-                </span>
-              </div>
+            <div style="font-size: 10px; color: #4b5563; margin-top: 3px; display: flex; justify-content: space-between;">
+              <span>Respondidas: <strong>${d.total}</strong> (Corretas: ${d.correct})</span>
+              <span>Tempo Médio: <strong>${avgTimeSec}s</strong></span>
             </div>
           </div>
         `;
@@ -472,7 +468,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       const firstTime = firstDay.timeSum / firstDay.total / 1000;
       const lastTime = lastDay.timeSum / lastDay.total / 1000;
 
-      let accuracyTrend = '';
+      let accuracyTrend: string;
       if (lastAccuracy > firstAccuracy) {
         accuracyTrend = `📈 A precisão geral do aluno subiu de <strong>${firstAccuracy}%</strong> para <strong>${lastAccuracy}%</strong> no período analisado, o que indica consolidação gradual dos fatos numéricos.`;
       } else if (lastAccuracy === firstAccuracy) {
@@ -481,7 +477,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         accuracyTrend = `⚠️ Houve uma oscilação na precisão (de ${firstAccuracy}% para ${lastAccuracy}%). Isso é esperado ao introduzir operações de maior complexidade (como tabuadas mais altas).`;
       }
 
-      let speedTrend = '';
+      let speedTrend: string;
       if (lastTime < firstTime) {
         speedTrend = `⚡ O tempo médio de resposta caiu de <strong>${firstTime.toFixed(1)} segundos</strong> para <strong>${lastTime.toFixed(1)} segundos</strong>. Essa aceleração indica que o processo de raciocínio está se tornando automatizado (memória de trabalho liberada).`;
       } else {
@@ -564,7 +560,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       }
     });
 
-    let customizedTip = '';
+    let customizedTip: string;
     if (minAccuracy < 70 && weakestOp !== 'Nenhuma') {
       customizedTip = `Recomendamos dar atenção especial à operação de <strong>${weakestOp}</strong> (precisão de ${minAccuracy}%). O jogo continuará ativando a repetição espaçada (SRS) nessas contas para auxiliar a memorização.`;
     } else {
@@ -1440,7 +1436,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                     </h3>
                     <button
                       className="cyber-btn cyber-btn-cyan"
-                      onClick={() => handlePrintPdf()}
+                      onClick={() => { void handlePrintPdf(); }}
                       style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 800 }}
                     >
                       📄 Exportar Relatório PDF
@@ -1528,9 +1524,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                       <div style={{ flex: 1, minWidth: '200px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Gemas Matemáticas</label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => handleAdjustGems(-10)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>-10 💎</button>
-                          <button type="button" className="cyber-btn cyber-btn-cyan" onClick={() => handleAdjustGems(10)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>+10 💎</button>
-                          <button type="button" className="cyber-btn cyber-btn-cyan" onClick={() => handleAdjustGems(50)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>+50 💎</button>
+                          <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => { void handleAdjustGems(-10); }} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>-10 💎</button>
+                          <button type="button" className="cyber-btn cyber-btn-cyan" onClick={() => { void handleAdjustGems(10); }} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>+10 💎</button>
+                          <button type="button" className="cyber-btn cyber-btn-cyan" onClick={() => { void handleAdjustGems(50); }} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>+50 💎</button>
                         </div>
                       </div>
 
@@ -1553,13 +1549,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                               color: '#fff',
                             }}
                           />
-                          <button type="button" className="cyber-btn" onClick={handleAdjustLevel} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Atualizar Nível</button>
+                          <button type="button" className="cyber-btn" onClick={() => { void handleAdjustLevel(); }} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Atualizar Nível</button>
                         </div>
                       </div>
 
                       {/* Stats Reset */}
                       <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                        <button type="button" className="cyber-btn cyber-btn-pink" onClick={handleResetMathStats} style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                        <button type="button" className="cyber-btn cyber-btn-pink" onClick={() => { void handleResetMathStats(); }} style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 'bold' }}>
                           🗑️ Resetar Estatísticas de Contas
                         </button>
                       </div>
@@ -1648,7 +1644,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.2rem', margin: 0 }}>
                           💡 O limitador de tempo encurta ou estende a contagem na Arena. O limiar de domínio regula quantas vezes o aluno deve acertar uma conta para que ela dê recompensa reduzida. Bloquear operações impede que o aluno as selecione no Hub.
                         </p>
-                        <button type="button" className="cyber-btn cyber-btn-purple" onClick={handleSaveCurriculum} style={{ width: '100%', padding: '10px', marginTop: '12px', fontWeight: 'bold' }}>
+                        <button type="button" className="cyber-btn cyber-btn-purple" onClick={() => { void handleSaveCurriculum(); }} style={{ width: '100%', padding: '10px', marginTop: '12px', fontWeight: 'bold' }}>
                           💾 Aplicar Parâmetros
                         </button>
                       </div>
@@ -1661,7 +1657,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                       <h4 style={{ fontSize: '1.1rem', color: 'var(--neon-yellow)' }}>🔄 Auditoria de Repetição Espaçada (SRS Queue)</h4>
                       
                       {/* Custom override form */}
-                      <form onSubmit={handleAddCustomFactOverride} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <form onSubmit={(e) => { void handleAddCustomFactOverride(e); }} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
                           type="text"
                           value={customFactKey}

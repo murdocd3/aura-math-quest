@@ -282,20 +282,22 @@ export const HubWorld: React.FC<HubWorldProps> = ({
       refreshLeaderboard();
     };
 
-    initHeartbeatAndLoad();
+    void initHeartbeatAndLoad();
     
     // Playtime tracker: Increment play time in database every 30 seconds
-    const interval = setInterval(async () => {
-      const freshState = await backendService.getGameState(playerUser.id);
-      if (freshState) {
-        const nextTime = (freshState.totalPlayTimeSeconds || 0) + 30;
-        const updated = await backendService.updateGameState(playerUser.id, {
-          totalPlayTimeSeconds: nextTime
-        });
-        if (updated) {
-          onStateUpdate(updated);
+    const interval = setInterval(() => {
+      void (async () => {
+        const freshState = await backendService.getGameState(playerUser.id);
+        if (freshState) {
+          const nextTime = (freshState.totalPlayTimeSeconds || 0) + 30;
+          const updated = await backendService.updateGameState(playerUser.id, {
+            totalPlayTimeSeconds: nextTime
+          });
+          if (updated) {
+            onStateUpdate(updated);
+          }
         }
-      }
+      })();
     }, 30000);
 
     return () => { clearInterval(interval); };
@@ -304,7 +306,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   // Periodic Leaderboard Refresh (Every 10 seconds for near real-time updates)
   useEffect(() => {
     const leaderboardInterval = setInterval(() => {
-      refreshLeaderboard();
+      void refreshLeaderboard();
     }, 10000);
     return () => { clearInterval(leaderboardInterval); };
   }, []);

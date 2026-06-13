@@ -283,7 +283,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
                             (s.questionKey.includes('/') || s.questionKey.includes('÷'));
           if (!isMatchOp) return false;
           
-          const parts = s.questionKey.split(/[\+\-\*x\/÷]/);
+          const parts = s.questionKey.split(/[+\-*x/÷]/);
           const n1 = parseInt(parts[0]);
           if (isNaN(n1)) return false;
 
@@ -294,7 +294,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
 
         if (weakSpots.length > 0) {
           const chosen = weakSpots[Math.floor(Math.random() * weakSpots.length)];
-          const parts = chosen.questionKey.split(/[\+\-\*x\/÷]/);
+          const parts = chosen.questionKey.split(/[+\-*x/÷]/);
           num1 = parseInt(parts[0]);
           num2 = parseInt(parts[1]);
           isSrsQuestion = true;
@@ -369,7 +369,7 @@ export const CyberRunner: React.FC<CyberRunnerProps> = ({
       num2 = Math.floor(Math.random() * 8) + 2;
     }
 
-    let answer = 0;
+    let answer: number;
     if (op === 'addition') answer = num1 + num2;
     else if (op === 'subtraction') answer = num1 - num2;
     else if (op === 'division') answer = num1 / num2;

@@ -237,14 +237,23 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (matchmakingTimeoutRef.current) clearTimeout(matchmakingTimeoutRef.current);
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      if (victoryTimeoutRef.current) clearTimeout(victoryTimeoutRef.current);
-      if (defeatTimeoutRef.current) clearTimeout(defeatTimeoutRef.current);
-      if (monsterShakeTimeoutRef.current) clearTimeout(monsterShakeTimeoutRef.current);
-      if (playerShakeTimeoutRef.current) clearTimeout(playerShakeTimeoutRef.current);
-      hitSplatsTimeoutsRef.current.forEach(id => { clearTimeout(id); });
+      const matchTimeout = matchmakingTimeoutRef.current;
+      const feedTimeout = feedbackTimeoutRef.current;
+      const flTimeout = flashTimeoutRef.current;
+      const vicTimeout = victoryTimeoutRef.current;
+      const defTimeout = defeatTimeoutRef.current;
+      const mShakeTimeout = monsterShakeTimeoutRef.current;
+      const pShakeTimeout = playerShakeTimeoutRef.current;
+      const splatTimeouts = [...hitSplatsTimeoutsRef.current];
+
+      if (matchTimeout) clearTimeout(matchTimeout);
+      if (feedTimeout) clearTimeout(feedTimeout);
+      if (flTimeout) clearTimeout(flTimeout);
+      if (vicTimeout) clearTimeout(vicTimeout);
+      if (defTimeout) clearTimeout(defTimeout);
+      if (mShakeTimeout) clearTimeout(mShakeTimeout);
+      if (pShakeTimeout) clearTimeout(pShakeTimeout);
+      splatTimeouts.forEach(id => { clearTimeout(id); });
     };
   }, []);
 
@@ -578,9 +587,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const startBattle = (mode: 'solo' | 'pvp' | 'coop') => {
     setBattleMode(mode);
 
-    let baseMaxHp = 3;
-    let monsterName = '';
-    let monsterEmoji = '';
+    let baseMaxHp: number;
+    let monsterName: string;
+    let monsterEmoji: string;
 
     if (mode === 'coop') {
       monsterName = 'Mega Glitch Titan 👾';
@@ -658,9 +667,9 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
     const cycle = Math.floor((stageId - 1) / 5) + 1;
     const stageIndex = (stageId - 1) % 5;
 
-    let baseMaxHp = 3;
-    let monsterName = '';
-    let monsterEmoji = '';
+    let baseMaxHp: number;
+    let monsterName: string;
+    let monsterEmoji: string;
 
     switch (stageIndex) {
       case 0:
