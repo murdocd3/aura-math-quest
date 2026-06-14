@@ -346,7 +346,7 @@ export const backendService = {
     if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Creating user: ${username} via Supabase Auth (tempClient)...`);
-        const email = `${username.toLowerCase().trim()}@auramathquest.local`;
+        const email = `${username.toLowerCase().trim()}@auramathquest.com`;
 
         // Create a temporary client so it doesn't overwrite/hijack the admin session
         const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -482,13 +482,28 @@ export const backendService = {
     if (isSupabaseEnabled && client) {
       try {
         console.log(`[BackendService] Logging in user: ${username} via Supabase Auth...`);
-        const email = `${username.toLowerCase().trim()}@auramathquest.local`;
+        const email = `${username.toLowerCase().trim()}@auramathquest.com`;
         
-        const { data: authData, error: authError } = await client.auth.signInWithPassword({
+        let signInRes = await client.auth.signInWithPassword({
           email,
           password: passwordPlain
         });
-        if (authError) throw authError;
+
+        // Fallback to legacy .local domain if .com login fails
+        if (signInRes.error) {
+          const legacyEmail = `${username.toLowerCase().trim()}@auramathquest.local`;
+          console.log(`[BackendService] Login with .com failed. Trying legacy .local email: ${legacyEmail}`);
+          const fallbackRes = await client.auth.signInWithPassword({
+            email: legacyEmail,
+            password: passwordPlain
+          });
+          if (!fallbackRes.error) {
+            signInRes = fallbackRes;
+          }
+        }
+
+        if (signInRes.error) throw signInRes.error;
+        const authData = signInRes.data;
 
         if (authData && authData.user) {
           const { data, error } = await client
