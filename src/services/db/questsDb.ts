@@ -46,6 +46,7 @@ const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateR
   if (state.unlockedSkills !== undefined) dbRow.unlocked_skills = state.unlockedSkills;
   if (state.clanId !== undefined) dbRow.clan_id = state.clanId;
   if (state.clanContributions !== undefined) dbRow.clan_contributions = state.clanContributions;
+  if (state.olympicMedals !== undefined) dbRow.olympic_medals = JSON.stringify(state.olympicMedals);
   dbRow.updated_at = new Date().toISOString();
   return dbRow;
 };

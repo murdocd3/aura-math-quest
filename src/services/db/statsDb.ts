@@ -404,8 +404,9 @@ export const statsDb = {
           clanId: null,
           clanContributions: 0,
           totalPlayTimeSeconds: 0,
-          selectedOperation: 'multiplication',
+          selectedOperation: 'multiplication' as const,
           unlockedSkills: [],
+          olympicMedals: {},
           updatedAt: new Date(0).toISOString()
         };
 
@@ -444,6 +445,7 @@ export const statsDb = {
           totalPlayTimeSeconds: state.totalPlayTimeSeconds ?? 0,
           selectedOperation: state.selectedOperation ?? 'multiplication',
           unlockedSkillsCount: (state.unlockedSkills || []).length,
+          olympicMedals: state.olympicMedals || {},
           isOnline: (Date.now() - new Date(state.updatedAt || 0).getTime()) < 180000
         };
       })

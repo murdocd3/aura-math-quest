@@ -321,6 +321,7 @@ export interface SupabaseGameStateRow {
   clan_id?: string | null;
   clan_contributions?: number;
   updated_at?: string;
+  olympic_medals?: Record<string, 'gold' | 'silver' | 'bronze'> | string | any;
 }
 
 export interface SupabasePetRow {

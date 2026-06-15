@@ -160,6 +160,19 @@ const mapDbToGameState = (row: SupabaseGameStateRow): GameState => {
     return [val];
   };
 
+  const parseOlympicMedals = (val: any): Record<string, 'gold' | 'silver' | 'bronze'> => {
+    if (!val) return {};
+    if (typeof val === 'object') return val;
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val) as Record<string, 'gold' | 'silver' | 'bronze'>;
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  };
+
   return {
     userId: row.user_id,
     campaignStage: row.campaign_stage ?? 1,
@@ -189,6 +202,7 @@ const mapDbToGameState = (row: SupabaseGameStateRow): GameState => {
     hasElitePass,
     auraPassXp,
     claimedPassTiers,
+    olympicMedals: parseOlympicMedals(row.olympic_medals),
   };
 };
 
@@ -224,6 +238,7 @@ const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateR
   if (state.unlockedSkills !== undefined) dbRow.unlocked_skills = state.unlockedSkills;
   if (state.clanId !== undefined) dbRow.clan_id = state.clanId;
   if (state.clanContributions !== undefined) dbRow.clan_contributions = state.clanContributions;
+  if (state.olympicMedals !== undefined) dbRow.olympic_medals = JSON.stringify(state.olympicMedals);
   dbRow.updated_at = new Date().toISOString();
   return dbRow;
 };
@@ -1112,6 +1127,7 @@ export const backendService = {
     totalPlayTimeSeconds?: number;
     selectedOperation?: string;
     unlockedSkillsCount?: number;
+    olympicMedals?: Record<string, 'gold' | 'silver' | 'bronze'>;
   }[]> {
     const client = supabase;
     if (isSupabaseEnabled && client) {
@@ -1120,7 +1136,7 @@ export const backendService = {
         // Fetch players, game_states, and pets in parallel
         const [usersRes, statesRes, petsRes, clansRes] = await Promise.all([
           client.from('users').select('id, username, role').returns<SupabaseUserRow[]>(),
-          client.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at').returns<SupabaseGameStateRow[]>(),
+          client.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at, olympic_medals').returns<SupabaseGameStateRow[]>(),
           client.from('pets').select('*').returns<SupabasePetRow[]>(),
           client.from('clans').select('id, name').returns<SupabaseClanRow[]>()
         ]);
@@ -1231,6 +1247,19 @@ export const backendService = {
               totalPlayTimeSeconds: state.total_play_time_seconds ?? 0,
               selectedOperation: state.selected_operation ?? 'multiplication',
               unlockedSkillsCount: parseStringArray(state.unlocked_skills).length,
+              olympicMedals: (() => {
+                const val = state.olympic_medals;
+                if (!val) return {};
+                if (typeof val === 'object') return val as Record<string, 'gold' | 'silver' | 'bronze'>;
+                if (typeof val === 'string') {
+                  try {
+                    return JSON.parse(val) as Record<string, 'gold' | 'silver' | 'bronze'>;
+                  } catch {
+                    return {};
+                  }
+                }
+                return {};
+              })(),
               isOnline
             };
           })
