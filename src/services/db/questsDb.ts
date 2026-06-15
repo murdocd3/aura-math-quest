@@ -1,55 +1,17 @@
 import type { 
   GameState, 
-  Pet,
-  SupabaseGameStateRow
+  Pet
 } from './dbConfig';
 import { 
   STORAGE_KEYS, 
   getStorageItem, 
   setStorageItem, 
   COSMETIC_ITEMS, 
-  isSupabaseEnabled, 
-  supabase,
   SKILL_TREE
 } from './dbConfig';
 import { petsDb } from './petsDb';
 
 
-// Reusable local map helper
-const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateRow> => {
-  const dbRow: Partial<SupabaseGameStateRow> = {};
-  if (state.campaignStage !== undefined) dbRow.campaign_stage = state.campaignStage;
-  if (state.gems !== undefined) dbRow.gems = state.gems;
-  if (state.auraLevel !== undefined) dbRow.aura_level = state.auraLevel;
-  if (state.auraXp !== undefined) dbRow.aura_xp = state.auraXp;
-  if (state.auraColor !== undefined) dbRow.aura_color = state.auraColor;
-  if (state.rebirths !== undefined) dbRow.rebirths = state.rebirths;
-  if (state.currentZone !== undefined) dbRow.current_zone = state.currentZone;
-  if (state.equippedPetId !== undefined) dbRow.equipped_pet_id = state.equippedPetId;
-  if (state.activeAuras !== undefined) dbRow.active_auras = state.activeAuras;
-  if (state.totalPlayTimeSeconds !== undefined) dbRow.total_play_time_seconds = state.totalPlayTimeSeconds;
-  if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
-  
-  // Serialize equippedCosmetics and Aura Pass fields together
-  const equippedJsonObj: Record<string, any> = { ...(state.equippedCosmetics || {}) };
-  if (state.hasElitePass !== undefined) equippedJsonObj.hasElitePass = state.hasElitePass;
-  if (state.auraPassXp !== undefined) equippedJsonObj.auraPassXp = state.auraPassXp;
-  if (state.claimedPassTiers !== undefined) equippedJsonObj.claimedPassTiers = state.claimedPassTiers;
-  dbRow.equipped_cosmetic_id = JSON.stringify(equippedJsonObj);
-  if (state.selectedOperation !== undefined) dbRow.selected_operation = state.selectedOperation;
-  if (state.questWins !== undefined) dbRow.quest_wins = state.questWins;
-  if (state.questCriticals !== undefined) dbRow.quest_criticals = state.questCriticals;
-  if (state.questStreak !== undefined) dbRow.quest_streak = state.questStreak;
-  if (state.claimedQuests !== undefined) dbRow.claimed_quests = state.claimedQuests;
-  if (state.classId !== undefined) dbRow.active_class = state.classId;
-  if (state.skillPoints !== undefined) dbRow.skill_points = state.skillPoints;
-  if (state.unlockedSkills !== undefined) dbRow.unlocked_skills = state.unlockedSkills;
-  if (state.clanId !== undefined) dbRow.clan_id = state.clanId;
-  if (state.clanContributions !== undefined) dbRow.clan_contributions = state.clanContributions;
-  if (state.olympicMedals !== undefined) dbRow.olympic_medals = JSON.stringify(state.olympicMedals);
-  dbRow.updated_at = new Date().toISOString();
-  return dbRow;
-};
 
 export const questsDb = {
   getGameState(userId: string): GameState | null {
@@ -109,26 +71,6 @@ export const questsDb = {
 
     states[index] = updatedState;
     setStorageItem(STORAGE_KEYS.GAME_STATES, states);
-
-    // Sync to Supabase in background
-    const client = supabase;
-    if (isSupabaseEnabled && client) {
-      const finalUpdates: Partial<GameState> = { ...updates };
-      if (updates.auraXp !== undefined) {
-        finalUpdates.auraLevel = updatedState.auraLevel;
-        finalUpdates.auraXp = updatedState.auraXp;
-      }
-      const dbUpdates = mapGameStateToDb(finalUpdates);
-      client.from('game_states')
-        .update(dbUpdates)
-        .eq('user_id', userId)
-        .returns<SupabaseGameStateRow[]>()
-        .then(({ error }) => {
-          if (error) {
-            console.error('[mockDb] Error syncing game_state to Supabase:', error);
-          }
-        });
-    }
 
     return states[index];
   },
