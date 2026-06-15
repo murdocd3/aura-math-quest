@@ -257,7 +257,12 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   const refreshLeaderboard = async () => {
     try {
       const board = await backendService.getLeaderboard();
-      setLeaderboard(board);
+      setLeaderboard(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(board)) {
+          return prev;
+        }
+        return board;
+      });
     } catch (err) {
       console.error('Error refreshing leaderboard:', err);
     }
