@@ -2,8 +2,9 @@ import { useState, memo } from 'react';
 import { CyberSprite } from './CyberSprite';
 import { COSMETIC_ITEMS, getPetEvolutionEmoji } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
+import type { CosmeticItem } from '../services/db/dbConfig';
 
-interface LeaderboardEntry {
+export interface LeaderboardEntry {
   username: string;
   level: number;
   rebirths: number;
@@ -143,7 +144,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername })
 
           const activeCosmeticsList = Object.entries(entry.equippedCosmetics || {})
             .map(([_, itemId]) => COSMETIC_ITEMS.find(c => c.id === itemId))
-            .filter(Boolean);
+            .filter((c): c is CosmeticItem => !!c);
 
           return (
             <div
@@ -395,7 +396,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername })
                     <div style={{ marginTop: '4px', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '8px' }}>
                       <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>🧥 Equipamentos Ativos:</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {activeCosmeticsList.map((item: any) => (
+                        {activeCosmeticsList.map((item: CosmeticItem) => (
                           <span 
                             key={item.id} 
                             style={{ 

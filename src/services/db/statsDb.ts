@@ -3,6 +3,7 @@ import type {
   TimelineEntry, 
   GameState, 
   Pet,
+  Clan,
   SupabaseMathStatisticRow
 } from './dbConfig';
 import { 
@@ -385,7 +386,7 @@ export const statsDb = {
     const users = usersDb.getUsers();
     const states = getStorageItem<GameState>(STORAGE_KEYS.GAME_STATES);
     const pets = getStorageItem<Pet>(STORAGE_KEYS.PETS);
-    const clans = getStorageItem<any>(STORAGE_KEYS.CLANS);
+    const clans = getStorageItem<Clan>(STORAGE_KEYS.CLANS);
 
     return users
       .map(u => {

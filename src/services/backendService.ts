@@ -1198,7 +1198,9 @@ export const backendService = {
                   delete (equippedCosmetics as any).claimedPassTiers;
                   const values = Object.values(equippedCosmetics).filter(v => typeof v === 'string');
                   equippedCosmeticId = values.length > 0 ? values[0] : null;
-                } catch (e) {}
+                } catch (e) {
+                  logger.error('[BackendService.getLeaderboard] Falha ao parsear equipped_cosmetic_id', e);
+                }
               } else {
                 equippedCosmeticId = rawEquipped;
                 const item = COSMETIC_ITEMS.find(c => c.id === rawEquipped);

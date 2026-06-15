@@ -4,6 +4,7 @@ import type { User, GameState } from '../services/mockDb';
 import { backendService } from '../services/backendService';
 import { ParticleCanvas } from './ParticleCanvas';
 import { Leaderboard } from './Leaderboard';
+import type { LeaderboardEntry } from './Leaderboard';
 import { audioEngine } from './AudioEngine';
 import { CyberSprite } from './CyberSprite';
 import { AuraPass } from './AuraPass';
@@ -178,7 +179,7 @@ export const HubWorld: React.FC<HubWorldProps> = ({
   gameState,
   onStateUpdate,
 }) => {
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [selectedColor, setSelectedColor] = useState(gameState.auraColor || '#00ffcc');
   const [activeHubTab, setActiveHubTab] = useState<'maps' | 'campaign' | 'rpg' | 'clans' | 'gincana' | 'shop' | 'aurapass'>('maps');
 
