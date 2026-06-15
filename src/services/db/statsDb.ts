@@ -407,6 +407,7 @@ export const statsDb = {
           selectedOperation: 'multiplication' as const,
           unlockedSkills: [],
           olympicMedals: {},
+          auraXp: 0,
           updatedAt: new Date(0).toISOString()
         };
 
@@ -446,14 +447,15 @@ export const statsDb = {
           selectedOperation: state.selectedOperation ?? 'multiplication',
           unlockedSkillsCount: (state.unlockedSkills || []).length,
           olympicMedals: state.olympicMedals || {},
+          auraXp: state.auraXp,
           isOnline: (Date.now() - new Date(state.updatedAt || 0).getTime()) < 180000
         };
       })
-      .sort((a, b) => {
-        if (b.rebirths !== a.rebirths) {
-          return b.rebirths - a.rebirths;
-        }
-        return b.level - a.level;
+      .sort((a: any, b: any) => {
+        if (b.rebirths !== a.rebirths) return b.rebirths - a.rebirths;
+        if (b.level !== a.level) return b.level - a.level;
+        if ((b.auraXp ?? 0) !== (a.auraXp ?? 0)) return (b.auraXp ?? 0) - (a.auraXp ?? 0);
+        return a.username.localeCompare(b.username);
       });
   },
 };

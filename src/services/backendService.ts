@@ -1128,6 +1128,7 @@ export const backendService = {
     selectedOperation?: string;
     unlockedSkillsCount?: number;
     olympicMedals?: Record<string, 'gold' | 'silver' | 'bronze'>;
+    auraXp?: number;
   }[]> {
     const client = supabase;
     if (isSupabaseEnabled && client) {
@@ -1136,7 +1137,7 @@ export const backendService = {
         // Fetch players, game_states, and pets in parallel
         const [usersRes, statesRes, petsRes, clansRes] = await Promise.all([
           client.from('users').select('id, username, role').returns<SupabaseUserRow[]>(),
-          client.from('game_states').select('user_id, aura_level, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at, olympic_medals').returns<SupabaseGameStateRow[]>(),
+          client.from('game_states').select('user_id, aura_level, aura_xp, rebirths, gems, equipped_pet_id, equipped_cosmetic_id, active_class, aura_color, clan_id, clan_contributions, total_play_time_seconds, selected_operation, unlocked_skills, updated_at, olympic_medals').returns<SupabaseGameStateRow[]>(),
           client.from('pets').select('*').returns<SupabasePetRow[]>(),
           client.from('clans').select('id, name').returns<SupabaseClanRow[]>()
         ]);
@@ -1260,14 +1261,15 @@ export const backendService = {
                 }
                 return {};
               })(),
+              auraXp: state.aura_xp ?? 0,
               isOnline
             };
           })
-          .sort((a: { rebirths: number; level: number }, b: { rebirths: number; level: number }) => {
-            if (b.rebirths !== a.rebirths) {
-              return b.rebirths - a.rebirths;
-            }
-            return b.level - a.level;
+          .sort((a: { rebirths: number; level: number; auraXp?: number; username: string }, b: { rebirths: number; level: number; auraXp?: number; username: string }) => {
+            if (b.rebirths !== a.rebirths) return b.rebirths - a.rebirths;
+            if (b.level !== a.level) return b.level - a.level;
+            if ((b.auraXp ?? 0) !== (a.auraXp ?? 0)) return (b.auraXp ?? 0) - (a.auraXp ?? 0);
+            return a.username.localeCompare(b.username);
           });
       } catch (err) {
         console.error('[BackendService] Supabase error in getLeaderboard:', err);
