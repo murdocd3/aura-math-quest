@@ -303,12 +303,30 @@ export const HubWorld: React.FC<HubWorldProps> = ({
     return () => { clearInterval(interval); };
   }, [playerUser.id]);
 
-  // Periodic Leaderboard Refresh (Every 10 seconds for near real-time updates)
+  // Periodic Leaderboard Refresh (Optimized with visibility check and 45s interval)
   useEffect(() => {
     const leaderboardInterval = setInterval(() => {
-      void refreshLeaderboard();
-    }, 10000);
-    return () => { clearInterval(leaderboardInterval); };
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void refreshLeaderboard();
+      }
+    }, 45000);
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void refreshLeaderboard();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      clearInterval(leaderboardInterval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
   }, []);
 
 
