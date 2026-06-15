@@ -29,7 +29,13 @@ const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateR
   if (state.activeAuras !== undefined) dbRow.active_auras = state.activeAuras;
   if (state.totalPlayTimeSeconds !== undefined) dbRow.total_play_time_seconds = state.totalPlayTimeSeconds;
   if (state.purchasedCosmetics !== undefined) dbRow.purchased_cosmetics = state.purchasedCosmetics;
-  if (state.equippedCosmeticId !== undefined) dbRow.equipped_cosmetic_id = state.equippedCosmeticId;
+  
+  // Serialize equippedCosmetics and Aura Pass fields together
+  const equippedJsonObj: Record<string, any> = { ...(state.equippedCosmetics || {}) };
+  if (state.hasElitePass !== undefined) equippedJsonObj.hasElitePass = state.hasElitePass;
+  if (state.auraPassXp !== undefined) equippedJsonObj.auraPassXp = state.auraPassXp;
+  if (state.claimedPassTiers !== undefined) equippedJsonObj.claimedPassTiers = state.claimedPassTiers;
+  dbRow.equipped_cosmetic_id = JSON.stringify(equippedJsonObj);
   if (state.selectedOperation !== undefined) dbRow.selected_operation = state.selectedOperation;
   if (state.questWins !== undefined) dbRow.quest_wins = state.questWins;
   if (state.questCriticals !== undefined) dbRow.quest_criticals = state.questCriticals;

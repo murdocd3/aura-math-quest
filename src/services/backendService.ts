@@ -133,8 +133,8 @@ const mapDbToGameState = (row: SupabaseGameStateRow): GameState => {
         delete equippedCosmetics.auraPassXp;
         delete equippedCosmetics.claimedPassTiers;
         
-        const values = Object.values(equippedCosmetics);
-        equippedCosmeticId = values.length > 0 ? values[0] : null;
+        const values = Object.values(equippedCosmetics).filter(v => typeof v === 'string');
+        equippedCosmeticId = values.length > 0 ? (values[0] as string) : null;
       } catch (e) {
         console.error('Failed to parse equippedCosmetics JSON:', e);
       }
@@ -1176,7 +1176,10 @@ export const backendService = {
               if (rawEquipped.startsWith('{')) {
                 try {
                   equippedCosmetics = JSON.parse(rawEquipped) as Record<string, string>;
-                  const values = Object.values(equippedCosmetics);
+                  delete (equippedCosmetics as any).hasElitePass;
+                  delete (equippedCosmetics as any).auraPassXp;
+                  delete (equippedCosmetics as any).claimedPassTiers;
+                  const values = Object.values(equippedCosmetics).filter(v => typeof v === 'string');
                   equippedCosmeticId = values.length > 0 ? values[0] : null;
                 } catch (e) {}
               } else {
