@@ -437,13 +437,7 @@ export const Leaderboard = memo<LeaderboardProps>(({ entries, currentUsername })
                               else if (btn.sound === 'hatch_success') audioEngine.playHatchSuccess();
                               else audioEngine.playHatchRoll();
                               
-                              setToastMessage(`Enviado para ${entry.username}: "${btn.text}"!`);
-                              
-                              // Trigger automatic simulation reply from AI in ranking after 2 seconds
-                              setTimeout(() => {
-                                audioEngine.playHatchSuccess();
-                                setToastMessage(`[De ${entry.username}]: Obrigado! Boa sorte nos estudos! 🍀`);
-                              }, 2500);
+                              setToastMessage(`Você enviou uma reação para ${entry.username}! 🎉`);
                             }}
                             style={{
                               padding: '4px 8px',
