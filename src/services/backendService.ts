@@ -461,6 +461,7 @@ export const backendService = {
         if (updates.username !== undefined) dbUpdates.username = updates.username;
         if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
         if (updates.role !== undefined) dbUpdates.role = updates.role;
+        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
         const { error } = await client.from('users').update(dbUpdates).eq('id', userId).returns<SupabaseUserRow[]>();
         if (error) throw error;
