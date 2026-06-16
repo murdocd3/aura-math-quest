@@ -1007,6 +1007,19 @@ export const backendService = {
 
   async forceMathStatsState(userId: string, questionKey: string, targetState: 'mastered' | 'weak'): Promise<void> {
     mockDb.forceMathStatsState(userId, questionKey, targetState);
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const patch = targetState === 'mastered'
+          ? { user_id: userId, question_key: questionKey, correct_count: 10, error_count: 0 }
+          : { user_id: userId, question_key: questionKey, correct_count: 0, error_count: 5 };
+        const { error } = await supabase
+          .from('math_statistics')
+          .upsert(patch, { onConflict: 'user_id,question_key' });
+        if (error) throw error;
+      } catch (err) {
+        console.error('[BackendService] Supabase error in forceMathStatsState:', err);
+      }
+    }
   },
 
   async recordOlympicMedal(userId: string, category: string, medal: 'gold' | 'silver' | 'bronze'): Promise<GameState | null> {
@@ -1015,6 +1028,14 @@ export const backendService = {
 
   async resetMathStats(userId: string): Promise<void> {
     mockDb.resetMathStats(userId);
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { error } = await supabase.from('math_statistics').delete().eq('user_id', userId);
+        if (error) throw error;
+      } catch (err) {
+        console.error('[BackendService] Supabase error in resetMathStats:', err);
+      }
+    }
   },
 
   getMathProgress(userId: string, op: string): {
