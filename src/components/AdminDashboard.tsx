@@ -176,8 +176,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     if (!selectedUserId || !customFactKey.trim()) return;
     const cleanKey = customFactKey.replace(/\s+/g, '').toLowerCase(); // Remove spaces
     // Verify format (e.g. 7x8 or 5+5)
-    if (!/^\d+[[+\-x/]]\d+$/.test(cleanKey)) {
-      alert('Formato inválido. Use formatos como: 7x8, 5+5, 12-4, 15/3');
+    if (!/^\d+[+\-x/÷]\d+$/.test(cleanKey)) {
+      alert('Formato inválido. Use formatos como: 7x8, 5+5, 12-4, 15/3, 20÷4');
       return;
     }
     await backendService.forceMathStatsState(selectedUserId, cleanKey, customFactState);
