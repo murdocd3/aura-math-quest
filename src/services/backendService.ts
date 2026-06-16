@@ -996,6 +996,35 @@ export const backendService = {
     return mockDb.getMathStats(userId);
   },
 
+  async getAllMathStats(playerIds: string[]): Promise<MathStatistic[]> {
+    const client = supabase;
+    if (isSupabaseEnabled && client) {
+      try {
+        console.log(`[BackendService] Fetching all math stats for ${playerIds.length} users from Supabase...`);
+        const { data, error } = await client
+          .from('math_statistics')
+          .select('*')
+          .in('user_id', playerIds)
+          .returns<SupabaseMathStatisticRow[]>();
+        if (error) throw error;
+        return (data || []).map(s => ({
+          userId: s.user_id,
+          questionKey: s.question_key,
+          correctCount: s.correct_count ?? 0,
+          errorCount: s.incorrect_count ?? 0,
+          averageTimeMs: s.total_time_taken_ms ?? 0
+        }));
+      } catch (err) {
+        console.error('[BackendService] Supabase error in getAllMathStats:', err);
+      }
+    }
+    const allStats: MathStatistic[] = [];
+    playerIds.forEach(id => {
+      allStats.push(...mockDb.getMathStats(id));
+    });
+    return allStats;
+  },
+
   async recordMathAnswer(userId: string, questionKey: string, isCorrect: boolean, timeTakenMs: number): Promise<void> {
     const client = supabase;
     if (isSupabaseEnabled && client) {

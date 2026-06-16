@@ -44,6 +44,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const [levelAdjustment, setLevelAdjustment] = useState<string>('1');
   const [customFactKey, setCustomFactKey] = useState('');
   const [customFactState, setCustomFactState] = useState<'mastered' | 'weak'>('weak');
+  const [classMathStats, setClassMathStats] = useState<MathStatistic[]>([]);
 
   const loadUsers = async () => {
     const allUsers = await backendService.getUsers();
@@ -59,6 +60,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       }
     }
     setGameStatesMap(statesMap);
+
+    const playerIds = playerUsers.map(p => p.id);
+    if (playerIds.length > 0) {
+      const allStats = await backendService.getAllMathStats(playerIds);
+      setClassMathStats(allStats);
+    } else {
+      setClassMathStats([]);
+    }
 
     if (allUsers.length > 0 && !selectedUserId) {
       // Select the first player by default for analytics
@@ -1301,8 +1310,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       )}
 
       {activeTab === 'analytics' && (() => {
-        const raw = localStorage.getItem('amq_stats');
-        const parsed = raw ? JSON.parse(raw) : [];
         const players = users.filter(u => u.role === 'player');
         const playerIds = players.map(p => p.id);
 
@@ -1316,7 +1323,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
           avgLevel = Math.round(totalLevel / playerIds.length);
           totalGems = playerIds.reduce((sum, id) => sum + (gameStatesMap[id]?.gems || 0), 0);
 
-          const playerStats = parsed.filter((s: any) => playerIds.includes(s.userId));
+          const playerStats = classMathStats;
           const totalCorrect = playerStats.reduce((sum: number, s: any) => sum + s.correctCount, 0);
           const totalError = playerStats.reduce((sum: number, s: any) => sum + s.errorCount, 0);
           overallAccuracy = (totalCorrect + totalError) > 0 
