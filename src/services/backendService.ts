@@ -492,7 +492,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Updating user: ${userId} in Supabase...`, updates);
+        logger.info(`[BackendService] Updating user: ${userId} in Supabase...`);
         const dbUpdates: any = {};
         if (updates.username !== undefined) dbUpdates.username = updates.username;
         if (updates.passwordHash !== undefined) dbUpdates.password = updates.passwordHash;
@@ -515,7 +515,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Deleting user: ${userId} in Supabase...`);
+        logger.info(`[BackendService] Deleting user: ${userId} in Supabase...`);
         const { error } = await client.from('users').delete().eq('id', userId).returns<SupabaseUserRow[]>();
         if (error) throw error;
         mockDb.deleteUser(userId);
@@ -568,18 +568,26 @@ export const backendService = {
           if (data && data.length > 0) {
             const u = data[0];
             
+            if (u.is_active === false) {
+              await client.auth.signOut();
+              throw new Error('Esta conta está inativa. Entre em contato com o administrador.');
+            }
+            
             const loggedInUser: User = {
               id: u.id,
               username: u.username,
               role: u.role,
               passwordHash: 'secured',
               createdAt: new Date().toISOString(),
-              isActive: true
+              isActive: u.is_active ?? true
             };
             
             // Sync locally to mockDb cache for offline/visual operations
-            mockDb.createUser(u.username, passwordPlain, u.role, true, u.id);
+            mockDb.createUser(u.username, passwordPlain, u.role, u.is_active ?? true, u.id);
             return loggedInUser;
+          } else {
+            await client.auth.signOut();
+            throw new Error('Esta conta foi excluída ou não possui perfil.');
           }
         }
         return null;

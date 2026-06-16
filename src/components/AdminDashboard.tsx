@@ -50,15 +50,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     const allUsers = await backendService.getUsers();
     setUsers(allUsers);
     
-    // Load game states for player list sidebars
+    // Load game states for player list sidebars in parallel
     const playerUsers = allUsers.filter(u => u.role === 'player');
     const statesMap: Record<string, GameState> = {};
-    for (const player of playerUsers) {
-      const state = await backendService.getGameState(player.id);
-      if (state) {
-        statesMap[player.id] = state;
+    const states = await Promise.all(playerUsers.map(p => backendService.getGameState(p.id)));
+    playerUsers.forEach((p, i) => {
+      if (states[i]) {
+        statesMap[p.id] = states[i]!;
       }
-    }
+    });
     setGameStatesMap(statesMap);
 
     const playerIds = playerUsers.map(p => p.id);
@@ -175,9 +175,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
 
   const handleForceSrsState = async (questionKey: string, targetState: 'mastered' | 'weak') => {
     if (!selectedUserId) return;
-    await backendService.forceMathStatsState(selectedUserId, questionKey, targetState);
-    audioEngine.playCorrect();
-    await loadUsers();
+    const actionText = targetState === 'mastered' ? 'como DOMINADO (mastered)' : 'para RE-TREINO (fraco)';
+    if (window.confirm(`Tem certeza de que deseja forçar o fato "${questionKey}" ${actionText} para este aluno?`)) {
+      await backendService.forceMathStatsState(selectedUserId, questionKey, targetState);
+      audioEngine.playCorrect();
+      await loadUsers();
+    }
   };
 
   const handleAddCustomFactOverride = async (e: React.FormEvent) => {
@@ -933,6 +936,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         username: usernameInput,
         passwordHash: passwordInput || undefined,
         isActive: isActiveInput,
+        role: roleInput,
       });
 
       if (success) {
@@ -1245,26 +1249,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                 />
               </div>
 
-              {!isEditing && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem' }}>Cargo</label>
-                  <select
-                    value={roleInput}
-                    onChange={(e) => { setRoleInput(e.target.value as 'admin' | 'player'); }}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      backgroundColor: 'rgba(15,23,42,0.8)',
-                      color: '#fff',
-                    }}
-                  >
-                    <option value="player">Jogador (Aluno)</option>
-                    <option value="admin">Administrador (Professor/Responsável)</option>
-                  </select>
-                </div>
-              )}
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem' }}>Cargo</label>
+                <select
+                  value={roleInput}
+                  onChange={(e) => { setRoleInput(e.target.value as 'admin' | 'player'); }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    backgroundColor: 'rgba(15,23,42,0.8)',
+                    color: '#fff',
+                  }}
+                >
+                  <option value="player">Jogador (Aluno)</option>
+                  <option value="admin">Administrador (Professor/Responsável)</option>
+                </select>
+              </div>
 
               <div style={{ margin: '8px 0' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>
