@@ -55,6 +55,10 @@ export interface GameState {
   masteryThreshold?: number;
   lockedOperations?: string[];
   olympicMedals?: Record<string, 'gold' | 'silver' | 'bronze'>;
+  olympicScores?: Record<string, number>;
+  olympicWrongCount?: number;
+  olympicHistory?: Array<{ level: number; correct: boolean; timestamp: string }>;
+  equippedRunnerBoard?: string;
 }
 
 export interface Skill {
@@ -322,6 +326,9 @@ export interface SupabaseGameStateRow {
   clan_contributions?: number;
   updated_at?: string;
   olympic_medals?: Record<string, 'gold' | 'silver' | 'bronze'> | string | any;
+  olympic_scores?: Record<string, number> | string | any;
+  olympic_wrong_count?: number;
+  olympic_history?: any[] | string | any;
 }
 
 export interface SupabasePetRow {

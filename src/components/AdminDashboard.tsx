@@ -568,29 +568,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     }
 
     // --- NEW SECTIONS DATA ---
-    // Retrieve Olympic statistics
-    const rawScores = localStorage.getItem(`amq_olympic_scores_${selectedUserId}`);
-    const olympicScores: Record<string, number> = rawScores ? JSON.parse(rawScores) : {
-      'Lógica Matemática': 20,
-      'Reconhecimento de Padrões': 15,
-      'Resolução de Problemas': 10,
-      'Cálculo Mental': 30,
-      'Atenção aos Detalhes': 25,
-      'Geometria Visual': 15,
-      'Pensamento Estratégico': 10,
-      'Persistência': 15,
-      'Criatividade Matemática': 20,
-      'Velocidade de Resolução': 30
-    };
+    // Retrieve Olympic statistics and equipped runner board from game state
+    const playerState = await backendService.getGameState(selectedUserId);
+    const olympicScores: Record<string, number> = (playerState?.olympicScores && Object.keys(playerState.olympicScores).length > 0)
+      ? playerState.olympicScores
+      : {
+          'Lógica Matemática': 20,
+          'Reconhecimento de Padrões': 15,
+          'Resolução de Problemas': 10,
+          'Cálculo Mental': 30,
+          'Atenção aos Detalhes': 25,
+          'Geometria Visual': 15,
+          'Pensamento Estratégico': 10,
+          'Persistência': 15,
+          'Criatividade Matemática': 20,
+          'Velocidade de Resolução': 30
+        };
 
-    const rawWrong = localStorage.getItem(`amq_olympics_wrong_questions_${selectedUserId}`);
-    const olympicWrongCount = rawWrong ? JSON.parse(rawWrong).length : 0;
-
-    const rawHistory = localStorage.getItem(`amq_olympic_history_${selectedUserId}`);
-    const olympicHistory: Array<{ level: number; correct: boolean; timestamp: string }> = rawHistory ? JSON.parse(rawHistory) : [];
+    const olympicWrongCount = playerState?.olympicWrongCount ?? 0;
+    const olympicHistory = playerState?.olympicHistory ?? [];
 
     // Cyber Runner vehicles mapping
-    const runnerBoard = localStorage.getItem(`amq_runner_equipped_board_${selectedUserId}`) || 'light_skate';
+    const runnerBoard = playerState?.equippedRunnerBoard ?? 'light_skate';
     const boardNames: Record<string, string> = {
       'light_skate': '🛹 Skate de Luz (Básico)',
       'tron_bike': '🏍️ Moto Tron',

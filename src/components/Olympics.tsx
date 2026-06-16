@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { audioEngine } from './AudioEngine';
 import { mockDb } from '../services/mockDb';
 import type { GameState } from '../services/mockDb';
+import { backendService } from '../services/backendService';
 
 interface OlympicsProps {
   gameState: GameState;
@@ -831,6 +832,7 @@ const saveWrongQuestion = (userId: string, q: OlympicQuestion) => {
   if (!list.some(existing => existing.question === q.question)) {
     list.push(q);
     localStorage.setItem(`amq_olympics_wrong_questions_${userId}`, JSON.stringify(list));
+    backendService.updateGameState(userId, { olympicWrongCount: list.length });
   }
 };
 
@@ -838,6 +840,7 @@ const removeWrongQuestion = (userId: string, questionText: string) => {
   const list = getWrongQuestions(userId);
   const updated = list.filter(q => q.question !== questionText);
   localStorage.setItem(`amq_olympics_wrong_questions_${userId}`, JSON.stringify(updated));
+  backendService.updateGameState(userId, { olympicWrongCount: updated.length });
 };
 
 export const Olympics: React.FC<OlympicsProps> = ({
@@ -872,6 +875,9 @@ export const Olympics: React.FC<OlympicsProps> = ({
   
   // Dynamic Score Tracking state (0-100 scale for each of the 10 skills)
   const [scores, setScores] = useState<Record<string, number>>(() => {
+    if (gameState.olympicScores && Object.keys(gameState.olympicScores).length > 0) {
+      return gameState.olympicScores;
+    }
     const saved = localStorage.getItem(`amq_olympic_scores_${gameState.userId}`);
     return saved ? JSON.parse(saved) : {
       'Lógica Matemática': 20,
@@ -891,16 +897,25 @@ export const Olympics: React.FC<OlympicsProps> = ({
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [streakCount, setStreakCount] = useState<number>(0);
   const [history, setHistory] = useState<Array<{ level: number; correct: boolean; timestamp: string }>>(() => {
+    if (gameState.olympicHistory && gameState.olympicHistory.length > 0) {
+      return gameState.olympicHistory;
+    }
     const saved = localStorage.getItem(`amq_olympic_history_${gameState.userId}`);
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
     localStorage.setItem(`amq_olympic_scores_${gameState.userId}`, JSON.stringify(scores));
+    backendService.updateGameState(gameState.userId, { olympicScores: scores }).then(updated => {
+      if (updated) onStateUpdate(updated);
+    });
   }, [scores, gameState.userId]);
 
   useEffect(() => {
     localStorage.setItem(`amq_olympic_history_${gameState.userId}`, JSON.stringify(history));
+    backendService.updateGameState(gameState.userId, { olympicHistory: history }).then(updated => {
+      if (updated) onStateUpdate(updated);
+    });
   }, [history, gameState.userId]);
 
   const [shuffledQuestions] = useState<OlympicQuestion[]>(() =>
@@ -1081,16 +1096,15 @@ export const Olympics: React.FC<OlympicsProps> = ({
         boundary = getXpNeeded(newLevel);
       }
 
-      mockDb.updateGameState(gameState.userId, {
+      backendService.updateGameState(gameState.userId, {
         auraLevel: newLevel,
         auraXp: newXp,
         gems: gameState.gems + 2,
+      }).then(updated => {
+        if (updated) {
+          onStateUpdate(updated);
+        }
       });
-
-      const updated = mockDb.getGameState(gameState.userId);
-      if (updated) {
-        onStateUpdate(updated);
-      }
     }
 
     if (isReTrainingMode) {

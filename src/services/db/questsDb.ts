@@ -34,6 +34,11 @@ export const questsDb = {
     }
     
     if (state.olympicMedals === undefined) state.olympicMedals = {};
+    if (state.olympicScores === undefined) state.olympicScores = {};
+    if (state.olympicWrongCount === undefined) state.olympicWrongCount = 0;
+    if (state.olympicHistory === undefined) state.olympicHistory = [];
+    state.equippedRunnerBoard = state.equippedCosmetics?.vehicle || 'light_skate';
+    
     return state;
   },
 
@@ -52,6 +57,16 @@ export const questsDb = {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
+
+    if (updates.equippedCosmetics && updates.equippedCosmetics.vehicle) {
+      updatedState.equippedRunnerBoard = updates.equippedCosmetics.vehicle;
+    }
+    if (updates.equippedRunnerBoard) {
+      updatedState.equippedCosmetics = {
+        ...(updatedState.equippedCosmetics || {}),
+        vehicle: updates.equippedRunnerBoard
+      };
+    }
 
     if (updates.auraXp !== undefined) {
       let level = updatedState.auraLevel ?? 1;

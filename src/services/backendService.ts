@@ -173,6 +173,32 @@ const mapDbToGameState = (row: SupabaseGameStateRow): GameState => {
     return {};
   };
 
+  const parseOlympicScores = (val: any): Record<string, number> => {
+    if (!val) return {};
+    if (typeof val === 'object') return val;
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val) as Record<string, number>;
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  };
+
+  const parseOlympicHistory = (val: any): Array<{ level: number; correct: boolean; timestamp: string }> => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val) as Array<{ level: number; correct: boolean; timestamp: string }>;
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   return {
     userId: row.user_id,
     campaignStage: row.campaign_stage ?? 1,
@@ -203,6 +229,10 @@ const mapDbToGameState = (row: SupabaseGameStateRow): GameState => {
     auraPassXp,
     claimedPassTiers,
     olympicMedals: parseOlympicMedals(row.olympic_medals),
+    olympicScores: parseOlympicScores(row.olympic_scores),
+    olympicWrongCount: row.olympic_wrong_count ?? 0,
+    olympicHistory: parseOlympicHistory(row.olympic_history),
+    equippedRunnerBoard: equippedCosmetics.vehicle || 'light_skate',
   };
 };
 
@@ -222,6 +252,9 @@ const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateR
   
   // Serialize equippedCosmetics and Aura Pass fields together
   const equippedJsonObj: Record<string, any> = { ...(state.equippedCosmetics || {}) };
+  if (state.equippedRunnerBoard !== undefined) {
+    equippedJsonObj.vehicle = state.equippedRunnerBoard;
+  }
   if (state.hasElitePass !== undefined) equippedJsonObj.hasElitePass = state.hasElitePass;
   if (state.auraPassXp !== undefined) equippedJsonObj.auraPassXp = state.auraPassXp;
   if (state.claimedPassTiers !== undefined) equippedJsonObj.claimedPassTiers = state.claimedPassTiers;
@@ -239,6 +272,9 @@ const mapGameStateToDb = (state: Partial<GameState>): Partial<SupabaseGameStateR
   if (state.clanId !== undefined) dbRow.clan_id = state.clanId;
   if (state.clanContributions !== undefined) dbRow.clan_contributions = state.clanContributions;
   if (state.olympicMedals !== undefined) dbRow.olympic_medals = JSON.stringify(state.olympicMedals);
+  if (state.olympicScores !== undefined) dbRow.olympic_scores = JSON.stringify(state.olympicScores);
+  if (state.olympicWrongCount !== undefined) dbRow.olympic_wrong_count = state.olympicWrongCount;
+  if (state.olympicHistory !== undefined) dbRow.olympic_history = JSON.stringify(state.olympicHistory);
   dbRow.updated_at = new Date().toISOString();
   return dbRow;
 };
