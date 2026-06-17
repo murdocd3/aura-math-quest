@@ -516,6 +516,10 @@ export const backendService = {
     if (isSupabaseEnabled && client) {
       try {
         logger.info(`[BackendService] Deleting user: ${userId} in Supabase...`);
+        // Register the deleted user ID so we can block subsequent logins
+        const { error: insertError } = await client.from('deleted_users').upsert({ user_id: userId });
+        if (insertError) console.error('[BackendService] Warning: Could not register deleted user ID:', insertError);
+
         const { error } = await client.from('users').delete().eq('id', userId).returns<SupabaseUserRow[]>();
         if (error) throw error;
         mockDb.deleteUser(userId);
@@ -558,6 +562,17 @@ export const backendService = {
         const authData = signInRes.data;
 
         if (authData && authData.user) {
+          // Check if user has been recorded as deleted to block authentication
+          const { data: deletedCheck, error: deletedCheckError } = await client
+            .from('deleted_users')
+            .select('user_id')
+            .eq('user_id', authData.user.id);
+          
+          if (!deletedCheckError && deletedCheck && deletedCheck.length > 0) {
+            await client.auth.signOut();
+            throw new Error('Esta conta foi excluída permanentemente.');
+          }
+
           const { data, error } = await client
             .from('users')
             .select('*')
