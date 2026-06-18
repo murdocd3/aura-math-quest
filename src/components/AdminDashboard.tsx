@@ -80,6 +80,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     }
   };
 
+  const handleSingleUserUpdate = async (userId: string) => {
+    const newState = await backendService.getGameState(userId);
+    const newStats = await backendService.getMathStats(userId);
+    
+    setActiveStats(prev => prev && prev.user.id === userId 
+      ? { ...prev, state: newState, stats: newStats.sort((a, b) => b.errorCount - a.errorCount) } 
+      : prev
+    );
+    
+    if (newState) {
+      setGameStatesMap(prev => ({ ...prev, [userId]: newState }));
+      if (userId === selectedUserId) {
+        setTimeLimitInput(newState.customTimeLimit !== undefined ? newState.customTimeLimit : 15);
+        setMasteryThresholdInput(newState.masteryThreshold !== undefined ? newState.masteryThreshold : 5);
+        setLockedOpsList(newState.lockedOperations || []);
+        setLevelAdjustment(String(newState.auraLevel || 1));
+      }
+    }
+    
+    setClassMathStats(prev => {
+      const filtered = prev.filter(s => s.userId !== userId);
+      return [...filtered, ...newStats];
+    });
+  };
+
   useEffect(() => {
     void loadUsers();
   }, []);
@@ -127,7 +152,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     if (success) {
       alert('Parâmetros curriculares salvos com sucesso!');
       audioEngine.playCorrect();
-      await loadUsers();
+      await handleSingleUserUpdate(selectedUserId);
     } else {
       alert('Erro ao salvar os parâmetros.');
     }
@@ -147,7 +172,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     });
     if (success) {
       audioEngine.playCorrect();
-      await loadUsers();
+      await handleSingleUserUpdate(selectedUserId);
     }
   };
 
@@ -160,7 +185,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     });
     if (success) {
       audioEngine.playCorrect();
-      await loadUsers();
+      await handleSingleUserUpdate(selectedUserId);
     }
   };
 
@@ -169,7 +194,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     if (window.confirm('Deseja realmente RESETAR todas as estatísticas e histórico de erros/acertos do aluno? Esta ação não pode ser desfeita.')) {
       await backendService.resetMathStats(selectedUserId);
       audioEngine.playCorrect();
-      await loadUsers();
+      await handleSingleUserUpdate(selectedUserId);
     }
   };
 
@@ -179,7 +204,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     if (window.confirm(`Tem certeza de que deseja forçar o fato "${questionKey}" ${actionText} para este aluno?`)) {
       await backendService.forceMathStatsState(selectedUserId, questionKey, targetState);
       audioEngine.playCorrect();
-      await loadUsers();
+      await handleSingleUserUpdate(selectedUserId);
     }
   };
 
@@ -195,7 +220,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     await backendService.forceMathStatsState(selectedUserId, cleanKey, customFactState);
     setCustomFactKey('');
     audioEngine.playCorrect();
-    await loadUsers();
+    await handleSingleUserUpdate(selectedUserId);
   };
 
   const handlePrintPdf = async () => {
