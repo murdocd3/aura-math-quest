@@ -24,6 +24,7 @@ import { logger } from './logger';
  *   username TEXT UNIQUE NOT NULL,
  *   password TEXT NOT NULL,
  *   role TEXT DEFAULT 'player',
+ *   is_active BOOLEAN DEFAULT true,
  *   created_at TIMESTAMPTZ DEFAULT NOW()
  * );
  * 
