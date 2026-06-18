@@ -8,7 +8,7 @@ ALTER TABLE clans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE math_statistics ENABLE ROW LEVEL SECURITY;
 
--- 2. Drop existing open policies if any
+-- 2. Drop existing policies if any to ensure idempotency
 DROP POLICY IF EXISTS "Allow anon read/write users" ON users;
 DROP POLICY IF EXISTS "Allow anon read/write game_states" ON game_states;
 DROP POLICY IF EXISTS "Allow anon read/write clans" ON clans;
@@ -20,6 +20,18 @@ DROP POLICY IF EXISTS "Allow authenticated read/write game_states" ON game_state
 DROP POLICY IF EXISTS "Allow authenticated read/write clans" ON clans;
 DROP POLICY IF EXISTS "Allow authenticated read/write pets" ON pets;
 DROP POLICY IF EXISTS "Allow authenticated read/write math_statistics" ON math_statistics;
+
+DROP POLICY IF EXISTS "Allow authenticated to view profiles" ON users;
+DROP POLICY IF EXISTS "Allow users to manage their own profile" ON users;
+DROP POLICY IF EXISTS "Allow authenticated to view game states" ON game_states;
+DROP POLICY IF EXISTS "Allow users to manage their own game state" ON game_states;
+DROP POLICY IF EXISTS "Allow authenticated read clans" ON clans;
+DROP POLICY IF EXISTS "Allow authenticated create clans" ON clans;
+DROP POLICY IF EXISTS "Allow leaders and admins to modify clans" ON clans;
+DROP POLICY IF EXISTS "Allow leaders and admins to delete clans" ON clans;
+DROP POLICY IF EXISTS "Allow authenticated to view pets" ON pets;
+DROP POLICY IF EXISTS "Allow users to manage their own pets" ON pets;
+DROP POLICY IF EXISTS "Allow users to manage their own statistics" ON math_statistics;
 
 -- 3. Create secure policies for Authenticated Users
 
