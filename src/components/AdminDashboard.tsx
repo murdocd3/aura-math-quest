@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { User, GameState, MathStatistic } from '../services/mockDb';
 import { audioEngine } from './AudioEngine';
 import { backendService } from '../services/backendService';
+import { logger } from '../services/logger';
 
 interface AdminDashboardProps {
   adminUser: User;
@@ -47,36 +48,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const [classMathStats, setClassMathStats] = useState<MathStatistic[]>([]);
 
   const loadUsers = async () => {
-    const allUsers = await backendService.getUsers();
-    setUsers(allUsers);
-    
-    // Load game states for player list sidebars in parallel
-    const playerUsers = allUsers.filter(u => u.role === 'player');
-    const statesMap: Record<string, GameState> = {};
-    const states = await Promise.all(playerUsers.map(p => backendService.getGameState(p.id)));
-    playerUsers.forEach((p, i) => {
-      if (states[i]) {
-        statesMap[p.id] = states[i]!;
-      }
-    });
-    setGameStatesMap(statesMap);
+    try {
+      const allUsers = await backendService.getUsers();
+      setUsers(allUsers);
+      
+      // Load game states for player list sidebars in parallel
+      const playerUsers = allUsers.filter(u => u.role === 'player');
+      const statesMap: Record<string, GameState> = {};
+      const states = await Promise.all(playerUsers.map(p => backendService.getGameState(p.id)));
+      playerUsers.forEach((p, i) => {
+        if (states[i]) {
+          statesMap[p.id] = states[i]!;
+        }
+      });
+      setGameStatesMap(statesMap);
 
-    const playerIds = playerUsers.map(p => p.id);
-    if (playerIds.length > 0) {
-      const allStats = await backendService.getAllMathStats(playerIds);
-      setClassMathStats(allStats);
-    } else {
-      setClassMathStats([]);
-    }
-
-    if (allUsers.length > 0 && !selectedUserId) {
-      // Select the first player by default for analytics
-      const firstPlayer = allUsers.find(u => u.role === 'player');
-      if (firstPlayer) {
-        setSelectedUserId(firstPlayer.id);
+      const playerIds = playerUsers.map(p => p.id);
+      if (playerIds.length > 0) {
+        const allStats = await backendService.getAllMathStats(playerIds);
+        setClassMathStats(allStats);
       } else {
-        setSelectedUserId(allUsers[0].id);
+        setClassMathStats([]);
       }
+
+      if (allUsers.length > 0 && !selectedUserId) {
+        // Select the first player by default for analytics
+        const firstPlayer = allUsers.find(u => u.role === 'player');
+        if (firstPlayer) {
+          setSelectedUserId(firstPlayer.id);
+        } else {
+          setSelectedUserId(allUsers[0].id);
+        }
+      }
+    } catch (err) {
+      logger.error('[AdminDashboard] Falha ao carregar usuários:', err);
+      setFormError('Não foi possível carregar os dados. Verifique a conexão.');
     }
   };
 
