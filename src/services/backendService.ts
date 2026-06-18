@@ -375,7 +375,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log('[BackendService] Fetching users from Supabase...');
+        logger.info('[BackendService] Fetching users from Supabase...');
         const { data, error } = await client.from('users').select('*').returns<SupabaseUserRow[]>();
         if (error) throw error;
         return (data || []).map((u) => ({
@@ -396,7 +396,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Creating user: ${username} via Supabase Auth (tempClient)...`);
+        logger.info(`[BackendService] Creating user: ${username} via Supabase Auth (tempClient)...`);
         const email = `${username.toLowerCase().trim()}@auramathquest.com`;
 
         // Create a temporary client so it doesn't overwrite/hijack the admin session
@@ -423,7 +423,7 @@ export const backendService = {
 
         if (authData && authData.user) {
           const userId = authData.user.id;
-          console.log(`[BackendService] Inserting public profile for user: ${username} with ID: ${userId}...`);
+          logger.info(`[BackendService] Inserting public profile for user: ${username} with ID: ${userId}...`);
 
           // 2. Insert user profile via PRIMARY client (preserves logged-in admin session and executes with admin RLS permissions)
           const { error: userError } = await client.from('users').insert({
@@ -537,7 +537,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Logging in user: ${username} via Supabase Auth...`);
+        logger.info(`[BackendService] Logging in user: ${username} via Supabase Auth...`);
         const email = `${username.toLowerCase().trim()}@auramathquest.com`;
         
         let signInRes = await client.auth.signInWithPassword({
@@ -548,7 +548,7 @@ export const backendService = {
         // Fallback to legacy .local domain if .com login fails
         if (signInRes.error) {
           const legacyEmail = `${username.toLowerCase().trim()}@auramathquest.local`;
-          console.log(`[BackendService] Login with .com failed. Trying legacy .local email: ${legacyEmail}`);
+          logger.info(`[BackendService] Login with .com failed. Trying legacy .local email: ${legacyEmail}`);
           const fallbackRes = await client.auth.signInWithPassword({
             email: legacyEmail,
             password: passwordPlain
@@ -631,7 +631,7 @@ export const backendService = {
       return state;
     }
     
-    console.log(`[BackendService] Migrating legacy runner board data for ${userId} to game state...`);
+    logger.info(`[BackendService] Migrating legacy runner board data for ${userId} to game state...`);
     
     let updated = false;
     const purchased = [...(state.purchasedCosmetics || [])];
@@ -684,7 +684,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Fetching game state for ${userId} from Supabase...`);
+        logger.info(`[BackendService] Fetching game state for ${userId} from Supabase...`);
         const { data, error } = await client.from('game_states').select('*').eq('user_id', userId).returns<SupabaseGameStateRow[]>();
         if (error) throw error;
         
@@ -702,7 +702,7 @@ export const backendService = {
             const dbTime = new Date(dbState.updatedAt || 0).getTime();
             const localTime = new Date(localState.updatedAt || 0).getTime();
             if (localTime > dbTime) {
-              console.log('🔄 [BackendService] Local state is newer. Syncing to Supabase...');
+              logger.info('🔄 [BackendService] Local state is newer. Syncing to Supabase...');
               const dbUpdates = mapGameStateToDb(localState);
               client.from('game_states').update(dbUpdates).eq('user_id', userId).returns<SupabaseGameStateRow[]>().then(({ error: sError }) => {
                 if (sError) console.error('Error syncing local state to Supabase:', sError);
@@ -792,7 +792,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Updating game state for ${userId} in Supabase...`, updates);
+        logger.info(`[BackendService] Updating game state for ${userId} in Supabase...`, updates);
         const dbUpdates = mapGameStateToDb(localState || updates);
         const { data, error } = await client
           .from('game_states')
@@ -825,7 +825,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Fetching pets for ${userId} from Supabase...`);
+        logger.info(`[BackendService] Fetching pets for ${userId} from Supabase...`);
         const { data, error } = await client.from('pets').select('*').eq('user_id', userId).returns<SupabasePetRow[]>();
         if (error) throw error;
         
@@ -843,7 +843,7 @@ export const backendService = {
 
         // Fallback sync: if cloud is empty but local has pets, push local pets to Supabase
         if (dbPets.length === 0 && localPets.length > 0) {
-          console.log('🔄 [BackendService] Syncing local pets to Supabase...');
+          logger.info('🔄 [BackendService] Syncing local pets to Supabase...');
           localPets.forEach(pet => {
             client.from('pets').insert({
               id: pet.id,
@@ -875,7 +875,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Creating pet ${petTypeId} for ${userId} in Supabase...`);
+        logger.info(`[BackendService] Creating pet ${petTypeId} for ${userId} in Supabase...`);
         
         // Retrieve details dynamically from mockDb PET_TYPES definition
         const PET_TYPES_LOCAL = [
@@ -956,7 +956,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Fusing pets ${parentId1} and ${parentId2} in Supabase...`);
+        logger.info(`[BackendService] Fusing pets ${parentId1} and ${parentId2} in Supabase...`);
         
         // 1. Fetch both pets and verify they belong to userId (RPC simulation security validation)
         const { data: petData1 } = await client.from('pets').select('*').eq('id', parentId1).eq('user_id', userId).returns<SupabasePetRow[]>();
@@ -1002,7 +1002,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Fetching math stats for ${userId} from Supabase...`);
+        logger.info(`[BackendService] Fetching math stats for ${userId} from Supabase...`);
         const { data, error } = await client.from('math_statistics').select('*').eq('user_id', userId).returns<SupabaseMathStatisticRow[]>();
         if (error) throw error;
         return (data || []).map(s => ({
@@ -1023,7 +1023,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Fetching all math stats for ${playerIds.length} users from Supabase...`);
+        logger.info(`[BackendService] Fetching all math stats for ${playerIds.length} users from Supabase...`);
         const { data, error } = await client
           .from('math_statistics')
           .select('*')
@@ -1052,7 +1052,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Recording answer for ${userId} in Supabase: ${questionKey}`);
+        logger.info(`[BackendService] Recording answer for ${userId} in Supabase: ${questionKey}`);
         
         // Fetch existing row to increment
         const { data } = await client
@@ -1243,7 +1243,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log('[BackendService] Fetching real-time leaderboard from Supabase...');
+        logger.info('[BackendService] Fetching real-time leaderboard from Supabase...');
         // Fetch players, game_states, and pets in parallel
         const [usersRes, statesRes, petsRes, clansRes] = await Promise.all([
           client.from('users').select('id, username, role').returns<SupabaseUserRow[]>(),
@@ -1395,7 +1395,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log('[BackendService] Fetching clans leaderboard from Supabase...');
+        logger.info('[BackendService] Fetching clans leaderboard from Supabase...');
         const [clansRes, statesRes] = await Promise.all([
           client.from('clans').select('*').returns<SupabaseClanRow[]>(),
           client.from('game_states').select('user_id, aura_level, rebirths').returns<SupabaseGameStateRow[]>()
@@ -1451,7 +1451,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Student ${userId} joining Clan ${clanId}...`);
+        logger.info(`[BackendService] Student ${userId} joining Clan ${clanId}...`);
         
         // 1. Leave current clan first if any
         await this.leaveClan(userId);
@@ -1483,7 +1483,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Student ${userId} leaving clan...`);
+        logger.info(`[BackendService] Student ${userId} leaving clan...`);
         const state = await this.getGameState(userId);
         if (state && state.clanId) {
           const { data: clanData } = await client.from('clans').select('*').eq('id', state.clanId).returns<SupabaseClanRow[]>();
@@ -1515,7 +1515,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Student ${userId} creating Clan ${name}...`);
+        logger.info(`[BackendService] Student ${userId} creating Clan ${name}...`);
         
         // 1. Leave current clan first
         await this.leaveClan(userId);
@@ -1555,7 +1555,7 @@ export const backendService = {
     const client = supabase;
     if (isSupabaseEnabled && client) {
       try {
-        console.log(`[BackendService] Damaging clan boss of ${clanId} by ${amount}...`);
+        logger.info(`[BackendService] Damaging clan boss of ${clanId} by ${amount}...`);
         const { data, error } = await client.from('clans').select('boss_hp, boss_max_hp, boss_level, members, level, xp').eq('id', clanId).returns<SupabaseClanRow[]>();
         if (error) throw error;
         if (data && data.length > 0) {
