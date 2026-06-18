@@ -582,20 +582,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     // --- NEW SECTIONS DATA ---
     // Retrieve Olympic statistics and equipped runner board from game state
     const playerState = await backendService.getGameState(selectedUserId);
-    const olympicScores: Record<string, number> = (playerState?.olympicScores && Object.keys(playerState.olympicScores).length > 0)
-      ? playerState.olympicScores
-      : {
-          'Lógica Matemática': 20,
-          'Reconhecimento de Padrões': 15,
-          'Resolução de Problemas': 10,
-          'Cálculo Mental': 30,
-          'Atenção aos Detalhes': 25,
-          'Geometria Visual': 15,
-          'Pensamento Estratégico': 10,
-          'Persistência': 15,
-          'Criatividade Matemática': 20,
-          'Velocidade de Resolução': 30
-        };
+    const hasOlympicData = !!(playerState?.olympicScores && Object.keys(playerState.olympicScores).length > 0);
+    const olympicScores: Record<string, number> = hasOlympicData ? playerState!.olympicScores! : {};
 
     const olympicWrongCount = playerState?.olympicWrongCount ?? 0;
     const olympicHistory = playerState?.olympicHistory ?? [];
@@ -833,33 +821,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
             <div class="module-card">
               <h3 style="margin: 0 0 8px 0; font-size: 12px; color: #b45309; border-bottom: 1px solid #f59e0b; padding-bottom: 3px;">🏆 Olimpíadas dos Deuses (OBMEP & Lógica)</h3>
               
-              <div style="display: flex; justify-content: space-around; margin-bottom: 10px; text-align: center; font-size: 11px;">
-                <div>🥇 <strong>${goldCount}</strong> Ouro</div>
-                <div>🥈 <strong>${silverCount}</strong> Prata</div>
-                <div>🥉 <strong>${bronzeCount}</strong> Bronze</div>
-              </div>
+              ${hasOlympicData ? `
+                <div style="display: flex; justify-content: space-around; margin-bottom: 10px; text-align: center; font-size: 11px;">
+                  <div>🥇 <strong>${goldCount}</strong> Ouro</div>
+                  <div>🥈 <strong>${silverCount}</strong> Prata</div>
+                  <div>🥉 <strong>${bronzeCount}</strong> Bronze</div>
+                </div>
 
-              <div style="margin-top: 8px;">
-                <span style="font-size: 11px; font-weight: 500;">Perguntas na Fila de Re-Treino:</span>
-                <span class="stat-badge-inline" style="background-color: #fee2e2; color: #991b1b;">${olympicWrongCount} pendentes</span>
-              </div>
+                <div style="margin-top: 8px;">
+                  <span style="font-size: 11px; font-weight: 500;">Perguntas na Fila de Re-Treino:</span>
+                  <span class="stat-badge-inline" style="background-color: #fee2e2; color: #991b1b;">${olympicWrongCount} pendentes</span>
+                </div>
 
-              <h4 style="margin: 10px 0 5px 0; font-size: 10px; color: #4b5563; text-transform: uppercase;">Checklist de Especializações</h4>
-              ${olympicSkillsHtml}
+                <h4 style="margin: 10px 0 5px 0; font-size: 10px; color: #4b5563; text-transform: uppercase;">Checklist de Especializações</h4>
+                ${olympicSkillsHtml}
 
-              <h4 style="margin: 12px 0 5px 0; font-size: 10px; color: #4b5563; text-transform: uppercase;">Histórico Olímpico Recente</h4>
-              <table style="margin-top: 3px;">
-                <thead>
-                  <tr>
-                    <th>Nível</th>
-                    <th>Resultado</th>
-                    <th>Hora</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${olympicHistoryRowsHtml}
-                </tbody>
-              </table>
+                <h4 style="margin: 12px 0 5px 0; font-size: 10px; color: #4b5563; text-transform: uppercase;">Histórico Olímpico Recente</h4>
+                <table style="margin-top: 3px;">
+                  <thead>
+                    <tr>
+                      <th>Nível</th>
+                      <th>Resultado</th>
+                      <th>Hora</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${olympicHistoryRowsHtml}
+                  </tbody>
+                </table>
+              ` : `
+                <p style="font-size: 11px; color: #6b7280; font-style: italic; text-align: center; margin: 20px 0;">
+                  Este aluno ainda não participou do módulo de Olimpíadas.
+                </p>
+              `}
             </div>
 
             <div class="module-card">
