@@ -46,8 +46,8 @@ CREATE POLICY "Allow authenticated to view profiles" ON users
 -- Users can only modify their own profile
 CREATE POLICY "Allow users to manage their own profile" ON users
   FOR ALL TO authenticated 
-  USING (auth.uid() = id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  WITH CHECK (auth.uid() = id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  USING (auth.uid()::text = id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid()::text = id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- Table: game_states
 -- Users can view all game states (necessary for leaderboards)
@@ -57,8 +57,8 @@ CREATE POLICY "Allow authenticated to view game states" ON game_states
 -- Users can only modify their own game state
 CREATE POLICY "Allow users to manage their own game state" ON game_states
   FOR ALL TO authenticated 
-  USING (auth.uid() = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  WITH CHECK (auth.uid() = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  USING (auth.uid()::text = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid()::text = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- Table: clans
 -- Clan details are public to all authenticated users
@@ -72,12 +72,12 @@ CREATE POLICY "Allow authenticated create clans" ON clans
 -- Only the leader of the clan or an admin can modify/delete the clan details
 CREATE POLICY "Allow leaders and admins to modify clans" ON clans
   FOR UPDATE TO authenticated 
-  USING (auth.uid() = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  WITH CHECK (auth.uid() = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  USING (auth.uid()::text = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid()::text = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 CREATE POLICY "Allow leaders and admins to delete clans" ON clans
   FOR DELETE TO authenticated 
-  USING (auth.uid() = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  USING (auth.uid()::text = leader_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- Table: pets
 -- Users can view all pets (for sanctums of other users)
@@ -87,15 +87,15 @@ CREATE POLICY "Allow authenticated to view pets" ON pets
 -- Users can only modify their own pets
 CREATE POLICY "Allow users to manage their own pets" ON pets
   FOR ALL TO authenticated 
-  USING (auth.uid() = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  WITH CHECK (auth.uid() = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  USING (auth.uid()::text = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid()::text = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- Table: math_statistics
 -- Users can only read/write their own statistics
 CREATE POLICY "Allow users to manage their own statistics" ON math_statistics
   FOR ALL TO authenticated 
-  USING (auth.uid() = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-  WITH CHECK (auth.uid() = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+  USING (auth.uid()::text = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid()::text = user_id OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- 4. Enable RLS enforcement
 ALTER TABLE users FORCE ROW LEVEL SECURITY;
